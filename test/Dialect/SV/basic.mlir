@@ -181,6 +181,12 @@ hw.module @test1(%arg0: i1, %arg1: i1, %arg8: i8) {
   %reg24       = sv.reg sym @regSym1 : !hw.inout<i23>
   %wire25      = sv.wire sym @wireSym1 : !hw.inout<i23>
 
+  // Wire and reg with comment attribute
+  // CHECK-NEXT: %wireWithComment = sv.wire {comment = "wire comment"} : !hw.inout<i8>
+  // CHECK-NEXT: %regWithComment = sv.reg {comment = "reg comment"} : !hw.inout<i8>
+  %wireWithComment = sv.wire {comment = "wire comment"} : !hw.inout<i8>
+  %regWithComment = sv.reg {comment = "reg comment"} : !hw.inout<i8>
+
   // Simulation Control Tasks
   // CHECK-NEXT: sv.initial {
   // CHECK-NEXT: sv.stop 1

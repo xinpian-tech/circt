@@ -218,12 +218,15 @@ static LogicalResult verifyLocalParamOp(LocalParamOp op) {
 //===----------------------------------------------------------------------===//
 
 void RegOp::build(OpBuilder &builder, OperationState &odsState,
-                  Type elementType, StringAttr name, StringAttr sym_name) {
+                  Type elementType, StringAttr name, StringAttr sym_name,
+                  StringAttr comment) {
   if (!name)
     name = builder.getStringAttr("");
   odsState.addAttribute("name", name);
   if (sym_name)
     odsState.addAttribute(hw::InnerName::getInnerNameAttrName(), sym_name);
+  if (comment)
+    odsState.addAttribute("comment", comment);
   odsState.addTypes(hw::InOutType::get(elementType));
 }
 
@@ -1000,11 +1003,14 @@ InterfaceInstanceOp::getReferencedInterface(const hw::SymbolCache *cache) {
 //===----------------------------------------------------------------------===//
 
 void WireOp::build(OpBuilder &builder, OperationState &odsState,
-                   Type elementType, StringAttr name, StringAttr sym_name) {
+                   Type elementType, StringAttr name, StringAttr sym_name,
+                   StringAttr comment) {
   if (!name)
     name = builder.getStringAttr("");
   if (sym_name)
     odsState.addAttribute(hw::InnerName::getInnerNameAttrName(), sym_name);
+  if (comment)
+    odsState.addAttribute("comment", comment);
 
   odsState.addAttribute("name", name);
   odsState.addTypes(InOutType::get(elementType));

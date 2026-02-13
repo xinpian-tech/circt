@@ -1046,3 +1046,60 @@ hw.module @Foo(%a: i1, %b: i1) -> (r1: i1, r2: i1) {
   hw.output %0, %0 : i1, i1
 }
 
+// Test wire with comment
+// CHECK-LABEL: module wireWithComment
+hw.module @wireWithComment(%in: i8) -> (out: i8) {
+  // CHECK: // This wire has a comment
+  // CHECK-NEXT: wire [7:0] myWire;
+  %myWire = sv.wire {comment = "This wire has a comment"} : !hw.inout<i8>
+  sv.assign %myWire, %in : i8
+  %out = sv.read_inout %myWire : !hw.inout<i8>
+  hw.output %out : i8
+}
+
+// Test wire with multi-line comment
+// CHECK-LABEL: module wireWithMultiLineComment
+hw.module @wireWithMultiLineComment(%in: i8) -> (out: i8) {
+  // CHECK: // Line 1 of comment
+  // CHECK-NEXT: // Line 2 of comment
+  // CHECK-NEXT: wire [7:0] multiLineWire;
+  %multiLineWire = sv.wire {comment = "Line 1 of comment\nLine 2 of comment"} : !hw.inout<i8>
+  sv.assign %multiLineWire, %in : i8
+  %out = sv.read_inout %multiLineWire : !hw.inout<i8>
+  hw.output %out : i8
+}
+
+// Test reg with comment
+// CHECK-LABEL: module regWithComment
+hw.module @regWithComment(%clk: i1, %in: i8) -> (out: i8) {
+  // CHECK: // This reg has a comment
+  // CHECK-NEXT: reg [7:0] myReg;
+  %myReg = sv.reg {comment = "This reg has a comment"} : !hw.inout<i8>
+  sv.alwaysff(posedge %clk) {
+    sv.passign %myReg, %in : i8
+  }
+  %out = sv.read_inout %myReg : !hw.inout<i8>
+  hw.output %out : i8
+}
+
+hw.module.extern @ExternalModule(%a: i8) -> (b: i8)
+
+// Test instance with comment
+// CHECK-LABEL: module instanceWithComment
+hw.module @instanceWithComment(%in: i8) -> (out: i8) {
+  // CHECK: // This instance has a comment
+  // CHECK-NEXT: ExternalModule inst (
+  %out = hw.instance "inst" @ExternalModule(a: %in: i8) -> (b: i8) {comment = "This instance has a comment"}
+  hw.output %out : i8
+}
+
+// Test instance with multi-line comment
+// CHECK-LABEL: module instanceWithMultiLineComment
+hw.module @instanceWithMultiLineComment(%in: i8) -> (out: i8) {
+  // CHECK: // Instance comment line 1
+  // CHECK-NEXT: // Instance comment line 2
+  // CHECK-NEXT: ExternalModule inst2 (
+  %out = hw.instance "inst2" @ExternalModule(a: %in: i8) -> (b: i8) {comment = "Instance comment line 1\nInstance comment line 2"}
+  hw.output %out : i8
+}
+

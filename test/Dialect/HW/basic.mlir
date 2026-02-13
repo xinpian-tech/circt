@@ -153,6 +153,14 @@ hw.module @fileListTest(%arg1: i32) attributes {output_filelist = #hw.output_fil
 // CHECK-SAME: attributes {comment = "hello world"}
 hw.module @commentModule() attributes {comment = "hello world"} {}
 
+hw.module.extern @ExtModForComment(%a: i8) -> (b: i8)
+// CHECK-LABEL: hw.module @instanceWithComment
+hw.module @instanceWithComment(%in: i8) -> (out: i8) {
+  // CHECK: hw.instance "inst" @ExtModForComment(a: %in: i8) -> (b: i8) {comment = "instance comment"}
+  %out = hw.instance "inst" @ExtModForComment(a: %in: i8) -> (b: i8) {comment = "instance comment"}
+  hw.output %out : i8
+}
+
 module {
 // CHECK-LABEL: module {
   hw.globalRef @glbl_B_M1 [#hw.innerNameRef<@A::@inst_1>, #hw.innerNameRef<@B::@memInst>]

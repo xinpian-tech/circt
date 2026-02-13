@@ -3251,6 +3251,9 @@ LogicalResult StmtEmitter::visitSV(CaseZOp op) {
 }
 
 LogicalResult StmtEmitter::visitStmt(InstanceOp op) {
+  // Emit comment if present for instance (before any doNotPrint wrapper).
+  emitComment(op.commentAttr());
+
   bool doNotPrint = op->hasAttr("doNotPrint");
   if (doNotPrint) {
     indent() << "/* This instance is elsewhere emitted as a bind statement.\n";
@@ -3603,6 +3606,12 @@ void StmtEmitter::collectNamesEmitDecls(Block &block) {
     auto *op = record.value.getDefiningOp();
     opsForLocation.clear();
     opsForLocation.insert(op);
+
+    // Emit comment if present for wire or reg declarations.
+    if (auto wireOp = dyn_cast<WireOp>(op))
+      emitComment(wireOp.commentAttr());
+    else if (auto regOp = dyn_cast<RegOp>(op))
+      emitComment(regOp.commentAttr());
 
     // Emit the leading word, like 'wire' or 'reg'.
     auto type = record.value.getType();

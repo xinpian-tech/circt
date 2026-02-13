@@ -880,7 +880,7 @@ static LogicalResult verifyHWModuleGeneratedOp(HWModuleGeneratedOp op) {
 void InstanceOp::build(OpBuilder &builder, OperationState &result,
                        Operation *module, StringAttr name,
                        ArrayRef<Value> inputs, ArrayAttr parameters,
-                       StringAttr sym_name) {
+                       StringAttr sym_name, StringAttr comment) {
   assert(isAnyModule(module) && "Can only reference a module");
 
   if (!parameters)
@@ -890,7 +890,8 @@ void InstanceOp::build(OpBuilder &builder, OperationState &result,
   build(builder, result, modType.getResults(), name,
         FlatSymbolRefAttr::get(SymbolTable::getSymbolName(module)), inputs,
         module->getAttrOfType<ArrayAttr>("argNames"),
-        module->getAttrOfType<ArrayAttr>("resultNames"), parameters, sym_name);
+        module->getAttrOfType<ArrayAttr>("resultNames"), parameters, sym_name,
+        comment);
 }
 
 /// Lookup the module or extmodule for the symbol.  This returns null on
