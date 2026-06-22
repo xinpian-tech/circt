@@ -38,6 +38,8 @@ class HardwareDeclOp<string mnemonic, list <Trait> traits = []> :
   ReferableDeclOp<mnemonic, traits # [
     ParentOneOf<[
       "firrtl::ContractOp",
+      // Allow FIRRTL declarations inside a frontend-built verif.contract.
+      "verif::ContractOp",
       "firrtl::FModuleOp",
       "firrtl::LayerBlockOp",
       "firrtl::MatchOp",

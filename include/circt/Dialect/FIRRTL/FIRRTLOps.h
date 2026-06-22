@@ -21,6 +21,9 @@
 #include "circt/Dialect/HW/InnerSymbolTable.h"
 #include "circt/Dialect/SV/SVOps.h"
 #include "circt/Dialect/Seq/SeqAttributes.h"
+// Complete type needed: HardwareDeclOp's ParentOneOf names verif::ContractOp in
+// a HasParent trait (a nested name specifier in the generated code).
+#include "circt/Dialect/Verif/VerifOps.h"
 #include "circt/Support/FieldRef.h"
 #include "circt/Support/InstanceGraph.h"
 #include "mlir/IR/Builders.h"
