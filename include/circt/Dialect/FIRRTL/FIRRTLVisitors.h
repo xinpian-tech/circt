@@ -52,9 +52,9 @@ public:
             SizeOfIntrinsicOp, ClockGateIntrinsicOp, ClockInverterIntrinsicOp,
             ClockDividerIntrinsicOp, LTLAndIntrinsicOp, LTLOrIntrinsicOp,
             LTLIntersectIntrinsicOp, LTLDelayIntrinsicOp, LTLConcatIntrinsicOp,
-            LTLRepeatIntrinsicOp, LTLGoToRepeatIntrinsicOp,
-            LTLNonConsecutiveRepeatIntrinsicOp, LTLNotIntrinsicOp,
-            LTLImplicationIntrinsicOp, LTLUntilIntrinsicOp,
+            LTLClockedDelayIntrinsicOp, LTLRepeatIntrinsicOp,
+            LTLGoToRepeatIntrinsicOp, LTLNonConsecutiveRepeatIntrinsicOp,
+            LTLNotIntrinsicOp, LTLImplicationIntrinsicOp, LTLUntilIntrinsicOp,
             LTLEventuallyIntrinsicOp, LTLPastIntrinsicOp, LTLClockIntrinsicOp,
             Mux2CellIntrinsicOp, Mux4CellIntrinsicOp, HasBeenResetIntrinsicOp,
             // Miscellaneous.
@@ -180,6 +180,7 @@ public:
   HANDLE(LTLOrIntrinsicOp, Unhandled);
   HANDLE(LTLIntersectIntrinsicOp, Unhandled);
   HANDLE(LTLDelayIntrinsicOp, Unhandled);
+  HANDLE(LTLClockedDelayIntrinsicOp, Unhandled);
   HANDLE(LTLConcatIntrinsicOp, Unhandled);
   HANDLE(LTLRepeatIntrinsicOp, Unhandled);
   HANDLE(LTLGoToRepeatIntrinsicOp, Unhandled);
