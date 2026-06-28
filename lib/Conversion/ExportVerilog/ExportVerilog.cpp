@@ -184,6 +184,33 @@ static bool isDuplicatableExpression(Operation *op) {
     return false;
   }
 
+  // A 1-bit NOT of a leaf (`comb.xor x, allones`) is cheap to duplicate inline.
+  // This keeps a multi-use inverted reset condition (`~rst`) inline at each use
+  // instead of spilling it to a wire, which would otherwise race against an
+  // asynchronous `negedge rst` sensitivity edge (see FirRegLowering active-low
+  // reset emission). Restricted to a NOT of a *leaf* operand (block arg /
+  // constant / read of a port or wire) so we never duplicate an arbitrary
+  // subtree.
+  if (auto xorOp = dyn_cast<comb::XorOp>(op)) {
+    if (xorOp.getType().isInteger(1) && xorOp.getInputs().size() == 2) {
+      Value data;
+      for (auto [i, in] : llvm::enumerate(xorOp.getInputs())) {
+        if (auto c = in.getDefiningOp<hw::ConstantOp>())
+          if (c.getValue().isAllOnes())
+            data = xorOp.getInputs()[1 - i];
+      }
+      if (data) {
+        auto *dataOp = data.getDefiningOp();
+        if (!dataOp || isa<ConstantOp>(dataOp))
+          return true;
+        if (auto read = dyn_cast<ReadInOutOp>(dataOp)) {
+          auto *readSrc = read.getInput().getDefiningOp();
+          return !readSrc || isa<sv::WireOp, LogicOp>(readSrc);
+        }
+      }
+    }
+  }
+
   return false;
 }
 
@@ -2318,8 +2345,7 @@ private:
 
   /// Emit braced list of values surrounded by `{` and `}`.
   void emitBracedList(ValueRange ops) {
-    return emitBracedList(
-        ops, [&]() { ps << "{"; }, [&]() { ps << "}"; });
+    return emitBracedList(ops, [&]() { ps << "{"; }, [&]() { ps << "}"; });
   }
 
   /// Print an APInt constant.
@@ -5536,12 +5562,20 @@ LogicalResult StmtEmitter::visitSV(AlwaysFFOp op) {
       startStatement();
       ps << "if (";
       // TODO: group, like normal 'if'.
-      // Negative edge async resets need to invert the reset condition. This
-      // is noted in the op description.
-      if (op.getResetStyle() == ResetType::AsyncReset &&
-          *op.getResetEdge() == sv::EventControl::AtNegEdge)
+      // An active-low (negative-edge) reset inverts the reset condition so the
+      // block tests `if (!reset)` on the original reset signal -- for both
+      // synchronous and asynchronous resets. (Only an async reset is added to
+      // the sensitivity list above.) This is noted in the op description.
+      bool activeLowReset = op.getResetEdge() &&
+                            *op.getResetEdge() == sv::EventControl::AtNegEdge;
+      if (activeLowReset)
         ps << "!";
-      emitExpression(op.getReset(), ops);
+      // When the condition is inverted, emit the reset operand at unary
+      // precedence so a compound reset expression is parenthesized
+      // (`!(a & b)`, not `!a & b` which would parse as `(!a) & b`). A leaf
+      // operand stays bare (`!rst`).
+      emitExpression(op.getReset(), ops,
+                     activeLowReset ? Unary : LowestPrecedence);
       ps << ")";
       emitBlockAsStatement(op.getResetBlock(), ops);
       startStatement();

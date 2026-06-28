@@ -990,9 +990,7 @@ static ExprSolution solveExpr(Expr *expr, SmallPtrSetImpl<Expr *> &seenVars,
           worklist.emplace_back(expr->lhs(), indent + 1);
           worklist.emplace_back(expr->rhs(), indent + 1);
         })
-        .Default([&](auto) {
-          setSolution(ExprSolution{std::nullopt, false});
-        });
+        .Default([&](auto) { setSolution(ExprSolution{std::nullopt, false}); });
   }
 
   return solvedExprs[expr];
@@ -1543,12 +1541,12 @@ LogicalResult InferenceMapping::mapOperation(Operation *op) {
       // Handle operations with a single result type that always has a
       // well-known width.
       .Case<LEQPrimOp, LTPrimOp, GEQPrimOp, GTPrimOp, EQPrimOp, NEQPrimOp,
-            AsClockPrimOp, AsAsyncResetPrimOp, AsResetPrimOp, AndRPrimOp,
-            OrRPrimOp, XorRPrimOp>([&](auto op) {
-        auto width = op.getType().getBitWidthOrSentinel();
-        assert(width > 0 && "width should have been checked by verifier");
-        setExpr(op.getResult(), solver.known(width));
-      })
+            AsClockPrimOp, AsResetPrimOp, AndRPrimOp, OrRPrimOp, XorRPrimOp>(
+          [&](auto op) {
+            auto width = op.getType().getBitWidthOrSentinel();
+            assert(width > 0 && "width should have been checked by verifier");
+            setExpr(op.getResult(), solver.known(width));
+          })
       .Case<MuxPrimOp, Mux2CellIntrinsicOp>([&](auto op) {
         auto *sel = getExpr(op.getSel());
         constrainTypes(solver.known(1), sel, /*imposeUpperBounds=*/true);

@@ -20,7 +20,7 @@ module Memory(
   // MEMON-DAG: [[RDATA:%.+]] = seq.firmem.read_port [[MEM]][%raddr]
   // MEMON-DAG: seq.firmem.write_port %mem[%waddr] = %wdata, clock [[CLK]] enable %wenable
 
-  // MEMOFF-DAG: [[REG:%.+]] = seq.firreg [[NEXT:%.+]] clock [[CLK]] : !hw.array<16xi42>
+  // MEMOFF-DAG: [[REG:%.+]] = seq.firreg [[NEXT:%.+]] clock [[CLK]] {clockEdge = 0 : i32} : !hw.array<16xi42>
   // MEMOFF-DAG: [[TMP:%.+]] = hw.array_inject [[REG]][%waddr], %wdata
   // MEMOFF-DAG: [[NEXT]] = comb.mux bin %wenable, [[TMP]], [[REG]]
   // MEMOFF-DAG: [[RDATA:%.+]] = hw.array_get [[REG]][%raddr]
