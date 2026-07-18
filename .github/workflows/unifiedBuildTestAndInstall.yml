@@ -1,17 +1,8 @@
 name: Build, Test, and Install (Native)
-description: |
-  This reusable workflow is intended to be used to build dynamic or mostly
-  static tools or CIRCT as a library.  This uses normal GitHub Actions runners
-  and does not farm out work to containers.
 
-  This is suitable if you are building Linux binaries or libraries for
-  relatively newer Linux distributions.  The GitHub Linux runners will all use
-  relatively new GNU C Library versions and these binaries will be usable for
-  most users, but not for companies using ancient GNU C Library versions (e.g.,
-  RHEL).
-
-  This also should be suitable for building macOS or Windows binaries or
-  libraries.
+# This reusable workflow builds dynamic or mostly static tools, or CIRCT as a
+# library, on native GitHub-hosted runners. Linux artifacts target relatively
+# recent glibc releases; macOS and Windows builds are supported as well.
 
 env:
   # The version of Verilator to install for Linux builds.
@@ -20,91 +11,6 @@ env:
   yosys-version-linux: 0.64
 
 on:
-  workflow_dispatch:
-    inputs:
-      runner:
-        description: "The GitHub runner to use"
-        required: true
-        type: choice
-        options:
-          - ubuntu-24.04
-          - ubuntu-22.04
-          - ubuntu-20.04
-          - macos-15-large
-          - macos-15
-          - macos-14-large
-          - macos-14
-          - macos-13
-          - windows-2022
-          - windows-2019
-      cmake_build_type:
-        required: true
-        type: choice
-        options:
-          - release
-          - relwithdebinfo
-          - debug
-        default: relwithdebinfo
-      build_shared_libs:
-        required: true
-        type: choice
-        options:
-          - on
-          - off
-        default: off
-      llvm_enable_assertions:
-        required: true
-        type: choice
-        options:
-          - on
-          - off
-      run_tests:
-        description: "Run tests"
-        required: true
-        type: boolean
-        default: false
-      run_integration_tests:
-        description: "Run integration tests"
-        required: false
-        type: boolean
-        default: false
-      install_target:
-        description: "Install steps to run (empty if do not install)"
-        required: false
-        type: string
-      package_name_prefix:
-        description: "The prefix for package name (has no effect unless \"install\" is set)"
-        required: false
-        type: string
-      cmake_c_compiler:
-        description: "The C compiler to use, the C++ compiler will be derived from this"
-        required: true
-        type: choice
-        options:
-          - clang
-          - clang-10
-          - clang-11
-          - clang-12
-          - clang-13
-          - clang-14
-          - clang-15
-          - clang-16
-          - clang-17
-          - clang-18
-          - clang-19
-          - gcc
-          - cl
-        default: clang
-      valgrind:
-        description: "Enable valgrind in lit tests"
-        required: false
-        type: boolean
-        default: false
-      extra_cmake_args:
-        description: "Extra CMake arguments to pass to the configuration step"
-        required: false
-        type: string
-        default: ""
   workflow_call:
     inputs:
       runner:
@@ -158,9 +64,8 @@ jobs:
     permissions:
       contents: write # Upload assets to release.
     steps:
-# Canonicalize inputs (which could come from workflow_dispatch or workflow_call)
-# which may be slightly different.  E.g., change `true` to `ON` or `Release` to
-# `release`.  This guarantees that we get cache hits regardless of input casing.
+# Canonicalize reusable-workflow inputs. For example, change `true` to `ON` or
+# `Release` to `release` so callers get cache hits regardless of input casing.
       - name: Canonicalize inputs
         id: canonicalize
         shell: bash
@@ -179,12 +84,18 @@ jobs:
           # Hash extra cmake args for cache key (use first 8 chars of sha256)
           EXTRA_CMAKE_HASH=$(echo -n "${INPUT_EXTRA_CMAKE}" | sha256sum | cut -c1-8)
           echo "extra_cmake_hash=$EXTRA_CMAKE_HASH" >> $GITHUB_OUTPUT
+          # Distinguish parallel release jobs which otherwise share every
+          # diagnostic-name axis but install different packages.
+          INSTALL_HASH=$(printf '%s\n%s' "${INPUT_INSTALL_TARGET}" "${INPUT_PACKAGE_PREFIX}" | sha256sum | cut -c1-8)
+          echo "install_hash=$INSTALL_HASH" >> "$GITHUB_OUTPUT"
         env:
           INPUT_BUILD_TYPE: ${{ inputs.cmake_build_type }}
           INPUT_COMPILER: ${{ inputs.cmake_c_compiler }}
           INPUT_SHARED: ${{ inputs.build_shared_libs }}
           INPUT_ASSERTIONS: ${{ inputs.llvm_enable_assertions }}
           INPUT_EXTRA_CMAKE: ${{ inputs.extra_cmake_args }}
+          INPUT_INSTALL_TARGET: ${{ inputs.install_target }}
+          INPUT_PACKAGE_PREFIX: ${{ inputs.package_name_prefix }}
       - name: Free disk space
         if: runner.os == 'Linux'
         uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
@@ -199,6 +110,7 @@ jobs:
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           fetch-depth: 2
+          persist-credentials: false
           submodules: "true"
       - name: Unshallow llvm/circt
         run: |
@@ -503,3 +415,39 @@ jobs:
           files: ${{ steps.name_archive.outputs.name }}*
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           release-tag: ${{ github.ref_name }} # Upload to release tag when manually run.
+
+      # Keep enough state to debug native platform failures even when this
+      # invocation does not produce an install/package artifact.
+      - name: Record build diagnostics
+        if: ${{ always() }}
+        shell: bash
+        env:
+          C_COMPILER: ${{ inputs.cmake_c_compiler }}
+          CONFIGURATION: ${{ inputs.cmake_build_type }}
+          REQUESTED_RUNNER: ${{ inputs.runner }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          mkdir -p ci-diagnostics
+          printf 'requested-runner=%s\nrunner-os=%s\nrunner-arch=%s\nconfiguration=%s\ncompiler=%s\nsource-sha=%s\n' \
+            "$REQUESTED_RUNNER" "${{ runner.os }}" "${{ runner.arch }}" \
+            "$CONFIGURATION" "$C_COMPILER" "$SOURCE_SHA" \
+            > ci-diagnostics/run-metadata.txt
+          df -h > ci-diagnostics/disk-usage.txt 2>&1 || true
+
+      - name: Upload build diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: build-diagnostics-${{ inputs.runner }}-${{ inputs.cmake_c_compiler }}-${{ inputs.cmake_build_type }}-${{ inputs.build_shared_libs }}-${{ inputs.llvm_enable_assertions }}-${{ inputs.run_tests }}-${{ inputs.run_integration_tests }}-${{ inputs.valgrind }}-${{ steps.canonicalize.outputs.extra_cmake_hash }}-${{ steps.canonicalize.outputs.install_hash }}
+          path: |
+            ci-diagnostics/
+            build/CMakeCache.txt
+            build/.ninja_log
+            build/**/*.log
+            build/**/*lit*.xml
+            build-circt-standalone/CMakeCache.txt
+            build-circt-standalone/.ninja_log
+            build-circt-standalone/**/*.log
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7

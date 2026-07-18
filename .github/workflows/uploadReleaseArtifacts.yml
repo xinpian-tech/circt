@@ -43,12 +43,6 @@ on:
         default: false
         type: boolean
 
-  # Run every day at 0700 UTC which is:
-  #   - 0000 PDT / 2300 PST
-  #   - 0300 EDT / 0200 EST
-  schedule:
-    - cron: '0 7 * * *'
-
 jobs:
   publish-sources:
     if: github.ref_type == 'tag'
@@ -98,7 +92,7 @@ jobs:
         id: get-config
         run: |
           case ${{ github.event_name }} in
-            "release" | "schedule")
+            "release")
               config=$(.github/bin/uploadReleaseArtifacts.sh -e ${{ github.event_name }})
               ;;
             "workflow_dispatch")

@@ -1,47 +1,9 @@
 name: Unified Build, Test, and Install (Static)
-description: |
-  This reusable workflow is intended to be used to build completely static
-  tools.  This uses Alpine Linux to build CIRCT using musl libc which can be
-  used to make completely statically linked binaries.
 
-  This workflow should be used if you are trying to publish universal Linux
-  binaries.
+# This reusable workflow builds completely static CIRCT tools in Alpine/musl
+# for publishing portable Linux binaries.
 
 on:
-  workflow_dispatch:
-    inputs:
-      cmake_build_type:
-        required: true
-        type: choice
-        options:
-          - release
-          - relwithdebinfo
-          - debug
-        default: relwithdebinfo
-      llvm_enable_assertions:
-        required: true
-        type: choice
-        options:
-          - on
-          - off
-      run_tests:
-        description: "Run tests"
-        required: true
-        type: boolean
-        default: false
-      run_integration_tests:
-        description: "Run integration tests"
-        required: false
-        type: boolean
-        default: false
-      install_target:
-        description: "Install steps to run (empty if do not install)"
-        required: false
-        type: string
-      package_name_prefix:
-        description: "The prefix for package name (has no effect unless \"install\" is set)"
-        required: false
-        type: string
   workflow_call:
     inputs:
       cmake_build_type:
@@ -58,7 +20,6 @@ on:
         description: "If true, then run integration tests, otherwise skip integration tests"
         required: true
         type: boolean
-        default: false
       install_target:
         description: "Install steps to run"
         required: false
@@ -211,3 +172,43 @@ jobs:
           files: ${{ steps.name_archive.outputs.name }}*
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           release-tag: ${{ github.ref_name }} # Upload to release tag when manually run.
+
+      - name: Record static build diagnostics
+        id: diagnostic-key
+        if: ${{ always() }}
+        env:
+          BUILD_TYPE: ${{ inputs.cmake_build_type }}
+          INSTALL_TARGET: ${{ inputs.install_target }}
+          LLVM_ASSERTIONS: ${{ inputs.llvm_enable_assertions }}
+          PACKAGE_PREFIX: ${{ inputs.package_name_prefix }}
+          RUN_INTEGRATION_TESTS: ${{ inputs.run_integration_tests }}
+          RUN_TESTS: ${{ inputs.run_tests }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          mkdir -p ci-diagnostics
+          printf 'runner-os=%s\nrunner-arch=%s\nbuild-type=%s\nllvm-assertions=%s\nrun-tests=%s\nrun-integration-tests=%s\ninstall-target=%s\npackage-prefix=%s\nsource-sha=%s\n' \
+            "${{ runner.os }}" "${{ runner.arch }}" "$BUILD_TYPE" \
+            "$LLVM_ASSERTIONS" "$RUN_TESTS" "$RUN_INTEGRATION_TESTS" \
+            "$INSTALL_TARGET" "$PACKAGE_PREFIX" "$SOURCE_SHA" \
+            > ci-diagnostics/run-metadata.txt
+          diagnostic_key=$(printf '%s\n' "$BUILD_TYPE" "$LLVM_ASSERTIONS" \
+            "$RUN_TESTS" "$RUN_INTEGRATION_TESTS" "$INSTALL_TARGET" \
+            "$PACKAGE_PREFIX" \
+            | sha256sum | cut -c1-12)
+          echo "key=$diagnostic_key" >> "$GITHUB_OUTPUT"
+          df -h > ci-diagnostics/disk-usage.txt 2>&1 || true
+
+      - name: Upload static build diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: static-build-diagnostics-${{ steps.diagnostic-key.outputs.key }}
+          path: |
+            ci-diagnostics/
+            build/CMakeCache.txt
+            build/.ninja_log
+            build/**/*.log
+            build/**/*lit*.xml
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
