@@ -486,6 +486,7 @@ struct InferResetsPass
   LogicalResult implementFullReset();
   LogicalResult implementFullReset(FModuleOp module, ResetDomain &domain);
   void implementFullReset(Operation *op, FModuleOp module, Value actualReset);
+  void stampAsyncResetTypes();
 
   // Helper to implement full reset for instance-like operations
   void implementFullReset(FInstanceLike inst, StringAttr moduleName,
@@ -578,9 +579,30 @@ void InferResetsPass::runOnOperationInner() {
   if (failed(implementFullReset()))
     return signalPassFailure();
 
+  // Now that all reset networks are resolved to concrete async/sync types,
+  // stamp the authoritative `resetType` attribute on every register whose reset
+  // ended up asynchronous. This keeps the attribute the single source of truth
+  // for downstream lowering and satisfies the fail-closed verifier (an
+  // `asyncreset`-typed reset must carry `resetType = AsyncReset`).
+  stampAsyncResetTypes();
+
   // Require that no Abstract Resets exist on ports in the design.
   if (failed(verifyNoAbstractReset()))
     return signalPassFailure();
+}
+
+/// Record the authoritative asynchronous reset kind on every `RegResetOp` whose
+/// reset operand is `asyncreset`-typed. Synchronous resets keep the elided
+/// default, so only the async case needs an explicit attribute.
+void InferResetsPass::stampAsyncResetTypes() {
+  getOperation()->walk([](RegResetOp regOp) {
+    if (!type_isa<AsyncResetType>(regOp.getResetSignal().getType()))
+      return;
+    if (regOp.getResetType() == RegResetType::AsyncReset)
+      return;
+    regOp.setResetTypeAttr(
+        RegResetTypeAttr::get(regOp.getContext(), RegResetType::AsyncReset));
+  });
 }
 
 ResetSignal InferResetsPass::guessRoot(ResetNetwork net) {
@@ -1964,6 +1986,10 @@ void InferResetsPass::implementFullReset(Operation *op, FModuleOp module,
         zero, regOp.getNameAttr(), regOp.getNameKindAttr(),
         regOp.getAnnotations(), regOp.getInnerSymAttr(),
         regOp.getForceableAttr());
+    // Preserve a non-default clock edge across the reset insertion; the
+    // authoritative `resetType` is stamped later by stampAsyncResetTypes().
+    if (auto clockEdge = regOp.getClockEdgeAttr())
+      newRegOp.setClockEdgeAttr(clockEdge);
     regOp.getResult().replaceAllUsesWith(newRegOp.getResult());
     if (regOp.getForceable())
       regOp.getRef().replaceAllUsesWith(newRegOp.getRef());
