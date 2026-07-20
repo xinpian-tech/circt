@@ -37,6 +37,12 @@ static bool canErase(T op) {
            (op.getAnnotationsAttr() && !op.getAnnotationsAttr().empty()));
 }
 
+/// Return true if `value` has a user other than its sole writer.
+static bool hasUseOtherThanWriter(Value value, Operation *writer) {
+  return llvm::any_of(value.getUsers(),
+                      [&](Operation *user) { return user != writer; });
+}
+
 namespace {
 
 //===----------------------------------------------------------------------===//
@@ -61,6 +67,9 @@ void RegisterOptimizerPass::checkReg(mlir::DominanceInfo &dom,
     return;
   auto con = getSingleConnectUserOf(reg.getResult());
   if (!con)
+    return;
+  if (hasDeclarationComment(reg) &&
+      hasUseOtherThanWriter(reg.getResult(), con.getOperation()))
     return;
 
   // Register is only written by itself.  Without a time-zero `initial` value
@@ -136,6 +145,9 @@ void RegisterOptimizerPass::checkRegReset(mlir::DominanceInfo &dom,
     return;
   auto con = getSingleConnectUserOf(reg.getResult());
   if (!con)
+    return;
+  if (hasDeclarationComment(reg) &&
+      hasUseOtherThanWriter(reg.getResult(), con.getOperation()))
     return;
 
   // Both folds below replace the register with its reset value, so bail if
