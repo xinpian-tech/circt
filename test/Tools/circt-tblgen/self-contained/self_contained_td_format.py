@@ -60,7 +60,7 @@ class SelfContainedTDFormat(lit.formats.TestFormat):
 
     td_file = test.td_file
     cmd = [*test.cmd_prefix, td_file]
-    timeout = test.config.maxIndividualTestTime or None
+    timeout = getattr(test.config, "maxIndividualTestTime", None) or None
     env = test.config.environment
     try:
       result = subprocess.run(cmd,
