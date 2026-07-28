@@ -75,12 +75,11 @@ ltl.repeat %s, 0 : !ltl.sequence
 ltl.repeat %s, 42 : !ltl.sequence
 ltl.repeat %s, 42, 1337 : !ltl.sequence
 
-<<<<<<< HEAD
 // CHECK: ltl.weak {{%.+}} : !ltl.sequence
 // CHECK: ltl.strong {{%.+}} : !ltl.sequence
 ltl.weak %s : !ltl.sequence
 ltl.strong %s : !ltl.sequence
-=======
+
 // CHECK: ltl.clocked_repeat {{%.+}}, posedge {{%.+}}, 2, 2 : !ltl.sequence
 %cr = ltl.clocked_repeat %s, posedge %true, 2, 2 : !ltl.sequence
 
@@ -89,7 +88,6 @@ ltl.strong %s : !ltl.sequence
 
 // CHECK: ltl.clocked_non_consecutive_repeat {{%.+}}, posedge {{%.+}}, 1, 2 : !ltl.sequence
 %cn = ltl.clocked_non_consecutive_repeat %s, posedge %true, 1, 2 : !ltl.sequence
->>>>>>> fc2820eac ([LTL] Add clocked temporal ops (until/eventually/repeat family))
 
 //===----------------------------------------------------------------------===//
 // Properties
@@ -127,3 +125,25 @@ ltl.eventually %p : !ltl.property
 
 // CHECK: ltl.past {{%.+}}, 5 clk {{%.+}} : i8
 ltl.past %c0_i8, 5 clk %true : i8
+
+//===----------------------------------------------------------------------===//
+// Clocking
+//===----------------------------------------------------------------------===//
+
+// CHECK: ltl.clock {{%.+}}, posedge {{%.+}} : !ltl.sequence
+// CHECK: ltl.clock {{%.+}}, negedge {{%.+}} : !ltl.sequence
+// CHECK: ltl.clock {{%.+}}, edge {{%.+}} : i1
+// CHECK: ltl.clock {{%.+}}, edge {{%.+}} : !ltl.sequence
+// CHECK: ltl.clock {{%.+}}, edge {{%.+}} : !ltl.property
+ltl.clock %s, posedge %true : !ltl.sequence
+ltl.clock %s, negedge %true : !ltl.sequence
+%clk0 = ltl.clock %true, edge %true : i1
+%clk1 = ltl.clock %s, edge %true : !ltl.sequence
+%clk2 = ltl.clock %p, edge %true : !ltl.property
+
+// Type inference. `unrealized_conversion_cast` used to detect unexpected return
+// types on `ltl.and`.
+unrealized_conversion_cast %clk0 : !ltl.sequence to index
+unrealized_conversion_cast %clk1 : !ltl.sequence to index
+unrealized_conversion_cast %clk2 : !ltl.property to index
+
