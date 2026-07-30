@@ -259,7 +259,8 @@ def ClockedGoToRepeatOp : LTLOp<"clocked_goto_repeat", [Pure]> {
   let description = [{
     Non-consecutively repeats `$input` between `$base` and `$base + $more`
     times, sampled at the explicit `$edge` of `$clock`. The final evaluation
-    in the sequence must match.
+    in the sequence must match. The number of evaluations between matches is
+    unbounded.
   }];
 }
 
@@ -274,7 +275,8 @@ def ClockedNonConsecutiveRepeatOp : LTLOp<"clocked_non_consecutive_repeat", [Pur
   let description = [{
     Non-consecutively repeats `$input` between `$base` and `$base + $more`
     times, sampled at `$edge` of `$clock`. The final evaluation in the sequence
-    does not have to match.
+    does not have to match. The number of evaluations between matches is
+    unbounded.
   }];
 }
 

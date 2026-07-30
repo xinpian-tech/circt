@@ -17,8 +17,10 @@ endmodule
 // clang-format on
 
 // -----
-module UnclockedSEventually(input logic a);
-  // expected-error @below {{sequence has no explicit clocking event and one cannot be inferred from context}}
+module UnclockedSEventually
+    (input logic a);
+  // expected-error @below {{sequence has no explicit clocking event and one
+  // cannot be inferred from context}}
   assert property (s_eventually a);
 endmodule
 
