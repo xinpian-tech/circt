@@ -57,8 +57,8 @@ public:
             LTLClockedRepeatIntrinsicOp, LTLClockedGoToRepeatIntrinsicOp,
             LTLClockedNonConsecutiveRepeatIntrinsicOp, LTLNotIntrinsicOp,
             LTLImplicationIntrinsicOp, LTLClockedUntilIntrinsicOp,
-            LTLEventuallyIntrinsicOp, LTLClockedEventuallyIntrinsicOp,
-            LTLPastIntrinsicOp, Mux2CellIntrinsicOp, Mux4CellIntrinsicOp,
+            LTLClockedEventuallyIntrinsicOp,
+            LTLClockedPastIntrinsicOp, Mux2CellIntrinsicOp, Mux4CellIntrinsicOp,
             HasBeenResetIntrinsicOp,
             // Miscellaneous.
             BitsPrimOp, HeadPrimOp, MuxPrimOp, PadPrimOp, ShlPrimOp, ShrPrimOp,
@@ -192,9 +192,8 @@ public:
   HANDLE(LTLNotIntrinsicOp, Unhandled);
   HANDLE(LTLImplicationIntrinsicOp, Unhandled);
   HANDLE(LTLClockedUntilIntrinsicOp, Unhandled);
-  HANDLE(LTLEventuallyIntrinsicOp, Unhandled);
   HANDLE(LTLClockedEventuallyIntrinsicOp, Unhandled);
-  HANDLE(LTLPastIntrinsicOp, Unhandled);
+  HANDLE(LTLClockedPastIntrinsicOp, Unhandled);
   HANDLE(Mux4CellIntrinsicOp, Unhandled);
   HANDLE(Mux2CellIntrinsicOp, Unhandled);
   HANDLE(HasBeenResetIntrinsicOp, Unhandled);

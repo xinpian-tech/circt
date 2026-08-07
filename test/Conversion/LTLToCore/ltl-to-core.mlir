@@ -123,6 +123,6 @@ hw.module @Intersect(in %a: i1, in %b: i1, in %c: !ltl.sequence, in %clk: i1) {
 // CHECK: [[REG2:%.+]] = seq.shiftreg[5] [[A]], [[TOCLK2]], [[TRUE1]] : i32
 
 hw.module @Past(in %a: i32, in %clk: i1) {
-  ltl.past %a, 1 clk %clk : i32
-  ltl.past %a, 5 clk %clk : i32
+  ltl.clocked_past %a, 1 clk %clk : i32
+  ltl.clocked_past %a, 5 clk %clk : i32
 }

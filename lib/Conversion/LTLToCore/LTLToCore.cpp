@@ -186,11 +186,12 @@ struct LTLIntersectOpConversion : public OpConversionPattern<ltl::IntersectOp> {
   }
 };
 
-struct LTLPastOpConversion : public OpConversionPattern<ltl::PastOp> {
-  using OpConversionPattern<ltl::PastOp>::OpConversionPattern;
+struct LTLClockedPastOpConversion
+    : public OpConversionPattern<ltl::ClockedPastOp> {
+  using OpConversionPattern<ltl::ClockedPastOp>::OpConversionPattern;
 
   LogicalResult
-  matchAndRewrite(ltl::PastOp op, OpAdaptor adaptor,
+  matchAndRewrite(ltl::ClockedPastOp op, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     Value clock =
         seq::ToClockOp::create(rewriter, op.getLoc(), adaptor.getClk());
@@ -231,7 +232,7 @@ void LowerLTLToCorePass::runOnOperation() {
   target.addLegalDialect<ltl::LTLDialect>();
   target.addLegalDialect<verif::VerifDialect>();
   target.addIllegalOp<verif::HasBeenResetOp>();
-  target.addIllegalOp<ltl::PastOp>();
+  target.addIllegalOp<ltl::ClockedPastOp>();
 
   auto isLegal = [](Operation *op) {
     auto hasNonAssertUsers = std::any_of(
@@ -293,7 +294,7 @@ void LowerLTLToCorePass::runOnOperation() {
   RewritePatternSet patterns(&getContext());
   patterns.add<HasBeenResetOpConversion, LTLImplicationConversion,
                LTLNotConversion, LTLAndOpConversion, LTLOrOpConversion,
-               LTLIntersectOpConversion, LTLPastOpConversion>(
+               LTLIntersectOpConversion, LTLClockedPastOpConversion>(
       converter, patterns.getContext());
   // Apply the conversions
   if (failed(
