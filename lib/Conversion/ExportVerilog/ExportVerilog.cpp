@@ -3635,7 +3635,6 @@ private:
   EmittedProperty visitLTL(ltl::NotOp op);
   EmittedProperty visitLTL(ltl::ImplicationOp op);
   EmittedProperty visitLTL(ltl::ClockedUntilOp op);
-  EmittedProperty visitLTL(ltl::EventuallyOp op);
   EmittedProperty visitLTL(ltl::ClockedEventuallyOp op);
   EmittedProperty visitLTL(ltl::WeakOp op);
   EmittedProperty visitLTL(ltl::StrongOp op);
@@ -3954,20 +3953,6 @@ PropertyEmitter::visitLTL(ltl::ClockedNonConsecutiveRepeatOp op) {
 }
 
 EmittedProperty PropertyEmitter::visitLTL(ltl::NotOp op) {
-  // Emit `not (s_eventually X)` as `always ...` by duality, pulling the
-  // quantifier to the top and cancelling any inner negation.
-  if (auto ev = op.getInput().getDefiningOp<ltl::EventuallyOp>()) {
-    ps << "always" << PP::space;
-    if (auto innerNot = ev.getInput().getDefiningOp<ltl::NotOp>()) {
-      // `not(strong_eventually(not(X)))` -> `always X`.
-      emitNestedProperty(innerNot.getInput(), PropertyPrecedence::Qualifier);
-    } else {
-      // `not(strong_eventually(X))` -> `always (not X)`.
-      ps << "not" << PP::space;
-      emitNestedProperty(ev.getInput(), PropertyPrecedence::Unary);
-    }
-    return {PropertyPrecedence::Qualifier};
-  }
   ps << "not" << PP::space;
   emitNestedProperty(op.getInput(), PropertyPrecedence::Unary);
   return {PropertyPrecedence::Unary};
@@ -3987,12 +3972,6 @@ EmittedProperty PropertyEmitter::visitLTL(ltl::ClockedUntilOp op) {
     emitNestedProperty(op.getCondition(), PropertyPrecedence::Until);
     return EmittedProperty{PropertyPrecedence::Until};
   });
-}
-
-EmittedProperty PropertyEmitter::visitLTL(ltl::EventuallyOp op) {
-  ps << "s_eventually" << PP::space;
-  emitNestedProperty(op.getInput(), PropertyPrecedence::Qualifier);
-  return {PropertyPrecedence::Qualifier};
 }
 
 EmittedProperty PropertyEmitter::visitLTL(ltl::ClockedEventuallyOp op) {
