@@ -153,8 +153,10 @@
       mkCore =
         system:
         let
-          pkgs = circt-nix.legacyPackages.${system};
-          basePkgs = import nixpkgs { inherit system; };
+          pkgs = import nixpkgs {
+            inherit system;
+            overlays = [ circt-nix.overlays.default ];
+          };
           python = mkPython system;
           upstreamLLVM = pkgs.circtFlakePkgs.llvmPackages_circt;
 
@@ -253,9 +255,9 @@
             ) (old.patches or [ ]);
             buildInputs = builtins.filter (dep: pkgs.lib.getName dep != "catch2") (old.buildInputs or [ ]);
             propagatedBuildInputs = (old.propagatedBuildInputs or [ ]) ++ [
-              basePkgs.boost
-              basePkgs.fmt
-              basePkgs.tomlplusplus
+              pkgs.boost
+              pkgs.fmt
+              pkgs.tomlplusplus
             ];
             cmakeFlags = (old.cmakeFlags or [ ]) ++ [ "-DSLANG_INCLUDE_TESTS=OFF" ];
             postPatch = ''
