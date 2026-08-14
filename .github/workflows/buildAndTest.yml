@@ -160,15 +160,12 @@ jobs:
 
           run_variant() {
             local variant="$1"
-            local check_drv
 
-            check_drv=$(nix path-info --derivation \
-              ".#checks.x86_64-linux.$variant" "${override[@]}") \
-              || return
             nix build -L \
               --option extra-sandbox-paths \
                 "/run/circt-ci/sccache=$cache_root" \
-              "$check_drv^*" \
+              ".#checks.x86_64-linux.${variant}^*" \
+              "${override[@]}" \
               --out-link ".nix-results/$variant" \
               || return
             ".nix-results/$variant/bin/firtool" --version || return
@@ -199,15 +196,6 @@ jobs:
           # age filter prevents pruned objects from being uploaded again.
           rclone copy "$SCCACHE_LOCAL_ROOT/circt-sccache" \
             sccache:circt-sccache --fast-list --max-age 7d --size-only
-      - name: Remove local sccache objects
-        if: ${{ always() }}
-        run: |
-          cache_root=${SCCACHE_LOCAL_ROOT:-}
-          if [[ -n "$cache_root" && -d "$cache_root" ]]; then
-            [[ "$cache_root" == "$RUNNER_TEMP/"* ]]
-            find "$cache_root" -mindepth 1 -delete
-            rmdir "$cache_root"
-          fi
 
   ci-result:
     name: Package PR and Run Checks
@@ -233,25 +221,3 @@ jobs:
           [[ "$YAPF_RESULT" == success ]]
           [[ "$SLANG_TESTS_RESULT" == success ]]
           [[ "$BUILD_RESULT" == success ]]
-
-  upload-dispatch-metadata:
-    name: Upload Dispatch Metadata
-    runs-on: self-hosted
-    steps:
-      - name: Write PR number
-        env:
-          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          mkdir -p dispatch-metadata
-          find dispatch-metadata -mindepth 1 -delete
-          printf '%s\n' "$PR_NUMBER" > dispatch-metadata/pr_number
-          printf 'head-repo=%s\nhead-sha=%s\n' "$HEAD_REPO" "$HEAD_SHA" \
-            > dispatch-metadata/source.txt
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        if: ${{ always() }}
-        with:
-          name: dispatch-metadata
-          path: dispatch-metadata/
-          retention-days: 7
