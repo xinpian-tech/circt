@@ -144,7 +144,7 @@ jobs:
               --fast-list --size-only --use-server-modtime; then
             echo "::warning::Unable to restore sccache objects; continuing with an empty cache"
           fi
-          sudo chmod -R a+rwX "$cache_root"
+          chmod -R a+rwX "$cache_root"
       - name: Build and test CIRCT
         timeout-minutes: 300
         run: |
@@ -165,10 +165,6 @@ jobs:
             check_drv=$(nix path-info --derivation \
               ".#checks.x86_64-linux.$variant" "${override[@]}") \
               || return
-            # Different derivations can use different nixbld UIDs. Re-open
-            # cache shards before mounting the host directory into the next
-            # sandbox. Network access and upstream credentials remain outside.
-            sudo chmod -R a+rwX "$cache_root" || return
             nix build -L \
               --option extra-sandbox-paths \
                 "/run/circt-ci/sccache=$cache_root" \
@@ -197,7 +193,6 @@ jobs:
           [[ "$SCCACHE_LOCAL_ROOT" == "$RUNNER_TEMP/"* ]]
           command -v rclone >/dev/null
 
-          sudo chmod -R a+rwX "$SCCACHE_LOCAL_ROOT"
           rclone delete sccache:circt-sccache \
             --fast-list --min-age 7d --use-server-modtime
           # Restore preserved each object's server upload time locally. The
@@ -210,8 +205,8 @@ jobs:
           cache_root=${SCCACHE_LOCAL_ROOT:-}
           if [[ -n "$cache_root" && -d "$cache_root" ]]; then
             [[ "$cache_root" == "$RUNNER_TEMP/"* ]]
-            sudo find "$cache_root" -mindepth 1 -delete
-            sudo rmdir "$cache_root"
+            find "$cache_root" -mindepth 1 -delete
+            rmdir "$cache_root"
           fi
 
   ci-result:
