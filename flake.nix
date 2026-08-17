@@ -338,8 +338,8 @@
                   # LLVM's process-global registries.
                   substituteInPlace tools/arcilator/CMakeLists.txt \
                     --replace-fail \
-                    'set(ARCILATOR_JIT_LLVM_COMPONENTS native)' \
-                    'set(ARCILATOR_JIT_LLVM_COMPONENTS native OrcJIT)' \
+                    'set(ARCILATOR_JIT_LLVM_COMPONENTS native codegen)' \
+                    'set(ARCILATOR_JIT_LLVM_COMPONENTS native OrcJIT codegen)' \
                     --replace-fail '    LLVMOrcJIT' "" \
                     --replace-fail \
                     'set(LLVM_LINK_COMPONENTS Support ''${ARCILATOR_JIT_LLVM_COMPONENTS})' \
