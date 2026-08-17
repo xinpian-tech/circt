@@ -131,26 +131,21 @@ jobs:
           mkdir -p .nix-results
       - name: Restore sccache objects
         run: |
+          : "${NIX_SCCACHE_DIR:?The runner must set NIX_SCCACHE_DIR}"
+          [[ "$NIX_SCCACHE_DIR" == /* ]]
+          [[ -d "$NIX_SCCACHE_DIR" && -w "$NIX_SCCACHE_DIR" ]]
           command -v rclone >/dev/null
+          mkdir -p "$NIX_SCCACHE_DIR/circt-sccache"
 
-          cache_root=$(mktemp -d "$RUNNER_TEMP/circt-sccache.XXXXXX")
-          chmod 0777 "$cache_root"
-          mkdir -m 0777 "$cache_root/circt-sccache"
-          echo "SCCACHE_LOCAL_ROOT=$cache_root" >> "$GITHUB_ENV"
-
-          # A failed restore only makes this run compile from a cold cache.
+          # A failed refresh leaves the existing machine-local cache usable.
           if ! rclone copy sccache:circt-sccache \
-              "$cache_root/circt-sccache" \
+              "$NIX_SCCACHE_DIR/circt-sccache" \
               --fast-list --size-only --use-server-modtime; then
-            echo "::warning::Unable to restore sccache objects; continuing with an empty cache"
+            echo "::warning::Unable to refresh sccache objects; continuing with the local cache"
           fi
-          chmod -R a+rwX "$cache_root"
       - name: Build and test CIRCT
         timeout-minutes: 300
         run: |
-          cache_root=${SCCACHE_LOCAL_ROOT:?The restore step must set SCCACHE_LOCAL_ROOT}
-          [[ "$cache_root" == "$RUNNER_TEMP/"* ]]
-
           override=(
             --no-update-lock-file
             --override-input circt-src "git+file://$GITHUB_WORKSPACE"
@@ -162,8 +157,6 @@ jobs:
             local variant="$1"
 
             nix build -L \
-              --option extra-sandbox-paths \
-                "/run/circt-ci/sccache=$cache_root" \
               ".#checks.x86_64-linux.${variant}^*" \
               "${override[@]}" \
               --out-link ".nix-results/$variant" \
@@ -183,18 +176,20 @@ jobs:
         if: ${{ success() && github.ref == 'refs/heads/master' }}
         continue-on-error: true
         run: |
-          if [[ -z "${SCCACHE_LOCAL_ROOT:-}" \
-                || ! -d "$SCCACHE_LOCAL_ROOT/circt-sccache" ]]; then
-            exit 0
-          fi
-          [[ "$SCCACHE_LOCAL_ROOT" == "$RUNNER_TEMP/"* ]]
+          : "${NIX_SCCACHE_DIR:?The runner must set NIX_SCCACHE_DIR}"
+          [[ "$NIX_SCCACHE_DIR" == /* ]]
+          [[ -d "$NIX_SCCACHE_DIR/circt-sccache" ]]
           command -v rclone >/dev/null
 
+          # The scratch store is shared by all runners on this machine, so it
+          # is pruned here rather than when an ephemeral runner restarts.
+          rclone delete ":local:$NIX_SCCACHE_DIR/circt-sccache" \
+            --fast-list --min-age 7d
           rclone delete sccache:circt-sccache \
             --fast-list --min-age 7d --use-server-modtime
           # Restore preserved each object's server upload time locally. The
           # age filter prevents pruned objects from being uploaded again.
-          rclone copy "$SCCACHE_LOCAL_ROOT/circt-sccache" \
+          rclone copy "$NIX_SCCACHE_DIR/circt-sccache" \
             sccache:circt-sccache --fast-list --max-age 7d --size-only
 
   ci-result:

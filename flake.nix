@@ -451,6 +451,9 @@
             ;
           ciPkgs = import nixpkgs { inherit system; };
           python = mkPython system;
+          # CI runners mount their machine-wide scratch object store here. The
+          # path is absent in ordinary local builds, which use the disk fallback.
+          sccacheObjectRoot = "/nix-sccache";
 
           # Espresso 2.4 carries a pre-ANSI declaration for srandom which is
           # incompatible with current glibc headers. Keep the upstream package
@@ -515,7 +518,7 @@
                 export PATH="${python}/bin:$PATH"
                 sccache_rclone_pid=
                 sccache_rclone_log="$NIX_BUILD_TOP/rclone-s3.log"
-                sccache_object_root=/run/circt-ci/sccache
+                sccache_object_root=${ciPkgs.lib.escapeShellArg sccacheObjectRoot}
                 if [[ -d "$sccache_object_root" ]]; then
                   test -w "$sccache_object_root"
                   mkdir -p "$sccache_object_root/circt-sccache"
