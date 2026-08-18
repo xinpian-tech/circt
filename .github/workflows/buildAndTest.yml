@@ -172,7 +172,20 @@ jobs:
             fi
           done
           exit "$status"
-      - name: Prune and upload trusted sccache objects
+      - name: Upload objects
+        if: ${{ always() && !cancelled() }}
+        continue-on-error: true
+        run: |
+          : "${NIX_SCCACHE_DIR:?The runner must set NIX_SCCACHE_DIR}"
+          [[ "$NIX_SCCACHE_DIR" == /* ]]
+          [[ -d "$NIX_SCCACHE_DIR/circt-sccache" ]]
+          command -v rclone >/dev/null
+
+          # Restore preserved each object's server upload time locally. The
+          # age filter prevents pruned objects from being uploaded again.
+          rclone copy "$NIX_SCCACHE_DIR/circt-sccache" \
+            sccache:circt-sccache --fast-list --max-age 7d --size-only
+      - name: Prune objects
         if: ${{ success() && github.ref == 'refs/heads/master' }}
         continue-on-error: true
         run: |
@@ -187,10 +200,6 @@ jobs:
             --fast-list --min-age 7d
           rclone delete sccache:circt-sccache \
             --fast-list --min-age 7d --use-server-modtime
-          # Restore preserved each object's server upload time locally. The
-          # age filter prevents pruned objects from being uploaded again.
-          rclone copy "$NIX_SCCACHE_DIR/circt-sccache" \
-            sccache:circt-sccache --fast-list --max-age 7d --size-only
 
   ci-result:
     name: Package PR and Run Checks
