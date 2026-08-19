@@ -1056,6 +1056,58 @@ firrtl.circuit "Issue6820" {
 
 // -----
 
+// Check forceable registers with clocked forces don't crash.
+// CHECK: firrtl.circuit "ForceableRegisters"
+firrtl.circuit "ForceableRegisters" {
+  firrtl.module @ForceableRegisters(
+      in %clock: !firrtl.clock,
+      in %reset: !firrtl.uint<1>,
+      in %force_en: !firrtl.uint<1>,
+      in %value: !firrtl.uint<3>,
+      out %reg_out: !firrtl.uint<3>,
+      out %regreset_out: !firrtl.uint<3>) {
+    %zero = firrtl.constant 0 : !firrtl.uint<3>
+    %reg, %reg_ref = firrtl.reg %clock forceable : !firrtl.clock, !firrtl.uint<3>, !firrtl.rwprobe<uint<3>>
+    %regreset, %regreset_ref = firrtl.regreset %clock, %reset, %zero forceable : !firrtl.clock, !firrtl.uint<1>, !firrtl.uint<3>, !firrtl.uint<3>, !firrtl.rwprobe<uint<3>>
+    firrtl.connect %reg, %value : !firrtl.uint<3>, !firrtl.uint<3>
+    firrtl.connect %regreset, %value : !firrtl.uint<3>, !firrtl.uint<3>
+    firrtl.connect %reg_out, %reg : !firrtl.uint<3>, !firrtl.uint<3>
+    firrtl.connect %regreset_out, %regreset : !firrtl.uint<3>, !firrtl.uint<3>
+    firrtl.ref.force %clock, %force_en, %reg_ref, %value : !firrtl.clock, !firrtl.uint<1>, !firrtl.rwprobe<uint<3>>, !firrtl.uint<3>
+    firrtl.ref.force %clock, %force_en, %regreset_ref, %value : !firrtl.clock, !firrtl.uint<1>, !firrtl.rwprobe<uint<3>>, !firrtl.uint<3>
+    firrtl.ref.release %clock, %force_en, %reg_ref : !firrtl.clock, !firrtl.uint<1>, !firrtl.rwprobe<uint<3>>
+    firrtl.ref.release %clock, %force_en, %regreset_ref : !firrtl.clock, !firrtl.uint<1>, !firrtl.rwprobe<uint<3>>
+  }
+}
+
+// -----
+
+firrtl.circuit "CycleThroughForceableRegister" {
+  // expected-error @below {{sample path: CycleThroughForceableRegister.{n <- reg <- n}}}
+  firrtl.module @CycleThroughForceableRegister(in %clock: !firrtl.clock, in %enable: !firrtl.uint<1>) {
+    %reg, %reg_ref = firrtl.reg %clock forceable : !firrtl.clock, !firrtl.uint<1>, !firrtl.rwprobe<uint<1>>
+    %n = firrtl.node %reg : !firrtl.uint<1>
+    firrtl.ref.force %clock, %enable, %reg_ref, %n : !firrtl.clock, !firrtl.uint<1>, !firrtl.rwprobe<uint<1>>, !firrtl.uint<1>
+  }
+}
+
+// -----
+
+firrtl.circuit "CycleThroughColoredForceableRef" {
+  firrtl.layer @DV bind {}
+  // expected-error @below {{sample path: CycleThroughColoredForceableRef.{n <- w <- n}}}
+  firrtl.module @CycleThroughColoredForceableRef(in %clock: !firrtl.clock, in %enable: !firrtl.uint<1>) {
+    %w, %w_ref = firrtl.wire forceable : !firrtl.uint<1>, !firrtl.rwprobe<uint<1>>
+    %n = firrtl.node %w : !firrtl.uint<1>
+    firrtl.layerblock @DV {
+      %colored_ref = firrtl.ref.cast %w_ref : (!firrtl.rwprobe<uint<1>>) -> !firrtl.rwprobe<uint<1>, @DV>
+      firrtl.ref.force %clock, %enable, %colored_ref, %n : !firrtl.clock, !firrtl.uint<1>, !firrtl.rwprobe<uint<1>, @DV>, !firrtl.uint<1>
+    }
+  }
+}
+
+// -----
+
 // Single-element combinational loop under a when.
 firrtl.circuit "WhenLoop" {
   // expected-error @below {{detected combinational cycle in a FIRRTL module, sample path: WhenLoop.{w <- w}}}

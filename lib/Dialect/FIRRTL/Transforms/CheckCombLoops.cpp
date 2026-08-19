@@ -95,13 +95,13 @@ public:
 
     walk(module, [&](Operation *op) {
       llvm::TypeSwitch<Operation *>(op)
-          .Case<hw::CombDataFlow>([&](hw::CombDataFlow df) {
-            // computeDataFlow returns a pair of FieldRefs, first element is the
-            // destination and the second is the source.
-            for (auto [dest, source] : df.computeDataFlow())
-              addDrivenBy(dest, source);
-          })
           .Case<Forceable>([&](Forceable forceableOp) {
+            // Some forceable declarations, including registers, also
+            // implement CombDataFlow.  Handle both interfaces here because
+            // TypeSwitch only invokes its first matching case.
+            if (auto df = dyn_cast<hw::CombDataFlow>(op))
+              for (auto [dest, source] : df.computeDataFlow())
+                addDrivenBy(dest, source);
             // Any declaration that can be forced.
             if (auto node = dyn_cast<NodeOp>(op))
               recordDataflow(node.getData(), node.getInput());
@@ -113,6 +113,17 @@ public:
             // Record dataflow from data to the probe.
             recordDataflow(ref, data);
             recordProbe(data, ref);
+          })
+          .Case<hw::CombDataFlow>([&](hw::CombDataFlow df) {
+            // computeDataFlow returns a pair of FieldRefs, first element is the
+            // destination and the second is the source.
+            for (auto [dest, source] : df.computeDataFlow())
+              addDrivenBy(dest, source);
+          })
+          .Case<RefCastOp>([&](RefCastOp cast) {
+            recordDataflow(cast.getResult(), cast.getInput());
+            if (cast.getResult().getType().getForceable())
+              probesReferToSameData(cast.getInput(), cast.getResult());
           })
           .Case<RefSendOp>([&](RefSendOp send) {
             recordDataflow(send.getResult(), send.getBase());
