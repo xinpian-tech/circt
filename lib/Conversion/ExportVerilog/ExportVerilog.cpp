@@ -3636,12 +3636,8 @@ private:
   EmittedProperty visitLTL(ltl::ImplicationOp op);
   EmittedProperty visitLTL(ltl::ClockedUntilOp op);
   EmittedProperty visitLTL(ltl::ClockedEventuallyOp op);
-<<<<<<< HEAD
-  EmittedProperty visitLTL(ltl::ClockOp op);
   EmittedProperty visitLTL(ltl::WeakOp op);
   EmittedProperty visitLTL(ltl::StrongOp op);
-=======
->>>>>>> bef87ed2e ([LTL] Remove implicit clock scopes)
   EmittedProperty visitLTL(ltl::ClockedAtomOp op);
 
   EmittedProperty emitWeakStrongOp(StringRef mnemonic, Value input);
