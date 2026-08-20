@@ -805,10 +805,21 @@
           lint = pkgs.mkShell {
             packages = with pkgs; [
               clang-tools
+              cmake
               git
               llvmPackages_21.stdenv.cc.cc.python
+              lld
+              ninja
               python
+              z3
             ];
+            shellHook = ''
+              # The prebuilt tools need the C++ runtime and z3 on the library path,
+              # and the BMC integration tests dlopen z3 through --shared-libs.
+              export LD_LIBRARY_PATH="${pkgs.stdenv.cc.cc.lib}/lib:${pkgs.z3.lib}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+              export Z3_LIBZ3="${pkgs.z3.lib}/lib/libz3.so"
+              export Z3_INCLUDE="${pkgs.z3.dev}/include"
+            '';
           };
           default = self.devShells.${system}.lint;
         }
