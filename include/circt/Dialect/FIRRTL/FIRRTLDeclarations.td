@@ -487,7 +487,7 @@ def RegOp : HardwareDeclOp<"reg", [Forceable, DeclareOpInterfaceMethods<CombData
                    "StringRef":$name, "NameKindEnum":$nameKind,
                    "::mlir::ArrayAttr":$annotation, "StringAttr":$innerSym,
                    CArg<"bool", "false">:$forceable,
-                   CArg<"::mlir::IntegerAttr", "{}">:$initial), [{
+                   CArg<"::mlir::IntegerAttr", "{}">:$initial,
                    CArg<"StringAttr", "StringAttr()">:$comment), [{
       return build($_builder, $_state, elementType,
                    clockVal, $_builder.getStringAttr(name), nameKind, annotation,
