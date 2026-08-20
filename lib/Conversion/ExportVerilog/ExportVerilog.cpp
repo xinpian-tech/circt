@@ -3980,14 +3980,6 @@ EmittedProperty PropertyEmitter::visitLTL(ltl::ClockedEventuallyOp op) {
   });
 }
 
-<<<<<<< HEAD
-EmittedProperty PropertyEmitter::visitLTL(ltl::ClockOp op) {
-  emitLTLClockingEvent(op.getEdge(), op.getClock());
-  ps << PP::space;
-  emitNestedProperty(op.getInput(), PropertyPrecedence::Clocking);
-  return {PropertyPrecedence::Clocking};
-}
-
 // Weak and strong are emitted identically
 EmittedProperty PropertyEmitter::emitWeakStrongOp(StringRef mnemonic,
                                                   Value input) {
@@ -4007,8 +3999,6 @@ EmittedProperty PropertyEmitter::visitLTL(ltl::StrongOp op) {
   return emitWeakStrongOp("strong", op.getInput());
 }
 
-=======
->>>>>>> bef87ed2e ([LTL] Remove implicit clock scopes)
 // NOLINTEND(misc-no-recursion)
 
 //===----------------------------------------------------------------------===//
