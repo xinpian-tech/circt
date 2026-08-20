@@ -492,6 +492,7 @@ def RegOp : HardwareDeclOp<"reg", [Forceable, DeclareOpInterfaceMethods<CombData
       return build($_builder, $_state, elementType,
                    clockVal, $_builder.getStringAttr(name), nameKind, annotation,
                    innerSym ? hw::InnerSymAttr::get(innerSym) : hw::InnerSymAttr(),
+                   forceable, initial, comment);
     }]>
   ];
 
