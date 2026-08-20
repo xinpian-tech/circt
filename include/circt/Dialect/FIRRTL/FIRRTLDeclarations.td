@@ -433,7 +433,7 @@ def RegOp : HardwareDeclOp<"reg", [Forceable, DeclareOpInterfaceMethods<CombData
                    "::mlir::ArrayAttr":$annotations,
                    "::circt::hw::InnerSymAttr":$innerSym,
                    "::mlir::UnitAttr":$forceable,
-                   "::mlir::IntegerAttr":$initial), [{
+                   "::mlir::IntegerAttr":$initial,
                    CArg<"::mlir::StringAttr", "{}">:$comment), [{
       $_state.addOperands(clockVal);
       $_state.addAttribute(getNameAttrName($_state.name), name);
