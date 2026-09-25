@@ -103,7 +103,7 @@ jobs:
   build-and-test:
     name: Run CIRCT Checks
     needs: [clang-format, yapf, slang-tests]
-    runs-on: [self-hosted, BIGRAM]
+    runs-on: [self-hosted, BIGRAM, briareus]
     steps:
       - name: Select CIRCT check variants
         env:
