@@ -70,6 +70,19 @@ target_link_libraries(circt-capi-ltl-test
   CIRCTCAPILTL
 )
 
+add_llvm_executable(circt-capi-sim-test
+  PARTIAL_SOURCES_INTENDED
+  sim.c
+)
+llvm_update_compile_flags(circt-capi-sim-test)
+
+target_link_libraries(circt-capi-sim-test
+  PRIVATE
+
+  MLIRCAPIIR
+  CIRCTCAPISim
+)
+
 add_llvm_executable(circt-capi-arc-test
   PARTIAL_SOURCES_INTENDED
   arc.c
