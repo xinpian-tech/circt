@@ -271,5 +271,4 @@ add_circt_public_c_api_library(CIRCTCAPISim
   LINK_LIBS PUBLIC
   MLIRCAPIIR
   CIRCTSim
-  CIRCTSimTransforms
 )

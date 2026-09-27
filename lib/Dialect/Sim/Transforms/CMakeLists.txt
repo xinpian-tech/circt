@@ -1,5 +1,4 @@
 add_circt_dialect_library(CIRCTSimTransforms
-  ExportDPIInterface.cpp
   FoldValueFormatters.cpp
   LowerDPIFunc.cpp
   ProceduralizeSim.cpp
@@ -11,7 +10,6 @@ add_circt_dialect_library(CIRCTSimTransforms
 
   LINK_LIBS PUBLIC
   CIRCTHW
-  CIRCTMoore
   CIRCTSim
   CIRCTSeq
   CIRCTSV
