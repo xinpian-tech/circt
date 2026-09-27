@@ -140,6 +140,8 @@
                 # Keep the value containing whitespace as one CMake argv.
                 cmakeFlagsArray+=("-DLLVM_LIT_ARGS=-v --show-unsupported --timeout=300")
                 export PATH="${python}/bin:$PATH"
+                # sccache initializes its TLS client even for the local HTTP cache.
+                export SSL_CERT_FILE="${ciPkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
                 sccache_rclone_pid=
                 sccache_rclone_log="$NIX_BUILD_TOP/rclone-s3.log"
                 sccache_object_root=${ciPkgs.lib.escapeShellArg sccacheObjectRoot}
