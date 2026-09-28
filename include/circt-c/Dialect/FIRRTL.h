@@ -17,6 +17,7 @@
 #define CIRCT_C_DIALECT_FIRRTL_H
 
 #include "mlir-c/IR.h"
+#include "mlir-c/Pass.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -107,6 +108,11 @@ typedef struct FIRRTLClassElement {
 //===----------------------------------------------------------------------===//
 
 MLIR_DECLARE_CAPI_DIALECT_REGISTRATION(FIRRTL, firrtl);
+
+/// Creates a pass that links the circuits in a builtin module. Ownership of
+/// the returned pass transfers to mlirPassManagerAddOwnedPass.
+MLIR_CAPI_EXPORTED MlirPass
+circtFirrtlCreateLinkCircuitsPass(MlirStringRef baseCircuit, bool noMangle);
 
 //===----------------------------------------------------------------------===//
 // Type API.

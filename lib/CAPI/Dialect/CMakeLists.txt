@@ -79,6 +79,7 @@ add_circt_public_c_api_library(CIRCTCAPIFIRRTL
   LINK_LIBS PUBLIC
   MLIRCAPIIR
   CIRCTFIRRTL
+  CIRCTFIRRTLTransforms
   CIRCTImportFIRFile
 )
 

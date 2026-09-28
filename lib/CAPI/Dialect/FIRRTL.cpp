@@ -17,7 +17,9 @@
 #include "circt/Dialect/FIRRTL/FIRRTLTypes.h"
 #include "circt/Dialect/FIRRTL/FIRRTLUtils.h"
 #include "circt/Dialect/FIRRTL/Import/FIRAnnotations.h"
+#include "circt/Dialect/FIRRTL/Passes.h"
 #include "mlir/CAPI/IR.h"
+#include "mlir/CAPI/Pass.h"
 #include "mlir/CAPI/Registration.h"
 #include "mlir/CAPI/Support.h"
 #include "mlir/IR/ImplicitLocOpBuilder.h"
@@ -34,6 +36,13 @@ namespace json = llvm::json;
 
 MLIR_DEFINE_CAPI_DIALECT_REGISTRATION(FIRRTL, firrtl,
                                       circt::firrtl::FIRRTLDialect)
+
+MlirPass circtFirrtlCreateLinkCircuitsPass(MlirStringRef baseCircuit,
+                                           bool noMangle) {
+  return wrap(
+      circt::firrtl::createLinkCircuits({unwrap(baseCircuit).str(), noMangle})
+          .release());
+}
 
 //===----------------------------------------------------------------------===//
 // Type API.
