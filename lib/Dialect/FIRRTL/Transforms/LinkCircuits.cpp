@@ -216,6 +216,13 @@ static LogicalResult mergeLayer(LayerOp dst, LayerOp src) {
   return success();
 }
 
+static void mergeOption(OptionOp dst, OptionOp src) {
+  SymbolTable dstSymbolTable(dst);
+  for (auto &op : llvm::make_early_inc_range(src.getBody().front()))
+    if (!dstSymbolTable.lookup(cast<OptionCaseOp>(op).getSymNameAttr()))
+      op.moveBefore(&dst.getBody().front(), dst.getBody().front().end());
+}
+
 /// Resolves symbol collisions during circuit merging. Handles:
 ///
 /// 1. Extmodule + module: declaration is removed in favor of the definition
@@ -224,6 +231,7 @@ static LogicalResult mergeLayer(LayerOp dst, LayerOp src) {
 /// 3. Extmodule with empty parameters: the placeholder (without parameters)
 ///    is removed in favor of the fully-parameterized one.
 /// 4. Layers: recursively merged.
+/// 5. Options: cases are merged by name.
 ///
 /// \param collidingOp The operation already present in the merged circuit
 /// \param incomingOp The operation being added from another circuit
@@ -298,6 +306,12 @@ handleCollidingOps(SymbolOpInterface collidingOp, SymbolOpInterface incomingOp,
     if (failed(
             mergeLayer(cast<LayerOp>(collidingOp), cast<LayerOp>(incomingOp))))
       return failure();
+    incomingOp->erase();
+    return true;
+  }
+
+  if (isa<OptionOp>(collidingOp) && isa<OptionOp>(incomingOp)) {
+    mergeOption(cast<OptionOp>(collidingOp), cast<OptionOp>(incomingOp));
     incomingOp->erase();
     return true;
   }
