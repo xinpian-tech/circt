@@ -229,7 +229,9 @@ static void mergeOption(OptionOp dst, OptionOp src) {
 ///    if their port attributes match. The definition must be public.
 /// 2. Identical extmodules: duplicates are removed.
 /// 3. Extmodule with empty parameters: the placeholder (without parameters)
-///    is removed in favor of the fully-parameterized one.
+///    is removed in favor of the fully-parameterized one. Without parameters
+///    on either side, the placeholder whose defname is its own name is removed
+///    in favor of the one naming another Verilog module.
 /// 4. Layers: recursively merged.
 /// 5. Options: cases are merged by name.
 ///
@@ -287,10 +289,20 @@ handleCollidingOps(SymbolOpInterface collidingOp, SymbolOpInterface incomingOp,
     auto collidingParams = collidingOp->getAttrOfType<ArrayAttr>("parameters");
     auto incomingParams = incomingOp->getAttrOfType<ArrayAttr>("parameters");
     if (collidingParams == incomingParams) {
-      if (collidingOp->getAttr("defname") != incomingOp->getAttr("defname"))
+      if (collidingOp->getAttr("defname") == incomingOp->getAttr("defname")) {
+        incomingOp->erase();
+        return true;
+      }
+      // A placeholder names itself; it yields to the declaration that names
+      // another Verilog module.
+      auto isPlaceholder = [](SymbolOpInterface op) {
+        return op->getAttr("defname") == op.getNameAttr();
+      };
+      if (isPlaceholder(collidingOp) == isPlaceholder(incomingOp))
         return failure();
-      incomingOp->erase();
-      return true;
+      auto declaration = isPlaceholder(collidingOp) ? collidingOp : incomingOp;
+      declaration->erase();
+      return declaration == incomingOp;
     }
 
     // FIXME: definition and declaration may have different defname and
