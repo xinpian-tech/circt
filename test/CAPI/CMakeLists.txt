@@ -93,6 +93,7 @@ target_link_libraries(circt-capi-sim-test
   PRIVATE
 
   MLIRCAPIIR
+  MLIRCAPILLVM
   CIRCTCAPISim
 )
 
