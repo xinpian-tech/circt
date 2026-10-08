@@ -48,6 +48,10 @@ MLIR_CAPI_EXPORTED MlirType simAssocArrayTypeGet(MlirType elementType,
 MLIR_CAPI_EXPORTED MlirType simAssocArrayTypeGetElementType(MlirType type);
 MLIR_CAPI_EXPORTED MlirType simAssocArrayTypeGetIndexType(MlirType type);
 
+//===----------------------------------------------------------------------===//
+// DPI function types.
+//===----------------------------------------------------------------------===//
+
 typedef enum {
   SIM_DPI_DIRECTION_INPUT = 0,
   SIM_DPI_DIRECTION_OUTPUT = 1,
@@ -63,12 +67,20 @@ typedef struct {
 } SimDPIArgument;
 
 MLIR_CAPI_EXPORTED bool simTypeIsADPIFunction(MlirType type);
+
+/// Create a DPI function type from arguments in declaration order.
 MLIR_CAPI_EXPORTED MlirType simDPIFunctionTypeGet(
     MlirContext ctx, intptr_t numArguments, const SimDPIArgument *arguments);
+
 MLIR_CAPI_EXPORTED intptr_t simDPIFunctionTypeGetNumArguments(MlirType type);
-/// The returned name refers to storage owned by the type's context.
+
+/// Return the argument at index. The name is owned by the type's context.
+/// Requires 0 <= index < simDPIFunctionTypeGetNumArguments(type).
 MLIR_CAPI_EXPORTED SimDPIArgument simDPIFunctionTypeGetArgument(MlirType type,
                                                                 intptr_t index);
+
+/// Return the derived call signature, which omits argument names and
+/// directions.
 MLIR_CAPI_EXPORTED MlirType simDPIFunctionTypeGetFunctionType(MlirType type);
 
 MLIR_CAPI_EXPORTED bool simTypeIsAOutputStream(MlirType type);
