@@ -84,6 +84,42 @@ MlirType simAssocArrayTypeGetIndexType(MlirType type) {
   return wrap(cast<AssocArrayType>(unwrap(type)).getIndexType());
 }
 
+//===----------------------------------------------------------------------===//
+// DPI function types.
+//===----------------------------------------------------------------------===//
+
+static DPIDirection unwrapDirection(SimDPIDirection direction) {
+  switch (direction) {
+  case SIM_DPI_DIRECTION_INPUT:
+    return DPIDirection::Input;
+  case SIM_DPI_DIRECTION_OUTPUT:
+    return DPIDirection::Output;
+  case SIM_DPI_DIRECTION_INOUT:
+    return DPIDirection::InOut;
+  case SIM_DPI_DIRECTION_RETURN:
+    return DPIDirection::Return;
+  case SIM_DPI_DIRECTION_REF:
+    return DPIDirection::Ref;
+  }
+  llvm_unreachable("invalid DPI direction");
+}
+
+static SimDPIDirection wrapDirection(DPIDirection direction) {
+  switch (direction) {
+  case DPIDirection::Input:
+    return SIM_DPI_DIRECTION_INPUT;
+  case DPIDirection::Output:
+    return SIM_DPI_DIRECTION_OUTPUT;
+  case DPIDirection::InOut:
+    return SIM_DPI_DIRECTION_INOUT;
+  case DPIDirection::Return:
+    return SIM_DPI_DIRECTION_RETURN;
+  case DPIDirection::Ref:
+    return SIM_DPI_DIRECTION_REF;
+  }
+  llvm_unreachable("invalid DPI direction");
+}
+
 bool simTypeIsADPIFunction(MlirType type) {
   return isa<DPIFunctionType>(unwrap(type));
 }
@@ -95,8 +131,7 @@ MlirType simDPIFunctionTypeGet(MlirContext ctx, intptr_t numArguments,
   for (intptr_t i = 0; i < numArguments; ++i)
     args.push_back(
         {mlir::StringAttr::get(unwrap(ctx), unwrap(arguments[i].name)),
-         unwrap(arguments[i].type),
-         static_cast<DPIDirection>(arguments[i].direction)});
+         unwrap(arguments[i].type), unwrapDirection(arguments[i].direction)});
   return wrap(DPIFunctionType::get(unwrap(ctx), args));
 }
 
@@ -105,9 +140,10 @@ intptr_t simDPIFunctionTypeGetNumArguments(MlirType type) {
 }
 
 SimDPIArgument simDPIFunctionTypeGetArgument(MlirType type, intptr_t index) {
-  auto arg = cast<DPIFunctionType>(unwrap(type)).getArguments()[index];
-  return {wrap(arg.name.getValue()), wrap(arg.type),
-          static_cast<SimDPIDirection>(arg.dir)};
+  auto args = cast<DPIFunctionType>(unwrap(type)).getArguments();
+  assert(index >= 0 && static_cast<size_t>(index) < args.size());
+  const auto &arg = args[index];
+  return {wrap(arg.name.getValue()), wrap(arg.type), wrapDirection(arg.dir)};
 }
 
 MlirType simDPIFunctionTypeGetFunctionType(MlirType type) {
