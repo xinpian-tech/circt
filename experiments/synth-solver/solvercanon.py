@@ -130,7 +130,8 @@ class Dag:
                 return self.assoc("xor", [self.mux(s, nx, y), rep], w)
         if (r["push"] and kx[0] == ky[0] == "op" and kx[1] == ky[1] and
                 kx[4] == ky[4] and len(kx[2]) == len(ky[2]) and
-                kx[1] not in ("icmp",)):
+                all(self.width(a) == self.width(b)
+                    for a, b in zip(kx[2], ky[2]))):
             args = [self.mux(s, a, b) for a, b in zip(kx[2], ky[2])]
             return self.op(kx[1], args, w, kx[4])
         if r["ident"]:
@@ -197,6 +198,19 @@ def parse_and_build(text, rules):
             arg = rest.split(":")[0].strip()
             w = width_of(rest.split("->")[1])
             n = dag.node("op", "replicate", (get(arg),), w)
+        elif op == "comb.extract":
+            arg, rest2 = rest.split(" from ")
+            lo = int(rest2.split(":")[0])
+            w = width_of(rest2.split("->")[1])
+            n = dag.node("op", "extract", (get(arg.strip()),), w, lo)
+        elif op == "comb.concat":
+            body = rest.split(":")[0]
+            args = [get(x.strip()) for x in body.split(",")]
+            n = dag.node("op", "concat", args,
+                         sum(dag.width(a) for a in args))
+        elif op == "comb.parity":
+            arg = rest.split(":")[0].strip()
+            n = dag.node("op", "parity", (get(arg),), 1)
         elif op == "comb.icmp":
             pred, args = rest.split(" ", 1)
             a, b = [x.strip() for x in args.split(":")[0].split(",")]
@@ -238,10 +252,21 @@ def emit(header, dag, nexts, bad):
         nm = f"%n{n}"
         names[n] = nm
         if kind == "const":
-            out.append(f"  {nm} = hw.constant {extra} : i{w}")
+            v = extra - (1 << w) if w > 1 and extra >> (w - 1) else extra
+            out.append(f"  {nm} = hw.constant {v} : i{w}")
         elif op == "replicate":
             out.append(f"  {nm} = comb.replicate {names[args[0]]} : "
                        f"(i{dag.width(args[0])}) -> i{w}")
+        elif op == "extract":
+            out.append(f"  {nm} = comb.extract {names[args[0]]} from {extra}"
+                       f" : (i{dag.width(args[0])}) -> i{w}")
+        elif op == "concat":
+            out.append(f"  {nm} = comb.concat " +
+                       ", ".join(names[a] for a in args) + " : " +
+                       ", ".join(f"i{dag.width(a)}" for a in args))
+        elif op == "parity":
+            out.append(f"  {nm} = comb.parity {names[args[0]]} : "
+                       f"i{dag.width(args[0])}")
         elif op == "icmp":
             out.append(f"  {nm} = comb.icmp {extra} {names[args[0]]}, "
                        f"{names[args[1]]} : i{dag.width(args[0])}")
@@ -292,11 +317,27 @@ def evaluate(dag, roots, env):
                 v = a[0] - a[1]
             elif op == "shl":
                 v = a[0] << a[1] if a[1] < w else 0
+            elif op == "shru":
+                v = a[0] >> a[1]
+            elif op == "extract":
+                v = a[0] >> extra
+            elif op == "concat":
+                v = 0
+                for x, n2 in zip(a, args):
+                    v = (v << dag.width(n2)) | x
+            elif op == "parity":
+                v = bin(a[0]).count("1") & 1
             elif op == "mux":
                 v = a[1] if a[0] else a[2]
             elif op == "replicate":
                 v = m if a[0] else 0
             elif op == "icmp":
+                wa = dag.width(args[0])
+                sg = [x - (1 << wa) if x >> (wa - 1) else x for x in a]
+                if extra in ("slt", "sle", "sgt", "sge"):
+                    a = sg
+                    extra = {"slt": "ult", "sle": "ule", "sgt": "ugt",
+                             "sge": "uge"}[extra]
                 v = int({"ne": a[0] != a[1], "eq": a[0] == a[1],
                          "ugt": a[0] > a[1], "ult": a[0] < a[1],
                          "uge": a[0] >= a[1], "ule": a[0] <= a[1]}[extra])
