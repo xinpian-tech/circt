@@ -10,11 +10,14 @@ Model of the environment (over-approximations are marked):
   starts at 0 and is then 1) and free afterwards;
 - registers with a (sync or async) reset: compreg of mux(reset, rv, next);
   registers without reset start at a free value: s = first ? L : free;
-- memories (seq.firmem) left by firtool: read data is a free input, writes
-  are dropped (over-approximation: proofs hold, counterexamples may be
-  spurious);
+- memories (seq.firmem) of depth <= MEM_DEPTH become registers with free
+  initial contents (read latency, enables, write masks as in seq.firmem;
+  read-under-write returns the old value); deeper ones are abstracted: read
+  data is a free input and writes are dropped (over-approximation: proofs
+  hold, counterexamples may be spurious);
 - the EICG clock gate passes its clock through (gating is ignored);
-- other external instances (simulation helpers): outputs are free inputs;
+- plusarg_reader outputs its DEFAULT parameter (its synthesis semantics);
+  other external instances: outputs are free inputs;
 - sim.* (printf) ops are dropped; a clock used as data (seq.from_clock)
   is a free input.
 
@@ -31,9 +34,13 @@ import argparse
 import re
 
 import circt
-from circt.ir import (Attribute, Block, Context, InsertionPoint, IntegerType,
+from circt.ir import (Attribute, Block, Context, IntegerAttr, InsertionPoint, IntegerType,
                       Location, Module, Operation, StringAttr)
 from circt.passmanager import PassManager
+
+
+MEM_DEPTH = 64
+SEG = None  # compreg operandSegmentSizes, set in main()
 
 
 def i(w):
@@ -96,8 +103,11 @@ class Prep:
                     continue
                 owner.operands[use.operand_number] = reset_eff
         dead = []  # erased at the end, users first
+        lowered = self.memories(ops, first, clock, term, dead)
         for op in ops:
             name = op.operation.name
+            if op.operation in lowered:
+                continue
             if name.startswith("sim."):
                 dead.append(op)
             elif name == "verif.clocked_assert":
@@ -124,7 +134,12 @@ class Prep:
             elif name == "hw.instance":
                 self.instance(op.operation)
         for op in reversed(dead):
-            op.operation.erase()
+            try:
+                op = op.operation
+                op.name
+            except RuntimeError:
+                continue  # already erased by an earlier rewrite (seen with -O=debug)
+            op.erase()
         bads = []
         with InsertionPoint(term):
             for a in asserts:
@@ -136,6 +151,125 @@ class Prep:
         for a in asserts:
             a.operation.erase()
         return bads, labels
+
+    def segments(self, op):
+        """Operands of a firmem port with None for absent optional ones
+        (segment sizes are a property, not visible here, so presence is read
+        from the printed op)."""
+        text = str(op).split(":")[0]
+        has_en, has_mask = " enable " in text, " mask " in text
+        ops = list(op.operands)
+        if op.name == "seq.firmem.read_port":
+            return ops[:3] + [ops[3] if has_en else None]
+        head, rest = ops[:3], ops[3:]
+        en = rest.pop(0) if has_en else None
+        mask = rest.pop() if has_mask else None
+        return head + [en] + rest + [mask]
+
+    def memories(self, ops, first, clock, term, dead):
+        """Lower seq.firmem with depth <= MEM_DEPTH to registers; larger ones
+        stay for the abstraction (free read data). Returns lowered ops."""
+        mems = {}
+        for op in ops:
+            if op.operation.name == "seq.firmem":
+                mems[op.operation] = []
+        for op in ops:
+            n = op.operation.name
+            if n.startswith("seq.firmem.") and op.operands[0].owner.operation in mems:
+                mems[op.operands[0].owner.operation].append(op.operation)
+        lowered = set()
+        for mem, ports in mems.items():
+            m = re.search(r"<(\d+) x (\d+)(?:, mask (\d+))?>",
+                          str(mem.results[0].type))
+            depth, width = int(m.group(1)), int(m.group(2))
+            if depth > MEM_DEPTH:
+                continue
+            rlat = IntegerAttr(mem.attributes["readLatency"]).value
+            ty = i(width)
+            with InsertionPoint(term):
+                regs, vals = [], []
+                for _ in range(depth):
+                    # placeholder input, fixed below; free initial contents
+                    r = create("seq.compreg", [self.const(0, width), clock],
+                               [ty], {"operandSegmentSizes": SEG})[0]
+                    regs.append(r)
+                    vals.append(create("comb.mux",
+                                       [first, r, self.free(ty)], [ty])[0])
+                nxt = list(vals)
+                for p in ports:
+                    if p.name == "seq.firmem.read_port":
+                        _, addr, _, en = self.segments(p)
+                        self.read(p.results[0], vals, addr, en, rlat, clock)
+                    elif p.name == "seq.firmem.write_port":
+                        _, addr, _, en, data, mask = self.segments(p)
+                        nxt = self.write(nxt, addr, en, data, mask, None)
+                    elif p.name == "seq.firmem.read_write_port":
+                        _, addr, _, en, wdata, mode, mask = self.segments(p)
+                        self.read(p.results[0], vals, addr, en, rlat, clock)
+                        nxt = self.write(nxt, addr, en, wdata, mask, mode)
+                for r, v in zip(regs, nxt):
+                    r.owner.operation.operands[0] = v
+            dead.append(mem)  # erased after its ports (dead is reversed)
+            lowered.add(mem)
+            for p in ports:
+                dead.append(p)
+                lowered.add(p)
+        return lowered
+
+    def select(self, vals, addr):
+        aw = IntegerType(addr.type).width
+        out = vals[-1]
+        for k in range(len(vals) - 2, -1, -1):
+            hit = create("comb.icmp", [addr, self.const(k, aw)], [i(1)],
+                         {"predicate": Attribute.parse("0 : i64")})[0]
+            out = create("comb.mux", [hit, vals[k], out], [vals[k].type])[0]
+        return out
+
+    def read(self, res, vals, addr, en, rlat, clock):
+        ty = res.type
+        data = self.select(vals, addr)
+        for _ in range(rlat):
+            # registered read: holds its value when not enabled
+            r = create("seq.compreg", [data, clock], [ty],
+                       {"operandSegmentSizes": SEG})[0]
+            if en is not None:
+                r.owner.operation.operands[0] = create(
+                    "comb.mux", [en, data, r], [ty])[0]
+            data = r
+        res.replace_all_uses_with(data)
+
+    def write(self, nxt, addr, en, data, mask, mode):
+        ty = data.type
+        width = IntegerType(ty).width
+        aw = IntegerType(addr.type).width
+        we = en if en is not None else self.const(1, 1)
+        if mode is not None:
+            we = create("comb.and", [we, mode], [i(1)])[0]
+        full = None
+        if mask is not None:
+            mb = IntegerType(mask.type).width
+            g = width // mb
+            parts = []
+            for j in range(mb - 1, -1, -1):
+                bit = create("comb.extract", [mask], [i(1)],
+                             {"lowBit": Attribute.parse(f"{j} : i32")})[0]
+                parts.append(create("comb.replicate", [bit], [i(g)])[0]
+                             if g > 1 else bit)
+            full = parts[0] if len(parts) == 1 else create(
+                "comb.concat", parts, [ty])[0]
+        out = []
+        for k, old in enumerate(nxt):
+            hit = create("comb.icmp", [addr, self.const(k, aw)], [i(1)],
+                         {"predicate": Attribute.parse("0 : i64")})[0]
+            w = create("comb.and", [we, hit], [i(1)])[0]
+            new = data
+            if full is not None:
+                keep = self.bnot(full)
+                new = create("comb.or", [
+                    create("comb.and", [data, full], [ty])[0],
+                    create("comb.and", [old, keep], [ty])[0]], [ty])[0]
+            out.append(create("comb.mux", [w, new, old], [ty])[0])
+        return out
 
     def port_names(self):
         mt = self.top.attributes["module_type"]
@@ -180,6 +314,12 @@ class Prep:
         target = str(op.attributes["moduleName"]).strip('"@')
         if target == "EICG_wrapper":
             op.results[0].replace_all_uses_with(op.operands[0])
+        elif target == "plusarg_reader":
+            # synthesis semantics of plusarg_reader.v: out = DEFAULT
+            d = int(re.search(r"DEFAULT: \w+ = (\d+)", str(op)).group(1))
+            with InsertionPoint(op):
+                op.results[0].replace_all_uses_with(
+                    self.const(d, IntegerType(op.results[0].type).width))
         else:
             with InsertionPoint(op):
                 for r in op.results:
@@ -261,6 +401,8 @@ def main():
     with Context() as ctx, Location.unknown():
         circt.register_dialects(ctx)
         ctx.allow_unregistered_dialects = False
+        global SEG
+        SEG = Attribute.parse("array<i32: 1, 1, 0, 0, 0>")
         m = Module.parse(open(args.inp).read())
         PassManager.parse(
             "builtin.module(hw-flatten-modules{hw-inline-with-state=true})"
