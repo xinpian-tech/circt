@@ -33,3 +33,36 @@ reduction), `synth-sop`, `raw+dc2`, `synth+dc2` (ABC dc2 after).
   (`counter`, `exch`, `shift`) are as easy as synthesized ones.
 - Sub-second differences of ric3-ic3 at w=8 (0.7 s vs 0.02 s bare) are rIC3
   preprocessing overhead, not search.
+
+## Run 2 (results-run2.tsv): solver-oriented canonicalization
+
+`solvercanon.py` (prototype, Python on the gen.py subset) rebuilds the model
+as a hash-consed word-level DAG: canonical associative-commutative chains
+(sorted operands, rebuilt as binary chains, so shared sub-products stay),
+mux push-down through any op, identity push-down for add/xor/or, and
+mux-of-negation to xor. `--check` compares one step with and without the
+rules by random simulation (a deliberately broken rule is caught). Configs
+`sc` (then raw lowering), `sc+synth` (then circt-synth), and `sc-noRULE`
+ablations. Widths 4-16, 30 s limit, 112 runs per config:
+
+| config | solved | PAR-2 (s) |
+|---|---|---|
+| raw | 79 | 18.9 |
+| canon | 94 | 10.2 |
+| synth | 94 | 10.3 |
+| sc | 112 | 0.1 |
+| sc+synth | 112 | 0.2 |
+| sc-nopush | 98 | 8.5 |
+| sc-noident | 112 | 0.1 |
+| sc-nonot | 112 | 0.1 |
+| sc-noassoc | 100 | 6.5 |
+
+- Mux push-down is what makes `hoist`, `xorintro` and `shift` identical on
+  both sides; associative canonicalization does it for `reorder` and
+  `mulcomm`. The identity and negation rules are redundant here (push-down
+  and the remaining small miter cover them).
+- `sc` is often larger than `synth` (counter w=16: 481 vs 148 ANDs), so the
+  solver-oriented form is not the area-oriented one.
+- Caveat: the models are built from exactly the patterns the rules target;
+  this shows that the rewrites are reachable only at word level and decide
+  the solver, not that they occur in real designs.

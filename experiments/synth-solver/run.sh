@@ -24,6 +24,14 @@ lower() {
       $ABC -c "read $o.pre.aig; strash; dc2; write_aiger -s $o" >/dev/null
     return
   fi
+  if [[ $c == sc* ]]; then
+    # solvercanon.py, then raw lowering (sc) or circt-synth (sc+synth);
+    # sc-noRULE switches one rule off.
+    local flags=""; [[ $c == sc-no* ]] && flags="--no-${c#sc-no}"
+    python3 $H/solvercanon.py --check $flags $m $o.sc.mlir || return 1
+    if [[ $c == sc+synth ]]; then lower $o.sc.mlir synth $o; else lower $o.sc.mlir raw $o; fi
+    return
+  fi
   case $c in
     raw) $CIRCT/circt-opt $m --pass-pipeline="builtin.module(hw.module(convert-comb-to-synth,$BITS))" ;;
     canon) $CIRCT/circt-opt $m --pass-pipeline="builtin.module(canonicalize,cse,hw.module(convert-comb-to-synth,$BITS))" ;;
@@ -56,7 +64,7 @@ one() {
   local r; r=$(solve $f $e)
   printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%.2f\n" $fam $w $c $e "$ands" "${tw:--}" "${r:-TO}" "$(echo "$(date +%s.%N)-$s" | bc)"
 }
-export -f lower solve one; export CIRCT ABC RIC3 TW OUT TL BITS
+export -f lower solve one; export CIRCT ABC RIC3 TW OUT TL BITS H
 
 # build models
 for fam in $FAMS; do for w in $WS; do
