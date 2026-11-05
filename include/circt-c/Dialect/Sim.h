@@ -63,12 +63,15 @@ typedef struct {
 } SimDPIArgument;
 
 MLIR_CAPI_EXPORTED bool simTypeIsADPIFunction(MlirType type);
+/// Create a DPI function type from arguments in declaration order.
 MLIR_CAPI_EXPORTED MlirType simDPIFunctionTypeGet(
     MlirContext ctx, intptr_t numArguments, const SimDPIArgument *arguments);
 MLIR_CAPI_EXPORTED intptr_t simDPIFunctionTypeGetNumArguments(MlirType type);
 /// The returned name refers to storage owned by the type's context.
+/// Requires 0 <= index < simDPIFunctionTypeGetNumArguments(type).
 MLIR_CAPI_EXPORTED SimDPIArgument simDPIFunctionTypeGetArgument(MlirType type,
                                                                 intptr_t index);
+/// Return the derived call signature, omitting argument names and directions.
 MLIR_CAPI_EXPORTED MlirType simDPIFunctionTypeGetFunctionType(MlirType type);
 
 MLIR_CAPI_EXPORTED bool simTypeIsAOutputStream(MlirType type);
