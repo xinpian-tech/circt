@@ -10,7 +10,7 @@ nodes, while keeping shared sub-terms (no n-ary flattening in the output):
   compute a canonical form, then rebuilt as a left-deep binary chain over
   their sorted operands, so equal operand multisets give the same node;
 - mux push-down: mux(s, f(x1..xn), f(y1..yn)) -> f(mux(s,x1,y1), ...) for
-  any op f (applied recursively; mux(s,x,x) = x);
+  any op f but mux (applied recursively; mux(s,x,x) = x);
 - identity push-down: mux(s, x+y, z) -> mux(s,x,z) + mux(s,y,0) when z is
   not an add (same for xor and or);
 - negation: mux(s, x, ~y) -> mux(s,x,y) ^ rep(~s), with ~y = y ^ -1.
@@ -26,6 +26,8 @@ without the rules on random inputs and register values.
 import re
 import sys
 
+sys.setrecursionlimit(1000000)
+
 COMMUTATIVE = {"add", "mul", "and", "or", "xor"}
 IDENTITY = {"add": 0, "xor": 0, "or": 0}
 
@@ -36,6 +38,7 @@ class Dag:
         self.rules = rules
         self.nodes = []  # (kind, op, args, width, extra)
         self.table = {}
+        self.muxes = {}  # (s, x, y) -> result of mux()
 
     def node(self, kind, op, args, w, extra=None):
         key = (kind, op, tuple(args), w, extra)
@@ -61,7 +64,7 @@ class Dag:
         """Create an op through the rewrite rules."""
         args = list(args)
         if op == "mux":
-            return self.mux(*args)
+            return self.mux(args[0], args[1], args[2])  # no *args: C recursion limit
         if op in COMMUTATIVE:
             return self.assoc(op, args, w)
         return self.node("op", op, args, w, extra)
@@ -110,6 +113,12 @@ class Dag:
         return None
 
     def mux(self, s, x, y):
+        key = (s, x, y)
+        if key not in self.muxes:
+            self.muxes[key] = self.mux_rules(s, x, y)
+        return self.muxes[key]
+
+    def mux_rules(self, s, x, y):
         w = self.width(x)
         if x == y:
             return x
@@ -128,7 +137,10 @@ class Dag:
             if nx is not None and ny is None:
                 rep = self.node("op", "replicate", (s,), w)
                 return self.assoc("xor", [self.mux(s, nx, y), rep], w)
+        # Not through muxes: mux(s, mux(t,a,b), mux(u,c,d)) comes back to
+        # itself after two push-downs (seen on CV32E40X ex_stage).
         if (r["push"] and kx[0] == ky[0] == "op" and kx[1] == ky[1] and
+                kx[1] != "mux" and
                 kx[4] == ky[4] and len(kx[2]) == len(ky[2]) and
                 all(self.width(a) == self.width(b)
                     for a, b in zip(kx[2], ky[2]))):
@@ -158,10 +170,24 @@ def width_of(ty):
     return 1 if ty.strip() == "i1" else int(ty.strip()[1:])
 
 
+def normalize(line):
+    """Reduce CIRCT's printed syntax to the subset parsed below (output of
+    cv32e40x/lower_regs.py: attribute dicts, `bin` flags, register names and
+    symbols, case equality on two-valued logic)."""
+    line = re.sub(r" \{[^{}]*\}(?= :)", "", line)
+    line = line.replace(" bin ", " ")
+    line = re.sub(r'(seq\.compreg) (?:sym @\S+ )?(?:name "[^"]*" )?',
+                  r"\1 ", line)
+    line = re.sub(r"comb\.icmp c(eq|ne) ", r"comb.icmp \1 ", line)
+    return line.rstrip()
+
+
 def parse_and_build(text, rules):
-    lines = text.splitlines()
-    header = lines[0]
-    ins = re.findall(r"in %(\w+): (i\d+|!seq\.clock)", header)
+    lines = [normalize(l) for l in text.splitlines()]
+    start = next(k for k, l in enumerate(lines) if "hw.module" in l)
+    header = lines[start].strip()
+    lines = lines[start:]
+    ins = re.findall(r"in %([^\s:,]+) ?: (i\d+|!seq\.clock)", header)
     dag = Dag(rules)
     env = {}
     defs = {}
@@ -173,6 +199,7 @@ def parse_and_build(text, rules):
             defs[m.group(1)] = (m.group(2), m.group(3))
         elif l.strip().startswith("hw.output"):
             output = l.split()[1]
+            break
     for name, ty in ins:
         if ty != "!seq.clock":
             env[name] = dag.node("in", None, (), width_of(ty), name)
@@ -386,4 +413,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # The rewrites recurse along expression depth (thousands on real designs).
+    import threading
+    threading.stack_size(1 << 30)
+    t = threading.Thread(target=main)
+    t.start()
+    t.join()

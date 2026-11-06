@@ -167,6 +167,42 @@ def SimplifyAssumeEqPass : Pass<"simplify-assume-eq", "hw::HWModuleOp"> {
   }];
 }
 
+def SubstituteAntecedentPass : Pass<"verif-substitute-antecedent",
+                                    "hw::HWModuleOp"> {
+  let summary = "Simplify the consequent of assertions under their antecedent";
+  let description = [{
+    An assertion `a |-> c` only checks `c` in cycles where `a` holds, and an
+    assertion with an enable only where the enable holds. This pass collects
+    facts implied by the antecedent and the enable (conjuncts, negated
+    disjuncts, and `x == C` comparisons) and substitutes them into a copy of
+    the consequent's combinational cone. The design logic is not modified.
+
+    The copy is canonicalized and merged with structurally equal logic of the
+    cone (ignoring discardable attributes such as `sv.namehint`). The facts
+    typically decide the muxes that select operands, so that both sides of a
+    datapath check become the same value and the consequent folds to true; a
+    remark is emitted for such assertions. If it does not fold, the pass
+    tries case splits on 1-bit signals that select muxes: when the consequent
+    folds to true for `s == v`, the assertion becomes
+    `(a && s != v) |-> c[s := !v]`.
+
+    Applies to `verif.assert`, `verif.assume` and their clocked forms whose
+    property is a boolean or an `ltl.implication` of booleans. Run
+    canonicalize afterwards to remove the logic left unused.
+  }];
+  let options = [
+    Option<"maxSplits", "max-splits", "unsigned", "4",
+           "Maximum number of case splits per assertion">
+  ];
+  let statistics = [
+    Statistic<"numSubstituted", "num-substituted",
+              "Number of assertions whose consequent was rewritten">,
+    Statistic<"numSplits", "num-splits", "Number of case splits">,
+    Statistic<"numProved", "num-proved",
+              "Number of assertions whose consequent folded to true">
+  ];
+}
+
 def StripContractsPass : Pass<"strip-contracts"> {
   let summary = "Remove contracts from the IR";
   let description = [{

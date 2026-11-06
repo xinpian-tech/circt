@@ -7,12 +7,14 @@ add_circt_dialect_library(CIRCTVerifTransforms
   PrepareForFormal.cpp
   SimplifyAssumeEq.cpp
   StripContracts.cpp
+  SubstituteAntecedent.cpp
   VerifyClockedAssertLike.cpp
 
   DEPENDS
   CIRCTVerifTransformsIncGen
 
   LINK_LIBS PUBLIC
+  CIRCTComb
   CIRCTHW
   CIRCTLTL
   CIRCTSupport

@@ -1,0 +1,14 @@
+a_check_acc_init_zero	synth-nodp	ric3-ic3	399	8174	UNSAT	2.4
+a_check_acc_mul_value_zero	synth-nodp	ric3-ic3	399	8175	UNSAT	191.6
+a_check_result_constant	synth-nodp	ric3-ic3	432	8272	TO	300.1
+a_mulh_result	synth-nodp	ric3-ic3	399	21673	TO	300.1
+a_mulhsu_result	synth-nodp	ric3-ic3	399	19167	TO	300.1
+a_mulhu_result	synth-nodp	ric3-ic3	399	16802	TO	300.1
+a_mul_result	synth-nodp	ric3-ic3	399	12263	TO	300.1
+a_shift_result_hh	synth-nodp	ric3-ic3	366	11058	TO	300.1
+a_shift_result_hl	synth-nodp	ric3-ic3	366	10242	TO	300.0
+a_shift_result_lh	synth-nodp	ric3-ic3	366	10225	TO	300.0
+a_shift_result_ll_lh_hl_shift	synth-nodp	ric3-ic3	399	17181	TO	300.1
+a_shift_result_ll_lh	synth-nodp	ric3-ic3	399	13688	TO	300.0
+a_shift_result_ll_shift	synth-nodp	ric3-ic3	399	10337	TO	300.1
+a_shift_result_ll	synth-nodp	ric3-ic3	366	9415	TO	300.1

@@ -1,0 +1,511 @@
+//===- SubstituteAntecedent.cpp - Simplify assertions under their guard ---===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+//===----------------------------------------------------------------------===//
+//
+// An assertion `a |-> c` (or `c` enabled by `en`) only checks `c` in cycles
+// where `a` (and `en`) hold. Facts implied by the antecedent, such as
+// `op == MUL` or `!kill`, can therefore be substituted into the consequent:
+//
+//   a |-> c   ==   a |-> c[x := C for every fact x == C implied by a]
+//
+// The consequent's cone is copied up to the values that change, so the design
+// itself is left untouched. The copy is then canonicalized and hashed with
+// the rest of the cone, which folds the muxes that the facts decide; on
+// datapath checks this often makes both sides of a comparison the same value,
+// so that the consequent folds to true.
+//
+// If the consequent does not fold, the pass tries a case split on a 1-bit
+// signal `s` that selects a mux in the cone: when `c[s := v]` folds to true,
+//
+//   a |-> c   ==   (a && s != v) |-> c[s := !v].
+//
+//===----------------------------------------------------------------------===//
+
+#include "circt/Dialect/Comb/CombOps.h"
+#include "circt/Dialect/HW/HWOps.h"
+#include "circt/Dialect/LTL/LTLOps.h"
+#include "circt/Dialect/Verif/VerifOps.h"
+#include "circt/Dialect/Verif/VerifPasses.h"
+#include "mlir/IR/IRMapping.h"
+#include "mlir/IR/Matchers.h"
+#include "mlir/Interfaces/SideEffectInterfaces.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+#include "llvm/ADT/MapVector.h"
+#include "llvm/ADT/SetVector.h"
+#include <unordered_map>
+
+using namespace circt;
+using namespace mlir;
+
+namespace circt {
+namespace verif {
+#define GEN_PASS_DEF_SUBSTITUTEANTECEDENTPASS
+#include "circt/Dialect/Verif/Passes.h.inc"
+} // namespace verif
+} // namespace circt
+
+namespace {
+struct SubstituteAntecedentPass
+    : verif::impl::SubstituteAntecedentPassBase<SubstituteAntecedentPass> {
+  using SubstituteAntecedentPassBase::SubstituteAntecedentPassBase;
+  LogicalResult initialize(MLIRContext *context) override;
+  void runOnOperation() override;
+  void simplify(ltl::ImplicationOp impl);
+  bool split(ltl::ImplicationOp &impl);
+
+  std::shared_ptr<const FrozenRewritePatternSet> patterns;
+};
+} // namespace
+
+/// Collect values that are constant whenever `cond` is 1. Walks through
+/// conjunctions, negated disjunctions and negations, and reads `x == C` as a
+/// fact about `x`.
+static void collectFacts(Value cond,
+                         llvm::MapVector<Value, IntegerAttr> &facts) {
+  SmallVector<std::pair<Value, bool>> worklist{{cond, true}};
+  SmallPtrSet<Value, 16> seen;
+  while (!worklist.empty()) {
+    auto [value, polarity] = worklist.pop_back_val();
+    if (!seen.insert(value).second)
+      continue;
+    auto *op = value.getDefiningOp();
+    if (auto andOp = dyn_cast_or_null<comb::AndOp>(op); andOp && polarity) {
+      for (auto input : andOp.getInputs())
+        worklist.push_back({input, true});
+      continue;
+    }
+    if (auto orOp = dyn_cast_or_null<comb::OrOp>(op); orOp && !polarity) {
+      for (auto input : orOp.getInputs())
+        worklist.push_back({input, false});
+      continue;
+    }
+    if (auto xorOp = dyn_cast_or_null<comb::XorOp>(op);
+        xorOp && xorOp.getNumOperands() == 2) {
+      APInt c;
+      if (matchPattern(xorOp.getInputs()[1], m_ConstantInt(&c))) {
+        worklist.push_back({xorOp.getInputs()[0], polarity ^ c.isOne()});
+        continue;
+      }
+    }
+    if (matchPattern(value, m_Constant()))
+      continue;
+    facts.insert({value, IntegerAttr::get(value.getType(), polarity)});
+
+    auto icmp = dyn_cast_or_null<comb::ICmpOp>(op);
+    if (!icmp)
+      continue;
+    auto pred = icmp.getPredicate();
+    bool isEq = pred == comb::ICmpPredicate::eq ||
+                pred == comb::ICmpPredicate::ceq ||
+                pred == comb::ICmpPredicate::weq;
+    bool isNe = pred == comb::ICmpPredicate::ne ||
+                pred == comb::ICmpPredicate::cne ||
+                pred == comb::ICmpPredicate::wne;
+    if (!((isEq && polarity) || (isNe && !polarity)))
+      continue;
+    APInt c;
+    Value lhs = icmp.getLhs(), rhs = icmp.getRhs();
+    if (matchPattern(rhs, m_ConstantInt(&c)) &&
+        !matchPattern(lhs, m_Constant()) && isa<IntegerType>(lhs.getType()))
+      facts.insert({lhs, IntegerAttr::get(lhs.getType(), c)});
+    else if (matchPattern(lhs, m_ConstantInt(&c)) &&
+             !matchPattern(rhs, m_Constant()) &&
+             isa<IntegerType>(rhs.getType()))
+      facts.insert({rhs, IntegerAttr::get(rhs.getType(), c)});
+  }
+}
+
+/// Ops that may be copied into the consequent's cone: side-effect free ops of
+/// the HW and Comb dialects without regions.
+static bool isCopyable(Operation *op) {
+  if (op->getNumRegions() != 0 || op->getNumResults() == 0)
+    return false;
+  if (!isa<comb::CombDialect, hw::HWDialect>(op->getDialect()))
+    return false;
+  if (isa<hw::InstanceOp>(op))
+    return false;
+  return isMemoryEffectFree(op);
+}
+
+/// Return `value` with the facts substituted, copying the ops between the
+/// facts and `value` at the builder's insertion point. Returns `value` if
+/// nothing changed.
+static Value substitute(Value value,
+                        const llvm::MapVector<Value, IntegerAttr> &facts,
+                        OpBuilder &builder) {
+  DenseMap<Value, Value> mapped;
+  // Constants for the facts are created when first used.
+  auto lookup = [&](Value v) -> Value {
+    if (auto it = mapped.find(v); it != mapped.end())
+      return it->second;
+    auto it = facts.find(v);
+    if (it == facts.end())
+      return {};
+    auto c = hw::ConstantOp::create(builder, v.getLoc(), it->second);
+    return mapped[v] = c.getResult();
+  };
+
+  // Post-order walk over the cone; values not in `mapped` are unchanged.
+  SmallVector<std::pair<Value, bool>> worklist{{value, false}};
+  DenseSet<Value> visited;
+  while (!worklist.empty()) {
+    auto [v, expanded] = worklist.pop_back_val();
+    if (mapped.count(v) || facts.count(v))
+      continue;
+    auto *op = v.getDefiningOp();
+    if (!op || !isCopyable(op))
+      continue;
+    if (!expanded) {
+      if (!visited.insert(v).second)
+        continue;
+      worklist.push_back({v, true});
+      for (auto operand : op->getOperands())
+        if (!visited.count(operand))
+          worklist.push_back({operand, false});
+      continue;
+    }
+    IRMapping mapping;
+    for (auto operand : op->getOperands())
+      if (auto to = lookup(operand))
+        mapping.map(operand, to);
+    if (mapping.getValueMap().empty())
+      continue;
+    auto *clone = builder.clone(*op, mapping);
+    for (auto [from, to] : llvm::zip(op->getResults(), clone->getResults()))
+      mapped[from] = to;
+  }
+  auto result = lookup(value);
+  return result ? result : value;
+}
+
+/// The ops of `value`'s cone, operands before users.
+static SmallVector<Operation *> coneOf(Value value) {
+  SmallVector<Operation *> order;
+  SmallVector<std::pair<Operation *, bool>> worklist;
+  DenseSet<Operation *> visited;
+  if (auto *op = value.getDefiningOp(); op && isCopyable(op))
+    worklist.push_back({op, false});
+  while (!worklist.empty()) {
+    auto [op, expanded] = worklist.pop_back_val();
+    if (expanded) {
+      order.push_back(op);
+      continue;
+    }
+    if (!visited.insert(op).second)
+      continue;
+    worklist.push_back({op, true});
+    for (auto operand : op->getOperands())
+      if (auto *def = operand.getDefiningOp();
+          def && isCopyable(def) && !visited.count(def))
+        worklist.push_back({def, false});
+  }
+  return order;
+}
+
+/// The ops of the cone whose results are only used by `root` or by other such
+/// ops: the logic that belongs to this assertion alone, which may be rewritten
+/// without changing the design.
+static SmallVector<Operation *> exclusiveOps(ArrayRef<Operation *> cone,
+                                             Operation *root) {
+  DenseSet<Operation *> exclusive;
+  for (auto *op : llvm::reverse(cone))
+    if (llvm::all_of(op->getUsers(), [&](Operation *user) {
+          return user == root || exclusive.count(user);
+        }))
+      exclusive.insert(op);
+  SmallVector<Operation *> result;
+  for (auto *op : cone)
+    if (exclusive.count(op))
+      result.push_back(op);
+  return result;
+}
+
+static bool isTrue(Value value) {
+  APInt c;
+  return matchPattern(value, m_ConstantInt(&c)) && c.isOne();
+}
+
+/// Erase the ops of `value`'s cone that are left without uses.
+static void eraseDead(Value value) {
+  SmallVector<Operation *> worklist;
+  if (auto *op = value.getDefiningOp())
+    worklist.push_back(op);
+  while (!worklist.empty()) {
+    auto *op = worklist.pop_back_val();
+    if (!op->use_empty() || !(isCopyable(op) || isa<ltl::ImplicationOp>(op)))
+      continue;
+    for (auto operand : op->getOperands())
+      if (auto *def = operand.getDefiningOp(); def && def != op)
+        worklist.push_back(def);
+    op->erase();
+  }
+}
+
+namespace {
+/// `a + b == a + c` -> `b == c`, with an empty sum being 0. The consequent of
+/// a datapath check often compares `x + acc` with `x` once the operand muxes
+/// are folded.
+struct CancelAddOperands : public OpRewritePattern<comb::ICmpOp> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(comb::ICmpOp op,
+                                PatternRewriter &rewriter) const override {
+    auto pred = op.getPredicate();
+    if (pred != comb::ICmpPredicate::eq && pred != comb::ICmpPredicate::ne &&
+        pred != comb::ICmpPredicate::ceq && pred != comb::ICmpPredicate::cne)
+      return failure();
+    auto terms = [](Value v) {
+      SmallVector<Value> result;
+      if (auto add = v.getDefiningOp<comb::AddOp>())
+        result.append(add.getInputs().begin(), add.getInputs().end());
+      else
+        result.push_back(v);
+      return result;
+    };
+    auto lhs = terms(op.getLhs()), rhs = terms(op.getRhs());
+    bool changed = false;
+    for (unsigned i = 0; i < lhs.size();) {
+      auto *it = llvm::find(rhs, lhs[i]);
+      if (it == rhs.end()) {
+        ++i;
+        continue;
+      }
+      rhs.erase(it);
+      lhs.erase(lhs.begin() + i);
+      changed = true;
+    }
+    if (!changed)
+      return failure();
+    auto type = op.getLhs().getType();
+    auto sum = [&](ArrayRef<Value> values) -> Value {
+      if (values.empty())
+        return hw::ConstantOp::create(rewriter, op.getLoc(), type, 0);
+      if (values.size() == 1)
+        return values[0];
+      return comb::AddOp::create(rewriter, op.getLoc(), values, false);
+    };
+    rewriter.replaceOpWithNewOp<comb::ICmpOp>(op, pred, sum(lhs), sum(rhs),
+                                              op.getTwoState());
+    return success();
+  }
+};
+} // namespace
+
+LogicalResult SubstituteAntecedentPass::initialize(MLIRContext *context) {
+  RewritePatternSet set(context);
+  set.add<CancelAddOperands>(context);
+  for (auto *dialect : context->getLoadedDialects())
+    dialect->getCanonicalizationPatterns(set);
+  for (auto op : context->getRegisteredOperations())
+    op.getCanonicalizationPatterns(set, context);
+  patterns = std::make_shared<FrozenRewritePatternSet>(std::move(set));
+  return success();
+}
+
+/// Canonicalize the logic that belongs to the assertion only, and merge its
+/// ops with structurally equal ones of the cone. Unlike CSE this ignores
+/// discardable attributes: the two sides of a check usually carry different
+/// `sv.namehint`s (`int_result` vs `mul_result`) and would not be merged.
+void SubstituteAntecedentPass::simplify(ltl::ImplicationOp impl) {
+  Operation *root = impl;
+  auto consequent = [&] { return impl.getConsequent(); };
+  for (unsigned iter = 0; iter < 8; ++iter) {
+    auto cone = coneOf(consequent());
+    auto owned = exclusiveOps(cone, root);
+    GreedyRewriteConfig config;
+    config.setStrictness(GreedyRewriteStrictness::ExistingAndNewOps);
+    bool changed = false;
+    (void)applyOpPatternsGreedily(owned, *patterns, config, &changed);
+
+    // Structural hashing over the (new) cone; values not defined by a
+    // copyable op are their own representative.
+    cone = coneOf(consequent());
+    owned = exclusiveOps(cone, root);
+    DenseSet<Operation *> isOwned(owned.begin(), owned.end());
+    DenseMap<Value, Value> rep;
+    auto repOf = [&](Value v) {
+      auto it = rep.find(v);
+      return it == rep.end() ? v : it->second;
+    };
+    auto flags = OperationEquivalence::Flags(
+        OperationEquivalence::IgnoreLocations |
+        OperationEquivalence::IgnoreDiscardableAttrs);
+    std::unordered_multimap<size_t, Operation *> table;
+    bool merged = false;
+    for (auto *op : cone) {
+      auto hash = OperationEquivalence::computeHash(
+          op, [&](Value v) { return hash_value(repOf(v)); },
+          OperationEquivalence::ignoreHashValue, flags);
+      Operation *match = nullptr;
+      auto range = table.equal_range(size_t(hash));
+      for (auto it = range.first; it != range.second && !match; ++it)
+        if (OperationEquivalence::isEquivalentTo(
+                op, it->second,
+                [&](Value a, Value b) { return success(repOf(a) == repOf(b)); },
+                nullptr, flags))
+          match = it->second;
+      if (!match) {
+        table.insert({size_t(hash), op});
+        continue;
+      }
+      for (auto [from, to] : llvm::zip(op->getResults(), match->getResults()))
+        rep[from] = repOf(to);
+    }
+    // Only the assertion's own ops are rewired to the representatives.
+    SmallVector<Value> replaced;
+    for (auto *op : owned)
+      for (auto &operand : op->getOpOperands())
+        if (auto r = repOf(operand.get()); r != operand.get()) {
+          replaced.push_back(operand.get());
+          operand.set(r);
+          merged = true;
+        }
+    for (auto v : replaced)
+      eraseDead(v);
+    if (!changed && !merged)
+      break;
+  }
+}
+
+/// 1-bit signals in the cones of the mux conditions of `value`'s cone that
+/// are not themselves logic: inputs, registers, fields and bits of them.
+static SmallVector<Value> splitCandidates(Value value) {
+  SetVector<Value> result;
+  for (auto *op : coneOf(value)) {
+    auto mux = dyn_cast<comb::MuxOp>(op);
+    if (!mux)
+      continue;
+    SmallVector<Value> worklist{mux.getCond()};
+    DenseSet<Value> seen;
+    while (!worklist.empty() && result.size() < 16) {
+      auto v = worklist.pop_back_val();
+      if (!seen.insert(v).second)
+        continue;
+      auto *def = v.getDefiningOp();
+      if (!def || !isCopyable(def) ||
+          isa<hw::StructExtractOp, comb::ExtractOp>(def)) {
+        if (v.getType().isInteger(1) && !matchPattern(v, m_Constant()))
+          result.insert(v);
+        continue;
+      }
+      worklist.append(def->operand_begin(), def->operand_end());
+    }
+  }
+  return result.takeVector();
+}
+
+/// Try a case split of `impl`; replace it and return true on success.
+bool SubstituteAntecedentPass::split(ltl::ImplicationOp &impl) {
+  Value consequent = impl.getConsequent();
+  if (matchPattern(consequent, m_Constant()))
+    return false;
+  for (auto s : splitCandidates(consequent)) {
+    for (bool v : {true, false}) {
+      OpBuilder builder(impl);
+      llvm::MapVector<Value, IntegerAttr> facts;
+      facts.insert({s, IntegerAttr::get(s.getType(), v)});
+      Value cofactor = substitute(consequent, facts, builder);
+      if (cofactor == consequent)
+        continue;
+      auto trial = ltl::ImplicationOp::create(builder, impl.getLoc(),
+                                              impl.getAntecedent(), cofactor);
+      simplify(trial);
+      bool proved = isTrue(trial.getConsequent());
+      Value rest = trial.getConsequent();
+      trial.erase();
+      eraseDead(rest);
+      if (!proved)
+        continue;
+
+      // a |-> c  ==  (a && s == !v) |-> c[s := !v]
+      facts.clear();
+      facts.insert({s, IntegerAttr::get(s.getType(), !v)});
+      Value other = substitute(consequent, facts, builder);
+      Value literal = s;
+      if (v)
+        literal = comb::XorOp::create(
+            builder, impl.getLoc(), s,
+            hw::ConstantOp::create(builder, impl.getLoc(), s.getType(), 1));
+      Value antecedent = comb::AndOp::create(
+          builder, impl.getLoc(), impl.getAntecedent(), literal, false);
+      auto newImpl =
+          ltl::ImplicationOp::create(builder, impl.getLoc(), antecedent, other);
+      impl.getResult().replaceAllUsesWith(newImpl.getResult());
+      impl.erase();
+      eraseDead(consequent);
+      impl = newImpl;
+      simplify(impl);
+      return true;
+    }
+  }
+  return false;
+}
+
+void SubstituteAntecedentPass::runOnOperation() {
+  SmallVector<Operation *> asserts;
+  getOperation()->walk([&](Operation *op) {
+    if (isa<verif::AssertOp, verif::AssumeOp, verif::ClockedAssertOp,
+            verif::ClockedAssumeOp>(op))
+      asserts.push_back(op);
+  });
+
+  for (auto *op : asserts) {
+    Value property = op->getOperand(0);
+    Value enable;
+    if (auto a = dyn_cast<verif::AssertOp>(op))
+      enable = a.getEnable();
+    else if (auto a = dyn_cast<verif::AssumeOp>(op))
+      enable = a.getEnable();
+    else if (auto a = dyn_cast<verif::ClockedAssertOp>(op))
+      enable = a.getEnable();
+    else if (auto a = dyn_cast<verif::ClockedAssumeOp>(op))
+      enable = a.getEnable();
+
+    Value antecedent, consequent;
+    auto impl = property.getDefiningOp<ltl::ImplicationOp>();
+    if (impl && impl.getAntecedent().getType().isInteger(1) &&
+        impl.getConsequent().getType().isInteger(1)) {
+      antecedent = impl.getAntecedent();
+      consequent = impl.getConsequent();
+    } else if (property.getType().isInteger(1)) {
+      consequent = property;
+    } else {
+      continue;
+    }
+
+    llvm::MapVector<Value, IntegerAttr> facts;
+    if (antecedent)
+      collectFacts(antecedent, facts);
+    if (enable)
+      collectFacts(enable, facts);
+    if (facts.empty())
+      continue;
+
+    OpBuilder builder(op);
+    Value newConsequent = substitute(consequent, facts, builder);
+    if (newConsequent == consequent)
+      continue;
+    ++numSubstituted;
+
+    // Work on an implication of our own, used by this assertion only.
+    if (!antecedent)
+      antecedent =
+          hw::ConstantOp::create(builder, op->getLoc(), builder.getI1Type(), 1);
+    auto newImpl = ltl::ImplicationOp::create(builder, op->getLoc(), antecedent,
+                                              newConsequent);
+    op->setOperand(0, newImpl);
+    if (impl && impl->use_empty())
+      impl->erase();
+    eraseDead(consequent);
+    simplify(newImpl);
+    for (unsigned n = 0; n < maxSplits && split(newImpl); ++n)
+      ++numSplits;
+    if (isTrue(newImpl.getConsequent())) {
+      ++numProved;
+      op->emitRemark("consequent holds under the antecedent");
+    }
+  }
+}

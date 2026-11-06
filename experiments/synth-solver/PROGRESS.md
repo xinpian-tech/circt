@@ -45,6 +45,19 @@ the repo's nix flake failed on truncated source downloads); rIC3 and ABC.
    (downloaded to yjh-workspace/hwmcc24-bv), not used after switching to
    rocket-chip.
 
+4. CV32E40X (`cv32e40x/`, README there), 2026-11-06:
+   - SystemVerilog + SVA -> circt-verilog -> `lower_regs.py` (registers with
+     reset semantics, LLHD signals, assertions -> bad) -> AIGER; 24 modules
+     export. ex_stage with the mult/div SVA: 12 multiplier checks time out
+     under every synthesis configuration.
+   - circt-synth's ConvertCombToDatapath makes a_check_acc_init_zero 50x
+     slower for IC3 (1-2 s -> 40-117 s) with fewer ANDs.
+   - New pass `verif-substitute-antecedent`: substitute facts implied by an
+     assertion's antecedent into its consequent (with restricted
+     canonicalization, hashing that ignores names, case splits). Solves 5 of
+     the 12 (one folds away, four in < 1 s, a_mul_result in 60-146 s); the
+     rest need sequential invariants on the MULH accumulator.
+
 ## Open next steps (not started)
 
 - The 3 rocket asserts never solved and the unstable ones (e.g.
