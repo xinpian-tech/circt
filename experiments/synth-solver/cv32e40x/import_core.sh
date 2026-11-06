@@ -19,4 +19,4 @@ files=$(grep -vE '^\s*(//|\+incdir|$)' $CV/cv32e40x_manifest.flist |
 cd / && circt-verilog -DFORMAL -Wno-implicit-port-type-mismatch \
   --mlir-print-debuginfo -I $R/include -I $CV/bhv -I $CV/bhv/include \
   -I $CV/sva '-Duvm_error(a,b)=$error(b);' $H/sv/uvm_stub.sv $files \
-  $H/sv/cv32e40x_core_top.sv --top=cv32e40x_core_top -o $out
+  $H/sv/cv32e40x_core_top.sv --top=cv32e40x_core_top ${GFLAGS:-} -o $out

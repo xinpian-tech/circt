@@ -61,7 +61,19 @@ the repo's nix flake failed on truncated source downloads); rIC3 and ABC.
      MULH accumulator. The nested don't-cares change nothing on ex_stage;
      properties with more structure are needed (core-level SVA).
 
+   - Whole core with all SVA (except debug_triggers, mpu): import and LLHD
+     fixed in CIRCT, 266 assertions export. The pass proves 14 and turns 4
+     timeouts into 3-5 s proofs; other proof times barely change. One
+     logically acyclic cycle of bits (wb_stage <-> controller_fsm) is left;
+     run 2 cut it with free inputs, so only its UNSAT results count. The
+     cutting option was removed from comb-split-word-cycles (not
+     equivalence-preserving); exact removal is open.
+
 ## Open next steps (not started)
+
+- Remove the wb_stage <-> controller_fsm cycle exactly (SAT check that its
+  value does not depend on the cut point), then rerun the core with
+  environment assumptions so that SAT results mean something.
 
 - The 3 rocket asserts never solved and the unstable ones (e.g.
   assert__assert_103#23): find what makes them hard (invariant size vs query

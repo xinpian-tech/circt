@@ -88,6 +88,9 @@ replaces it.
   (summary, description, options, statistics), add it to the
   `CMakeLists.txt`.
 - Rewrites must be equivalence-preserving for the property being checked.
+  No abstractions in passes (e.g. cutting a loop with a free input): they
+  make SAT results unreliable. If one is needed for an experiment, keep it
+  out of the pass and label the results.
 - Do not touch the design logic that next states depend on: copy what you
   rewrite and only rewrite logic used by the property alone. Rewriting the
   next-state logic (e.g. narrowing a shared multiplier) grew the AIG by 60%

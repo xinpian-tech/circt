@@ -52,17 +52,19 @@ name.
     @(posedge clk) disable iff (r) ...; endproperty; assert property (p)`)
     were rejected ("unsupported expression: DisableIff").
   - Covergroup declarations were rejected as module members.
+  - Hierarchical references into a sibling subtree (bind ports of
+    controller_fsm SVA) were left as dangling ports of the top module, and
+    interface members or non-reference values gave instance operands of the
+    wrong type.
 - Open, worked around by leaving the SVA out (`import_core.sh` DROP):
-  debug_triggers (`$stable` of an unpacked array), controller_fsm (a bind
-  port connected by hierarchical name gives an instance operand of type
-  struct where the module expects a reference), mpu (invalid `hw.array_slice`
-  of the PMA configuration with PMA_NUM_REGIONS = 0).
+  debug_triggers (`$stable` of an unpacked array), mpu (invalid
+  `hw.array_slice` of the PMA configuration with PMA_NUM_REGIONS = 0).
 - `hw-imdce` crashes on the lowered core; `hw-cone-of-influence` (new) is
   used instead.
 
 ## Whole core
 
-`import_core.sh OUT.mlir debug_triggers,controller_fsm,mpu` imports the core
+`import_core.sh OUT.mlir debug_triggers,mpu` imports the core
 with all its SVA: `make_wrapper.py` writes bhv/cv32e40x_wrapper.sv without
 core_log and rvfi (they read signals by hierarchical name), and
 sv/cv32e40x_core_top.sv instantiates the eXtension interface for the
@@ -70,22 +72,48 @@ wrapper's interface ports (X_EXT = 0). 197 assertions; lower_regs.py handles
 181 (boolean or fixed-delay sequences on both sides of `|->`; it skips
 `until`, goto repetition and sequence `or`, 6 assertions).
 
-AIGER export of the core still fails: 22 LLHD signals are left, and they
-are in the cone of the assertions (cone of influence does not remove
-them):
-- 17 CSR `rdata_q`, cv32e40x_csr writes each bit in its own `always_ff`
-  (generate loop). circt-verilog makes every process a register of the whole
-  vector whose other bits read the signal back, and assigns all of them to
-  the signal.
-- register_file `mem`, one `always_ff` per word: the same at element level.
-- lsu_response_filter `outstanding_next`: `always_comb` with control flow
-  left in `llhd.combinational`.
-- sleep_unit clock gate `clk_en`: a latch.
+The LLHD signals that blocked the AIGER export were fixed in CIRCT (CSR
+bits and register-file words written by separate `always_ff`s: llhd-mem2reg
+hoists their projections; probed projections in llhd-sig2reg; array slices
+in `always_comb`), the clock gate is modelled open
+(sv/cv32e40x_clock_gate_formal.sv), and hierarchical references between
+sibling subtrees (bind ports) are wired by ImportVerilog. The export
+pipeline (`run_core.sh`) is hw-cone-of-influence, hw-aggregate-to-comb,
+comb-split-word-cycles (word-level false loops: struct fields depending on
+each other) and the synth lowering.
 
-`verif-simplify-odc` on the core (IR level, before lowering): 13 assertions
-proved by the pass in both modes; the full pass rewrites 88 assertions (32
-with `antecedent-only`), with 18 case splits (7) and 450787 copied ops (1194).
-Whether this helps the solver needs the AIGER export above.
+One cycle of bits is left, wb_stage <-> controller_fsm: `instr_valid` in
+wb_stage uses `!halt_wb && !kill_wb`, `wb_valid` depends on it,
+`pending_single_step` depends on `wb_valid`, and the FSM branch it selects
+drives `halt_wb`/`kill_wb` (controller_fsm.sv:461, 665, 1064; the RTL notes
+the path is never sensitized). It stays with DBG_NUM_TRIGGERS = 0. Removing
+it exactly needs a functional check (e.g. SAT: the cycle's value does not
+depend on the cut point); not done. Until then the export fails on the
+models whose cone contains it.
+
+### Run 2 (results-core-odc-run2.tsv), with cut points
+
+266 assertions (258 labels), rIC3 IC3, 60 s, modes none / antecedent-only
+/ full. This run cut the remaining cycle with free inputs (6 per model, in
+763 of the 798 models), an option of comb-split-word-cycles that has since
+been removed because it changes the model: it over-approximates, so the
+UNSAT results are valid, but SAT results are not (the two counterexamples
+checked, a_mul_valid/none and a_shift_result_hh/full, depend on the cut
+inputs). The environment (bus, interrupts, debug) is also unconstrained.
+
+| mode       | PROVED by pass | UNSAT | SAT (unreliable) | TO |
+|------------|---------------:|------:|-----------------:|---:|
+| none       |              0 |   119 |              124 | 23 |
+| antecedent |             14 |   111 |              122 | 19 |
+| full       |             14 |   111 |              121 | 20 |
+
+- The pass proves 14 assertions without a solver run. a_shift_result_lh/hl
+  and a_irq_step_{noetrig,ebreak}_debug_cause go from timeout to 3-5 s.
+- On the assertions proved in every mode, total solve time is about the
+  same (435 s -> 421 s).
+- The full pass and `antecedent-only` give nearly the same results; the
+  nested don't-cares rewrite more (88 vs 32 assertions) without effect on
+  the solver here.
 
 ## ex_stage baseline (results-ex_stage-run1.tsv)
 
@@ -163,7 +191,13 @@ a value only has to be right where the property observes it.
    `c[s := v]` folds to true, the assertion becomes
    `(a && s != v) |-> c[s := !v]`.
 
-When `c` folds to true the pass emits a remark; `lower_regs.py --odc
+Soundness: every rewrite gives a property equal to the original in every
+cycle (each copy equals its original wherever its facts hold; the case split
+is Shannon expansion on a 1-bit signal), so assertions and assumptions keep
+their meaning; only properties of the module body are handled (graph region),
+and only properties without sequences (`a`, `c` 1-bit, same cycle).
+
+When an assertion's `c` folds to true the pass emits a remark; `lower_regs.py --odc
 full|antecedent` runs the pass before lowering the assertions and reports
 these as proved. A Python prototype of the same rewriting (on the
 lowered `bad` output) gave the same models, except that a_mul_result kept

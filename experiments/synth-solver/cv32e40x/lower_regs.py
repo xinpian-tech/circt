@@ -591,6 +591,10 @@ def main():
                   default=None,
                   help="run verif-simplify-odc (antecedent: with "
                   "antecedent-only) before lowering")
+  ap.add_argument("--pre-cache",
+                  default=None,
+                  help="file prefix to keep the circt-opt part of the "
+                  "lowering in (it does not depend on --assert)")
   ap.add_argument("--list",
                   action="store_true",
                   help="print the assertion labels and exit")
@@ -598,16 +602,26 @@ def main():
   with Context() as ctx, Location.unknown():
     circt.register_dialects(ctx)
     # LLHD passes are not in the Python bindings: run circt-opt.
-    pre = subprocess.run([
-        "circt-opt", args.inp, "--pass-pipeline=" + PRE.replace(
-            "{ODC}", "" if not args.odc else ODC.replace(
-                "{OPTS}",
-                "{antecedent-only}" if args.odc == "antecedent" else "")),
-        "--mlir-print-op-generic", "--mlir-print-debuginfo"
-    ],
-                         check=True,
-                         capture_output=True,
-                         text=True)
+    cache = (args.pre_cache + ".mlir", args.pre_cache + ".err") \
+        if args.pre_cache else None
+    if cache and os.path.exists(cache[0]):
+      pre = subprocess.CompletedProcess([], 0,
+                                        open(cache[0]).read(),
+                                        open(cache[1]).read())
+    else:
+      pre = subprocess.run([
+          "circt-opt", args.inp, "--pass-pipeline=" + PRE.replace(
+              "{ODC}", "" if not args.odc else ODC.replace(
+                  "{OPTS}",
+                  "{antecedent-only}" if args.odc == "antecedent" else "")),
+          "--mlir-print-op-generic", "--mlir-print-debuginfo"
+      ],
+                           check=True,
+                           capture_output=True,
+                           text=True)
+      if cache:
+        open(cache[0], "w").write(pre.stdout)
+        open(cache[1], "w").write(pre.stderr)
     # assertions that verif-simplify-odc proved (and canonicalize
     # then removed) are reported as remarks at their source location
     proved = sorted({
