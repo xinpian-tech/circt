@@ -34,6 +34,7 @@ cv32e40x/README.md).
 For CV32E40X (cv32e40x/README.md has the details and known gaps):
 
     cv32e40x/import.sh cv32e40x_ex_stage ex.mlir ex_stage_env mult div
+    cv32e40x/import_core.sh core.mlir DROP      # whole core, all SVA
     cv32e40x/lower_regs.py ex.mlir MODEL.mlir --top cv32e40x_ex_stage \
         --assert a_mul_result [--odc full|antecedent]
     cv32e40x/run_configs.sh MODELDIR ASSERT... > results.tsv
@@ -51,9 +52,12 @@ For CV32E40X (cv32e40x/README.md has the details and known gaps):
   `bad` cone (size, multipliers), `cex.py` decodes a counterexample,
   `aigreach.py` checks tiny AIGs exhaustively.
 
-Known traps: circt-verilog encodes `a |=> b` as `|->` (write `##1`);
-ExportAIGER drops register resets (lower_regs.py handles it); MLIR CSE does
-not merge ops that differ in `sv.namehint`.
+Known traps: ExportAIGER drops register resets (lower_regs.py handles it);
+MLIR CSE does not merge ops that differ in `sv.namehint`; `hw-imdce` crashes
+on lowered designs (use `hw-cone-of-influence`). circt-verilog used to encode
+`a |=> b` as `|->`; fixed on this branch. Frontend gaps found so far are
+listed in cv32e40x/README.md ("CIRCT issues"); fix them in CIRCT rather than
+working around them in scripts when they block an experiment.
 
 ## 3. Finding what to simplify
 

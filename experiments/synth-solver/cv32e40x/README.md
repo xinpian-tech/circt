@@ -43,10 +43,49 @@ name.
 ## CIRCT issues found
 
 - ExportAIGER drops compreg resets and initial values without a warning.
-- circt-verilog encodes `a |=> b` as `concat(delay(a,1,0), true) |-> b`. By
-  the LTL dialect's definition of delay and concat this checks b in the
-  cycle where a holds (`|->`). Test: `y <= go`; `go |=> y` comes out SAT,
-  `go ##1 1'b1 |-> y` UNSAT. Use the `##1` form; lower_regs.py warns.
+- Fixed on this branch (ImportVerilog):
+  - `a |=> b` was encoded as `concat(delay(a,1,0), true) |-> b`, which by
+    the LTL dialect's definition of delay and concat checks b in the cycle
+    where a holds (`|->`). Now `concat(a, delay(true,1,0)) |-> b`; with
+    `y <= go`, `go |=> y` is UNSAT and `go |-> y` SAT (aigreach.py).
+  - Clocking and `disable iff` inside a named property (`property p;
+    @(posedge clk) disable iff (r) ...; endproperty; assert property (p)`)
+    were rejected ("unsupported expression: DisableIff").
+  - Covergroup declarations were rejected as module members.
+- Open, worked around by leaving the SVA out (`import_core.sh` DROP):
+  debug_triggers (`$stable` of an unpacked array), controller_fsm (a bind
+  port connected by hierarchical name gives an instance operand of type
+  struct where the module expects a reference), mpu (invalid `hw.array_slice`
+  of the PMA configuration with PMA_NUM_REGIONS = 0).
+- `hw-imdce` crashes on the lowered core; `hw-cone-of-influence` (new) is
+  used instead.
+
+## Whole core
+
+`import_core.sh OUT.mlir debug_triggers,controller_fsm,mpu` imports the core
+with all its SVA: `make_wrapper.py` writes bhv/cv32e40x_wrapper.sv without
+core_log and rvfi (they read signals by hierarchical name), and
+sv/cv32e40x_core_top.sv instantiates the eXtension interface for the
+wrapper's interface ports (X_EXT = 0). 197 assertions; lower_regs.py handles
+181 (boolean or fixed-delay sequences on both sides of `|->`; it skips
+`until`, goto repetition and sequence `or`, 6 assertions).
+
+AIGER export of the core still fails: 22 LLHD signals are left, and they
+are in the cone of the assertions (cone of influence does not remove
+them):
+- 17 CSR `rdata_q`, cv32e40x_csr writes each bit in its own `always_ff`
+  (generate loop). circt-verilog makes every process a register of the whole
+  vector whose other bits read the signal back, and assigns all of them to
+  the signal.
+- register_file `mem`, one `always_ff` per word: the same at element level.
+- lsu_response_filter `outstanding_next`: `always_comb` with control flow
+  left in `llhd.combinational`.
+- sleep_unit clock gate `clk_en`: a latch.
+
+`verif-simplify-odc` on the core (IR level, before lowering): 13 assertions
+proved by the pass in both modes; the full pass rewrites 88 assertions (32
+with `antecedent-only`), with 18 case splits (7) and 450787 copied ops (1194).
+Whether this helps the solver needs the AIGER export above.
 
 ## ex_stage baseline (results-ex_stage-run1.tsv)
 

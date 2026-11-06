@@ -355,6 +355,10 @@ def label_at(loc):
   return f"{m.group(1).split('/')[-1]}:{m.group(2)}"
 
 
+class Unsupported(Exception):
+  pass
+
+
 class Props:
   """verif assertions and assumptions to safety outputs.
 
@@ -374,6 +378,7 @@ class Props:
     self.clk = clk
     self.term = list(top.regions[0].blocks[0].operations)[-1]
     self.dead = []
+    self.skipped = []
 
   def past(self, v, n):
     for _ in range(n):
@@ -413,7 +418,7 @@ class Props:
       d = IntegerAttr(op.attributes["delay"]).value
       if "length" not in op.attributes or \
               IntegerAttr(op.attributes["length"]).value != 0:
-        raise SystemExit(f"unbounded delay not supported: {op}")
+        raise Unsupported("unbounded delay")
       steps, n = self.sequence(op.operands[0])
       return [(x, t + d) for x, t in steps], n + d
     if op.name == "ltl.concat":
@@ -424,34 +429,7 @@ class Props:
         steps += [(y, base + t) for y, t in sub]
         end = base + n
       return steps, end
-    raise SystemExit(f"unsupported sequence op {op.name}")
-
-  def check_nonoverlap(self, ante):
-    """Warn about circt-verilog's encoding of `a |=> b`.
-
-        ImportVerilog builds concat(delay(a, 1, 0), true) |-> b. With delay
-        and concat as defined by the LTL dialect (delay moves the start of a
-        later, concat overlaps end and start) that checks b in the cycle
-        where a holds, like a |-> b, not one cycle later. This script follows
-        the dialect's definition; write `a ##1 1'b1 |-> b` instead of |=>.
-        """
-    try:
-      op = self.unwrap(ante).owner.operation
-    except AttributeError:
-      return
-    if op.name != "ltl.concat" or len(op.operands) != 2:
-      return
-    try:
-      d = op.operands[0].owner.operation
-    except AttributeError:
-      return
-    if d.name == "ltl.delay" and \
-            IntegerAttr(d.attributes["delay"]).value == 1 and \
-            const_value(op.operands[1]) in (1, -1):
-      print(
-          "warning: assertion uses |=>, which circt-verilog encodes as "
-          "|-> (see check_nonoverlap); use ##1",
-          file=sys.stderr)
+    raise Unsupported(f"sequence op {op.name}")
 
   def violation(self, op):
     prop, en = op.operands[0], (op.operands[2]
@@ -464,17 +442,19 @@ class Props:
       return self.and_([en, self.bnot(prop)])
     imp = prop.owner.operation
     if imp.name != "ltl.implication":
-      raise SystemExit(f"unsupported property {imp.name}")
+      raise Unsupported(f"property {imp.name}")
     self.dead.append(imp)
-    cons = self.unwrap(imp.operands[1])
-    if not isinstance(cons.type, IntegerType):
-      raise SystemExit("only boolean consequents are supported")
-    self.check_nonoverlap(imp.operands[0])
+    # antecedent steps, then consequent steps (fixed delays) after its end;
+    # the check happens when the consequent ends: a failing step is reported
+    # up to `cend` cycles late, which does not matter for safety
     steps, end = self.sequence(imp.operands[0])
-    match = [self.past(x, end - t) for x, t in steps]
-    ens = [self.past(en, k) for k in range(end + 1)] if en is not None \
-        else []
-    return self.and_(ens + match + [self.bnot(cons)])
+    csteps, cend = self.sequence(imp.operands[1])
+    match = [self.past(x, end + cend - t) for x, t in steps]
+    fails = [self.past(self.bnot(x), cend - t) for x, t in csteps]
+    fail = fails[0] if len(fails) == 1 else create("comb.or", fails, [i(1)])[0]
+    ens = [self.past(en, k) for k in range(end + cend + 1)] \
+        if en is not None else []
+    return self.and_(ens + match + [fail])
 
   def run(self, keep, assume):
     body = self.top.regions[0].blocks[0]
@@ -487,7 +467,12 @@ class Props:
     with InsertionPoint(self.term):
       for op in ops:
         lab = assert_label(op) or f"#{len(labels)}"
-        v = self.violation(op)
+        try:
+          v = self.violation(op)
+        except Unsupported as e:
+          print(f"warning: {lab} skipped (unsupported {e})", file=sys.stderr)
+          self.skipped.append(lab)
+          continue
         if op.name == "verif.clocked_assume" or lab in assume:
           assumes.append((lab, v))
         else:
