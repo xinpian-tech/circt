@@ -611,6 +611,14 @@ struct Context {
            Value>
       hierValueSymbols;
 
+  /// Placeholders for hierarchical values passed into an instance before the
+  /// instance that provides them has been created (a `bind` referring to a
+  /// sibling instance declared later). Replaced by the providing instance's
+  /// result once it is created.
+  DenseMap<const slang::ast::ValueSymbol *, SmallVector<Operation *>>
+      pendingHierValues;
+  DenseSet<Operation *> resolvedHierPlaceholders;
+
   /// A stack of assignment left-hand side values. Each assignment will push its
   /// lowered left-hand side onto this stack before lowering its right-hand
   /// side. This allows expressions to resolve the opaque

@@ -727,6 +727,42 @@ struct ModuleVisitor : public BaseVisitor {
       for (auto &alias : hierPath.valueSyms)
         if ((hierValue = context.valueSymbols.lookup(alias.first)))
           break;
+      // A member of an interface instantiated in this module.
+      for (auto &alias : hierPath.valueSyms) {
+        if (hierValue || !alias.second ||
+            alias.second->getDefinition().definitionKind !=
+                slang::ast::DefinitionKind::Interface)
+          continue;
+        if (auto *lowering = context.interfaceInstances.lookup(
+                alias.second->parentInstance)) {
+          hierValue = lowering->expandedMembers.lookup(alias.first);
+          if (!hierValue)
+            hierValue = lowering->expandedMembersByName.lookup(
+                builder.getStringAttr(alias.first->name));
+        }
+      }
+      // A value that is not a reference (e.g. an input port of this module):
+      // pass a wire driven by it.
+      auto inputTypesAll = moduleType.getInputTypes();
+      if (hierValue && !isa<moore::RefType>(hierValue.getType()) &&
+          inputValues.size() < inputTypesAll.size())
+        if (auto refType =
+                dyn_cast<moore::RefType>(inputTypesAll[inputValues.size()])) {
+          auto wire = moore::NetOp::create(builder, loc, refType, StringAttr{},
+                                           moore::NetKind::Wire, nullptr);
+          moore::ContinuousAssignOp::create(builder, loc, wire, hierValue);
+          hierValue = wire;
+        }
+      // The value may come from a sibling instance that is created later:
+      // use a placeholder until then.
+      auto inputTypes = moduleType.getInputTypes();
+      if (!hierValue && inputValues.size() < inputTypes.size()) {
+        auto placeholder = mlir::UnrealizedConversionCastOp::create(
+            builder, loc, inputTypes[inputValues.size()], ValueRange{});
+        hierValue = placeholder.getResult(0);
+        for (auto &alias : hierPath.valueSyms)
+          context.pendingHierValues[alias.first].push_back(placeholder);
+      }
       inputValues.push_back(hierValue);
     }
 
@@ -782,9 +818,22 @@ struct ModuleVisitor : public BaseVisitor {
     for (const auto &hierPath : context.hierPaths[body])
       if (hierPath.idx && hierPath.direction == ArgumentDirection::Out) {
         auto result = inst->getResult(*hierPath.idx);
-        for (auto &alias : hierPath.valueSyms)
-          if (aliasReachedThroughInstance(alias.second))
-            context.valueSymbols.insert(alias.first, result);
+        for (auto &alias : hierPath.valueSyms) {
+          if (!aliasReachedThroughInstance(alias.second))
+            continue;
+          context.valueSymbols.insert(alias.first, result);
+          // Resolve the placeholders of instances created before this one.
+          auto it = context.pendingHierValues.find(alias.first);
+          if (it == context.pendingHierValues.end())
+            continue;
+          for (auto *placeholder : it->second) {
+            if (!context.resolvedHierPlaceholders.insert(placeholder).second)
+              continue;
+            placeholder->getResult(0).replaceAllUsesWith(result);
+            placeholder->erase();
+          }
+          context.pendingHierValues.erase(it);
+        }
         context.hierValueSymbols[{&instNode, hierPath.hierName}] = result;
       }
 
@@ -1852,6 +1901,16 @@ Context::convertModuleBody(const slang::ast::InstanceBodySymbol *module) {
              << "`";
     outputs.push_back(hierValue);
   }
+
+  // Hierarchical values passed into instances of this module must all have
+  // been provided by now.
+  for (auto &[sym, placeholders] : pendingHierValues)
+    for (auto *placeholder : placeholders)
+      if (!resolvedHierPlaceholders.contains(placeholder) &&
+          placeholder->getParentOp() == lowering.op)
+        return mlir::emitError(placeholder->getLoc())
+               << "unable to resolve hierarchical reference `" << sym->name
+               << "`";
 
   moore::OutputOp::create(builder, lowering.op.getLoc(), outputs);
   return success();

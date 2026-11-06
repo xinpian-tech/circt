@@ -55,7 +55,6 @@ struct InstBodyVisitor
       return;
 
     auto hierName = builder.getStringAttr(expr.symbol.name);
-    const slang::ast::InstanceBodySymbol *parentInstBody = nullptr;
 
     // Record `name` on `body`, or add this symbol as an alias if another
     // instance already recorded the same path.
@@ -115,20 +114,50 @@ struct InstBodyVisitor
       }
     }
 
+    // The instance bodies enclosing the symbol, from its own upwards.
+    auto parentBody = [](const slang::ast::InstanceBodySymbol *body)
+        -> const slang::ast::InstanceBodySymbol * {
+      return body->parentInstance->getParentScope()->getContainingInstance();
+    };
+    DenseSet<const slang::ast::InstanceBodySymbol *> symbolAncestors;
+    for (auto *b = currentInstBody; b; b = parentBody(b))
+      symbolAncestors.insert(b);
+
     // The value flows downward: route it as an input port from the common
-    // ancestor down to the referencing module.
-    std::function<void(const slang::ast::InstanceBodySymbol *)>
-        collectHierarchicalPaths = [&](auto sym) {
-          addHierPath(getCanonicalBody(*sym->parentInstance), hierName,
-                      slang::ast::ArgumentDirection::In);
-          parentInstBody =
-              sym->parentInstance->getParentScope()->getContainingInstance();
-          if (parentInstBody && parentInstBody != currentInstBody)
-            collectHierarchicalPaths(parentInstBody);
-        };
-    hierName = builder.getStringAttr(currentInstBody->parentInstance->name +
-                                     llvm::Twine(".") + hierName.getValue());
-    collectHierarchicalPaths(outermostInstBody);
+    // ancestor down to the referencing module. The common ancestor is the
+    // first module above the referencing one that also encloses the symbol:
+    // the symbol's own module for a reference to an enclosing scope, or a
+    // module above it for a reference into a sibling subtree (as in a `bind`
+    // whose ports name signals of other instances).
+    const slang::ast::InstanceBodySymbol *commonAncestor = nullptr;
+    auto inName = builder.getStringAttr(currentInstBody->parentInstance->name +
+                                        llvm::Twine(".") + hierName.getValue());
+    for (auto *b = outermostInstBody; b; b = parentBody(b)) {
+      if (symbolAncestors.contains(b)) {
+        commonAncestor = b;
+        break;
+      }
+      addHierPath(getCanonicalBody(*b->parentInstance), inName,
+                  slang::ast::ArgumentDirection::In);
+    }
+
+    // For a sibling subtree, also expose the value as an output port on every
+    // module between the symbol and the common ancestor. The common ancestor
+    // then connects that output to the input above.
+    if (commonAncestor && commonAncestor != currentInstBody) {
+      auto outName = hierName;
+      for (auto *b = currentInstBody; b != commonAncestor; b = parentBody(b)) {
+        // Interface members are flattened into the module instantiating the
+        // interface, where they are found directly.
+        if (b->getDefinition().definitionKind ==
+            slang::ast::DefinitionKind::Interface)
+          continue;
+        addHierPath(getCanonicalBody(*b->parentInstance), outName,
+                    slang::ast::ArgumentDirection::Out);
+        outName = builder.getStringAttr(b->parentInstance->name +
+                                        llvm::Twine(".") + outName.getValue());
+      }
+    }
   }
 
   Context &context;
