@@ -8,7 +8,8 @@ Flow for one module of the CV32E40X core
     circt-synth | circt-translate --export-aiger
     ric3 check MODEL.aig ic3
 
-`run_ex_stage.sh` runs the ex_stage baseline below.
+`run_ex_stage.sh` runs the ex_stage baseline below. `cone.py` shows what is
+left of an assertion's `bad` cone. ../WORKFLOW.md describes how to add a pass.
 
 ## What lower_regs.py fixes
 
