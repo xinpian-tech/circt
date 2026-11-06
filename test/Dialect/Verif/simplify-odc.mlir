@@ -97,3 +97,29 @@ hw.module @Sequence(in %clk : i1, in %a : i1, in %b : i1) {
   %p = ltl.implication %d, %b : !ltl.sequence, i1
   verif.clocked_assert %p, posedge %clk : !ltl.property
 }
+
+// Assumptions are simplified the same way, but one that folds to true is not
+// reported as proved.
+// CHECK-LABEL: hw.module @Assume
+hw.module @Assume(in %clk : i1, in %op : i1, in %a : i8, in %b : i8,
+                  in %c : i8) {
+  %x = comb.mux %op, %a, %c : i8
+  %eq = comb.icmp eq %x, %a : i8
+  // CHECK: ltl.implication %op, %true
+  %p = ltl.implication %op, %eq : i1, i1
+  verif.clocked_assume %p, posedge %clk : !ltl.property
+}
+
+// Properties nested in other ops are left alone.
+// CHECK-LABEL: hw.module @Nested
+hw.module @Nested(in %clk : i1, in %op : i1, in %a : i8, in %c : i8) {
+  %x = comb.mux %op, %a, %c : i8
+  %eq = comb.icmp eq %x, %a : i8
+  // CHECK: [[EQ:%.+]] = comb.icmp eq
+  // CHECK: sv.always
+  // CHECK-NEXT: ltl.implication %op, [[EQ]]
+  sv.always posedge %clk {
+    %p = ltl.implication %op, %eq : i1, i1
+    verif.assert %p : !ltl.property
+  }
+}

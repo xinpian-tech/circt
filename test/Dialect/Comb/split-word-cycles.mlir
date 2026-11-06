@@ -1,5 +1,4 @@
 // RUN: circt-opt %s --pass-pipeline='builtin.module(hw.module(comb-split-word-cycles))' 2>/dev/null | FileCheck %s
-// RUN: circt-opt %s --pass-pipeline='builtin.module(hw.module(comb-split-word-cycles{cut-remaining}))' 2>/dev/null | FileCheck %s --check-prefix=CUT
 
 // A word that depends on itself, but no bit does: bit 1 is computed from bit
 // 0, which comes from an input. Pushing the extracts through the mux and the
@@ -16,13 +15,11 @@ hw.module @FalseCycle(in %c : i1, in %a : i1, in %b : i2, out o : i2) {
   hw.output %w : i2
 }
 
-// A cycle of bits is left; with cut-remaining it is cut by a new input.
+// A cycle of bits is left as it is.
 // CHECK-LABEL: hw.module @BitCycle
-// CUT-LABEL: hw.module @BitCycle
-// CUT-SAME: in %cycle_cut_0 : i1
+// CHECK-SAME: (in %a : i1, out o : i1)
 hw.module @BitCycle(in %a : i1, out o : i1) {
   // CHECK: comb.and {{%.+}}, %a
-  // CUT: comb.and %cycle_cut_0, %a
   %x = comb.and %y, %a : i1
   %y = comb.or %x, %a : i1
   hw.output %x : i1

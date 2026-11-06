@@ -604,11 +604,12 @@ bool SimplifyODCPass::split(ltl::ImplicationOp &impl) {
 
 void SimplifyODCPass::runOnOperation() {
   SmallVector<Operation *> asserts;
-  getOperation()->walk([&](Operation *op) {
+  // Only properties in the module body: copies are placed before the
+  // property, which needs a graph region (no dominance between ops).
+  for (auto &op : *getOperation().getBodyBlock())
     if (isa<verif::AssertOp, verif::AssumeOp, verif::ClockedAssertOp,
             verif::ClockedAssumeOp>(op))
-      asserts.push_back(op);
-  });
+      asserts.push_back(&op);
 
   for (auto *op : asserts) {
     Value property = op->getOperand(0);
@@ -660,7 +661,8 @@ void SimplifyODCPass::runOnOperation() {
     simplify(newImpl);
     for (unsigned n = 0; n < maxSplits && split(newImpl); ++n)
       ++numSplits;
-    if (isTrue(newImpl.getConsequent())) {
+    if (isTrue(newImpl.getConsequent()) &&
+        isa<verif::AssertOp, verif::ClockedAssertOp>(op)) {
       ++numProved;
       op->emitRemark("property holds under its don't-cares");
     }

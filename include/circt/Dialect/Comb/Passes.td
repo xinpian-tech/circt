@@ -65,20 +65,16 @@ def SplitWordCycles : Pass<"comb-split-word-cycles", "hw::HWModuleOp"> {
     through the `comb.mux`, `and`, `or`, `xor`, `concat` and `replicate` ops of
     each cycle, so that the cycle splits into the parts actually used, until
     no cycle is left. Logic outside of cycles is left alone. A warning is
-    emitted if a cycle remains (a cycle of bits). With `cut-remaining`, such
-    cycles are cut by replacing operands with new module inputs.
+    emitted if a cycle remains (a cycle of bits). The pass only applies
+    equivalence-preserving rewrites.
   }];
   let options = [
     Option<"maxIterations", "max-iterations", "unsigned", "64",
-           "Maximum number of splitting rounds">,
-    Option<"cutRemaining", "cut-remaining", "bool", "false",
-           "Cut cycles that remain by new module inputs (an over-"
-           "approximation, for model checking)">
+           "Maximum number of splitting rounds">
   ];
   let statistics = [
     Statistic<"numPushed", "num-pushed",
-              "Number of extracts pushed into their input">,
-    Statistic<"numCuts", "num-cuts", "Number of operands cut">
+              "Number of extracts pushed into their input">
   ];
 }
 

@@ -188,36 +188,8 @@ void SplitWordCyclesPass::runOnOperation() {
   if (left.empty())
     return;
 
-  // Optionally cut the remaining cycles: replace the operands of one op per
-  // cycle that come from the cycle by new module inputs. This over-approximates
-  // the module (the input may take any value), which keeps proofs of safety
-  // properties valid but may admit spurious counterexamples.
-  if (cutRemaining) {
-    auto module = getOperation();
-    for (unsigned round = 0; !left.empty() && round < 1000; ++round) {
-      Operation *cut = nullptr;
-      for (auto &op : block)
-        if (left.contains(&op)) {
-          cut = &op;
-          break;
-        }
-      for (auto &operand : cut->getOpOperands()) {
-        if (!left.contains(operand.get().getDefiningOp()))
-          continue;
-        auto name = StringAttr::get(&getContext(),
-                                    "cycle_cut_" + Twine(numCuts.getValue()));
-        auto [port, arg] = module.appendInput(name, operand.get().getType());
-        (void)port;
-        operand.set(arg);
-        ++numCuts;
-      }
-      module.emitWarning("cut combinational cycle at ")
-          << cut->getName() << " (" << cut->getLoc() << ")";
-      left = findCycles(block);
-    }
-    if (left.empty())
-      return;
-  }
+  // A cycle of bits is left. It may still be functionally acyclic, but
+  // removing it needs more than local rewrites; leave the module as it is.
   auto diag =
       getOperation().emitWarning("combinational cycle left after splitting");
   unsigned shown = 0;
