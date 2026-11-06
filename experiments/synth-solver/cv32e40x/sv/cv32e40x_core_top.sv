@@ -1,10 +1,10 @@
 // Top for formal: cv32e40x_wrapper (all SVA bound) with the eXtension
-// interface instantiated inside (X_EXT = 0: coprocessor side undriven).
+// interface instantiated inside (X_EXT = 0: no coprocessor) and the clock
+// gate kept open.
 // Generated from bhv/cv32e40x_wrapper.sv; regenerate if its ports change.
 module cv32e40x_core_top (
   input  logic        clk_i,
   input  logic        rst_ni,
-  input  logic        scan_cg_en_i,
   input  logic [31:0] boot_addr_i,
   input  logic [31:0] mtvec_addr_i,
   input  logic [31:0] dm_halt_addr_i,
@@ -54,7 +54,20 @@ module cv32e40x_core_top (
   input  logic        fetch_enable_i,
   output logic        core_sleep_o
 );
+  // The clock gate of the sleep unit is a latch; keep it open (the core clock
+  // runs in every cycle), which approximates sleep.
+  logic scan_cg_en_i;
+  assign scan_cg_en_i = 1'b1;
   cv32e40x_if_xif xif ();
+  // No coprocessor: its outputs are 0.
+  assign xif.compressed_ready = 1'b0;
+  assign xif.compressed_resp = '0;
+  assign xif.issue_ready = 1'b0;
+  assign xif.issue_resp = '0;
+  assign xif.mem_valid = 1'b0;
+  assign xif.mem_req = '0;
+  assign xif.result_valid = 1'b0;
+  assign xif.result = '0;
   cv32e40x_wrapper #(.CORE_LOG_ENABLE(0)) wrapper_i (
     .xif_compressed_if (xif),
     .xif_issue_if (xif),
