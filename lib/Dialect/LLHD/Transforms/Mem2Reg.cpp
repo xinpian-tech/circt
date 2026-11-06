@@ -8,6 +8,7 @@
 
 #include "ProjectionUtils.h"
 #include "circt/Dialect/Comb/CombOps.h"
+#include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/HW/HWTypes.h"
 #include "circt/Dialect/LLHD/LLHDOps.h"
 #include "circt/Dialect/LLHD/LLHDPasses.h"
@@ -16,6 +17,7 @@
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/IR/Dominance.h"
+#include "mlir/IR/IRMapping.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/GenericIteratedDominanceFrontier.h"
@@ -2317,6 +2319,128 @@ struct Mem2RegPass : public llhd::impl::Mem2RegPassBase<Mem2RegPass> {
 };
 } // namespace
 
+/// Replace drives and probes of a static slice of an array signal by drives and
+/// probes of its elements. The promotion tree only understands element, bit
+/// and field projections; `x[2:1] = ...` in an `always_comb` would otherwise
+/// keep the whole process from being promoted.
+static void splitStaticArraySlices(Region &region) {
+  SmallVector<SigArraySliceOp> slices;
+  region.walk([&](SigArraySliceOp op) { slices.push_back(op); });
+  for (auto slice : slices) {
+    APInt low;
+    if (!matchPattern(slice.getLowIndex(), m_ConstantInt(&low)))
+      continue;
+    auto sliceType = cast<hw::ArrayType>(
+        cast<RefType>(slice.getResult().getType()).getNestedType());
+    unsigned n = sliceType.getNumElements();
+    if (n < 2 || n > 64)
+      continue;
+    if (!llvm::all_of(slice->getUses(), [](OpOperand &use) {
+          return isa<ProbeOp>(use.getOwner()) ||
+                 (isa<DriveLikeOp>(use.getOwner()) &&
+                  use.getOperandNumber() == 0);
+        }))
+      continue;
+    auto indexType = slice.getLowIndex().getType();
+    auto innerIndexType =
+        IntegerType::get(slice.getContext(), llvm::Log2_64_Ceil(n));
+    for (auto *user : llvm::make_early_inc_range(slice->getUsers())) {
+      OpBuilder builder(user);
+      auto loc = user->getLoc();
+      auto element = [&](unsigned k) {
+        auto index = hw::ConstantOp::create(
+            builder, loc, IntegerAttr::get(indexType, low.getZExtValue() + k));
+        return SigArrayGetOp::create(builder, loc, slice.getInput(), index);
+      };
+      if (auto probe = dyn_cast<ProbeOp>(user)) {
+        SmallVector<Value> values;
+        for (unsigned k = n; k-- > 0;)
+          values.push_back(ProbeOp::create(builder, loc, element(k)));
+        probe.replaceAllUsesWith(
+            hw::ArrayCreateOp::create(builder, loc, values).getResult());
+        probe.erase();
+        continue;
+      }
+      Value value = user->getOperand(1);
+      for (unsigned k = 0; k < n; ++k) {
+        auto index = hw::ConstantOp::create(
+            builder, loc, IntegerAttr::get(innerIndexType, k));
+        IRMapping mapping;
+        mapping.map(slice.getResult(), element(k));
+        mapping.map(value, hw::ArrayGetOp::create(builder, loc, value, index));
+        builder.clone(*user, mapping);
+      }
+      user->erase();
+    }
+    slice.erase();
+  }
+}
+
+/// Move static projections of signals defined outside a process out of the
+/// process, and merge equal ones. Each `x[i] <= ...` in a different branch
+/// creates its own `llhd.sig.extract` of the same bits; as distinct
+/// projections of the same range they look overlapping to the promotion tree,
+/// which then promotes the whole signal and writes it back entirely
+/// (read-modify-write). With several processes each driving its own part of
+/// one signal (one `always_ff` per bit or per array element), every process
+/// would drive the whole signal.
+///
+/// Only done for signals driven from more than one place: within a single
+/// process the read-modify-write of the whole signal is what the later passes
+/// expect (e.g. several fields of one struct assigned in one `always_ff`).
+static void hoistStaticProjections(Region &region,
+                                   const DenseSet<Operation *> &shared) {
+  Operation *parent = region.getParentOp();
+  auto definedOutside = [&](Value value) {
+    return !region.isAncestor(value.getParentRegion());
+  };
+  SmallVector<Operation *> projections;
+  region.walk([&](Operation *op) {
+    if (isa<SigExtractOp, SigArrayGetOp, SigStructExtractOp>(op))
+      if (auto *root = getRootSignal(op->getResult(0));
+          root && shared.contains(root))
+        projections.push_back(op);
+  });
+  // Projections of projections are hoisted once their input is.
+  bool changed = true;
+  SmallVector<Operation *> hoisted;
+  while (changed) {
+    changed = false;
+    for (auto *&op : projections) {
+      if (!op || !llvm::all_of(op->getOperands(), definedOutside))
+        continue;
+      op->moveBefore(parent);
+      hoisted.push_back(op);
+      op = nullptr;
+      changed = true;
+    }
+  }
+  // Merge each hoisted projection with the equal ones next to it, keeping
+  // the first in the block.
+  DenseSet<Operation *> erased;
+  for (auto *op : hoisted) {
+    if (erased.contains(op))
+      continue;
+    SmallVector<Operation *> equal;
+    for (auto *user : op->getOperand(0).getUsers())
+      if (user->getBlock() == op->getBlock() &&
+          OperationEquivalence::isEquivalentTo(
+              op, user, OperationEquivalence::IgnoreLocations))
+        equal.push_back(user);
+    Operation *keep = op;
+    for (auto *other : equal)
+      if (other->isBeforeInBlock(keep))
+        keep = other;
+    for (auto *other : equal) {
+      if (other == keep)
+        continue;
+      other->getResult(0).replaceAllUsesWith(keep->getResult(0));
+      erased.insert(other);
+      other->erase();
+    }
+  }
+}
+
 void Mem2RegPass::runOnOperation() {
   SmallVector<Region *> regions;
   getOperation()->walk<WalkOrder::PreOrder>([&](Operation *op) {
@@ -2328,6 +2452,26 @@ void Mem2RegPass::runOnOperation() {
     }
     return WalkResult::advance();
   });
+  // Signals driven from more than one of these regions, or from one of them
+  // and outside of them (continuous assignments to other parts).
+  DenseSet<Region *> processRegions(regions.begin(), regions.end());
+  DenseMap<Operation *, Region *> driver;
+  DenseSet<Operation *> shared;
+  getOperation()->walk([&](DriveLikeOp drive) {
+    auto *root = getRootSignal(drive->getOperand(0));
+    if (!root)
+      return;
+    Region *region = drive->getParentRegion();
+    while (region && !processRegions.contains(region))
+      region = region->getParentRegion();
+    auto [it, inserted] = driver.insert({root, region});
+    if (!inserted && it->second != region)
+      shared.insert(root);
+  });
+  for (auto *region : regions)
+    splitStaticArraySlices(*region);
+  for (auto *region : regions)
+    hoistStaticProjections(*region, shared);
   for (auto *region : regions)
     if (failed(Promoter(*region).promote()))
       return signalPassFailure();

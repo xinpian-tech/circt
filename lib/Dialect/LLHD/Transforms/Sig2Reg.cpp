@@ -10,10 +10,12 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/LLHD/LLHDOps.h"
 #include "circt/Dialect/LLHD/LLHDPasses.h"
 #include "mlir/IR/Matchers.h"
+#include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/Debug.h"
 
 #define DEBUG_TYPE "llhd-sig2reg"
@@ -47,15 +49,73 @@ void Sig2RegPass::runOnOperation() {
   signalsToErase.clear();
 }
 
+/// Whether `op` projects a part out of a signal and is only probed (directly
+/// or through further such projections).
+static bool isProbedProjection(Operation *op) {
+  if (auto extract = dyn_cast<SigExtractOp>(op)) {
+    if (!matchPattern(extract.getLowBit(), m_Constant()))
+      return false;
+  } else if (!isa<SigArrayGetOp, SigArraySliceOp, SigStructExtractOp>(op)) {
+    return false;
+  }
+  return llvm::all_of(op->getUsers(), [](Operation *user) {
+    return isa<ProbeOp>(user) || isProbedProjection(user);
+  });
+}
+
+/// Replace the probes of a probed projection of a signal whose value is
+/// `value` with the corresponding part of `value`, and erase them.
+static void replaceProjectedProbes(Operation *projection, Value value) {
+  OpBuilder builder(projection);
+  auto loc = projection->getLoc();
+  auto type = cast<RefType>(projection->getResult(0).getType()).getNestedType();
+  Value part =
+      TypeSwitch<Operation *, Value>(projection)
+          .Case<SigExtractOp>([&](auto op) -> Value {
+            APInt lowBit;
+            matchPattern(op.getLowBit(), m_ConstantInt(&lowBit));
+            return comb::ExtractOp::create(builder, loc, type, value,
+                                           lowBit.getZExtValue());
+          })
+          .Case<SigArrayGetOp>([&](auto op) -> Value {
+            return hw::ArrayGetOp::create(builder, loc, value, op.getIndex());
+          })
+          .Case<SigArraySliceOp>([&](auto op) -> Value {
+            return hw::ArraySliceOp::create(builder, loc, type, value,
+                                            op.getLowIndex());
+          })
+          .Case<SigStructExtractOp>([&](auto op) -> Value {
+            return hw::StructExtractOp::create(builder, loc, value,
+                                               op.getFieldAttr());
+          });
+  for (auto *user : llvm::make_early_inc_range(projection->getUsers())) {
+    if (auto probe = dyn_cast<ProbeOp>(user)) {
+      probe.replaceAllUsesWith(part);
+      probe.erase();
+    } else {
+      replaceProjectedProbes(user, part);
+    }
+  }
+  projection->erase();
+}
+
 void Sig2RegPass::promote(SignalOp op) {
   // Find the single drive, and check if there are any probes or multiple drives
   // of this signal. Bail on unknown users.
   DriveLikeOp drive;
   bool multipleDrives = false;
   bool anyProbe = false;
+  SmallVector<Operation *> projections;
   for (auto *user : op->getUsers()) {
     if (isa<ProbeOp>(user)) {
       anyProbe = true;
+      continue;
+    }
+
+    // Parts of the signal that are only read.
+    if (isProbedProjection(user)) {
+      anyProbe = true;
+      projections.push_back(user);
       continue;
     }
 
@@ -154,6 +214,8 @@ void Sig2RegPass::promote(SignalOp op) {
     value.printAsOperand(llvm::dbgs(), OpPrintingFlags());
     llvm::dbgs() << "\n";
   });
+  for (auto *projection : projections)
+    replaceProjectedProbes(projection, value);
   SmallPtrSet<Operation *, 8> erased;
   for (auto *user : llvm::make_early_inc_range(op->getUsers())) {
     if (auto probeOp = dyn_cast<ProbeOp>(user))
