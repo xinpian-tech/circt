@@ -1,4 +1,4 @@
-//===- SubstituteAntecedent.cpp - Simplify assertions under their guard ---===//
+//===- SimplifyODC.cpp - Simplify properties under don't-cares -----------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,17 +6,28 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// An assertion `a |-> c` (or `c` enabled by `en`) only checks `c` in cycles
-// where `a` (and `en`) hold. Facts implied by the antecedent, such as
-// `op == MUL` or `!kill`, can therefore be substituted into the consequent:
+// Simplify the logic of assertions with observability don't-cares (ODCs): a
+// value only has to be right where it is observed by the property, so facts
+// that hold wherever it is observed can be substituted into it.
+//
+//   en: assert(p)         p is observed where en = 1
+//   a |-> c               c is observed where a = 1
+//   mux(s, x, y)          x is observed where s = 1, y where s = 0
+//   a & b  /  a | b       b is observed where a = 1 / a = 0
+//
+// Facts are read from these conditions (conjuncts, negated disjuncts,
+// `x == C`) and accumulate along the paths from the property, forming a
+// context. Each value is rebuilt once per context in which it is reached, as a
+// copy, so the design logic itself is left untouched. With only the first two
+// rules (option `antecedent-only`), this substitutes the antecedent into the
+// consequent:
 //
 //   a |-> c   ==   a |-> c[x := C for every fact x == C implied by a]
 //
-// The consequent's cone is copied up to the values that change, so the design
-// itself is left untouched. The copy is then canonicalized and hashed with
-// the rest of the cone, which folds the muxes that the facts decide; on
-// datapath checks this often makes both sides of a comparison the same value,
-// so that the consequent folds to true.
+// The copy is then canonicalized and hashed with the rest of the cone, which
+// folds the muxes that the facts decide; on datapath checks this often makes
+// both sides of a comparison the same value, so that the consequent folds to
+// true.
 //
 // If the consequent does not fold, the pass tries a case split on a 1-bit
 // signal `s` that selects a mux in the cone: when `c[s := v]` folds to true,
@@ -36,6 +47,7 @@
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "llvm/ADT/MapVector.h"
 #include "llvm/ADT/SetVector.h"
+#include <map>
 #include <unordered_map>
 
 using namespace circt;
@@ -43,15 +55,14 @@ using namespace mlir;
 
 namespace circt {
 namespace verif {
-#define GEN_PASS_DEF_SUBSTITUTEANTECEDENTPASS
+#define GEN_PASS_DEF_SIMPLIFYODCPASS
 #include "circt/Dialect/Verif/Passes.h.inc"
 } // namespace verif
 } // namespace circt
 
 namespace {
-struct SubstituteAntecedentPass
-    : verif::impl::SubstituteAntecedentPassBase<SubstituteAntecedentPass> {
-  using SubstituteAntecedentPassBase::SubstituteAntecedentPassBase;
+struct SimplifyODCPass : verif::impl::SimplifyODCPassBase<SimplifyODCPass> {
+  using SimplifyODCPassBase::SimplifyODCPassBase;
   LogicalResult initialize(MLIRContext *context) override;
   void runOnOperation() override;
   void simplify(ltl::ImplicationOp impl);
@@ -61,12 +72,12 @@ struct SubstituteAntecedentPass
 };
 } // namespace
 
-/// Collect values that are constant whenever `cond` is 1. Walks through
+/// Collect values that are constant whenever `cond` is `value`. Walks through
 /// conjunctions, negated disjunctions and negations, and reads `x == C` as a
 /// fact about `x`.
-static void collectFacts(Value cond,
+static void collectFacts(Value cond, bool value,
                          llvm::MapVector<Value, IntegerAttr> &facts) {
-  SmallVector<std::pair<Value, bool>> worklist{{cond, true}};
+  SmallVector<std::pair<Value, bool>> worklist{{cond, value}};
   SmallPtrSet<Value, 16> seen;
   while (!worklist.empty()) {
     auto [value, polarity] = worklist.pop_back_val();
@@ -182,6 +193,133 @@ static Value substitute(Value value,
   return result ? result : value;
 }
 
+namespace {
+using Facts = llvm::MapVector<Value, IntegerAttr>;
+
+/// Rebuilds a cone under contexts: sets of facts that hold wherever the value
+/// being rebuilt is observed. Contexts are interned; each (value, context) is
+/// rebuilt once.
+class ODCRewriter {
+public:
+  ODCRewriter(OpBuilder &builder, bool nested, unsigned maxClones)
+      : builder(builder), nested(nested), maxClones(maxClones) {}
+
+  unsigned context(const Facts &facts) {
+    SmallVector<std::pair<const void *, const void *>> key;
+    for (auto [v, attr] : facts)
+      key.push_back({v.getAsOpaquePointer(), attr.getAsOpaquePointer()});
+    llvm::sort(key);
+    auto [it, inserted] = ids.insert({key, contexts.size()});
+    if (inserted)
+      contexts.push_back(facts);
+    return it->second;
+  }
+
+  /// The context `ctx` where `cond` is also `value`.
+  unsigned extend(unsigned ctx, Value cond, bool value) {
+    if (numClones >= maxClones)
+      return ctx;
+    Facts facts = contexts[ctx];
+    auto size = facts.size();
+    collectFacts(cond, value, facts);
+    return facts.size() == size ? ctx : context(facts);
+  }
+
+  Value rewrite(Value value, unsigned ctx) { return visit(value, ctx, 0); }
+  unsigned getNumClones() const { return numClones; }
+
+private:
+  Value constant(IntegerAttr attr, Location loc) {
+    auto &c = constants[attr];
+    if (!c)
+      c = hw::ConstantOp::create(builder, loc, attr);
+    return c;
+  }
+
+  Value visit(Value value, unsigned ctx, unsigned depth) {
+    auto key = std::make_pair(value, ctx);
+    if (auto it = memo.find(key); it != memo.end())
+      return it->second;
+    Value result = compute(value, ctx, depth);
+    memo[key] = result;
+    return result;
+  }
+
+  Value compute(Value value, unsigned ctx, unsigned depth) {
+    if (auto it = contexts[ctx].find(value); it != contexts[ctx].end())
+      return constant(it->second, value.getLoc());
+    auto *op = value.getDefiningOp();
+    if (!op || !isCopyable(op))
+      return value;
+    // Deep cones: keep substituting, but stop opening new contexts.
+    bool open = nested && depth < 256;
+    ++depth;
+
+    if (auto mux = dyn_cast<comb::MuxOp>(op)) {
+      Value cond = visit(mux.getCond(), ctx, depth);
+      APInt c;
+      if (matchPattern(cond, m_ConstantInt(&c)))
+        return visit(c.isOne() ? mux.getTrueValue() : mux.getFalseValue(), ctx,
+                     depth);
+      auto ctxTrue = open ? extend(ctx, mux.getCond(), true) : ctx;
+      auto ctxFalse = open ? extend(ctx, mux.getCond(), false) : ctx;
+      Value t = visit(mux.getTrueValue(), ctxTrue, depth);
+      Value f = visit(mux.getFalseValue(), ctxFalse, depth);
+      if (cond == mux.getCond() && t == mux.getTrueValue() &&
+          f == mux.getFalseValue())
+        return value;
+      ++numClones;
+      return comb::MuxOp::create(builder, mux.getLoc(), cond, t, f,
+                                 mux.getTwoState());
+    }
+
+    // a & b: b only matters where a = 1 (and a | b: where a = 0). The
+    // operands are taken in order, so that no operand is simplified with a
+    // fact derived from itself.
+    if (open && op->getResult(0).getType().isInteger(1) &&
+        isa<comb::AndOp, comb::OrOp>(op)) {
+      bool isAnd = isa<comb::AndOp>(op);
+      SmallVector<Value> inputs;
+      bool changed = false;
+      unsigned cur = ctx;
+      for (auto input : op->getOperands()) {
+        Value v = visit(input, cur, depth);
+        changed |= v != input;
+        inputs.push_back(v);
+        cur = extend(cur, input, isAnd);
+      }
+      if (!changed)
+        return value;
+      ++numClones;
+      bool twoState = isAnd ? cast<comb::AndOp>(op).getTwoState()
+                            : cast<comb::OrOp>(op).getTwoState();
+      if (isAnd)
+        return comb::AndOp::create(builder, op->getLoc(), inputs, twoState);
+      return comb::OrOp::create(builder, op->getLoc(), inputs, twoState);
+    }
+
+    IRMapping mapping;
+    for (auto operand : op->getOperands())
+      if (auto v = visit(operand, ctx, depth); v != operand)
+        mapping.map(operand, v);
+    if (mapping.getValueMap().empty())
+      return value;
+    ++numClones;
+    return builder.clone(*op, mapping)
+        ->getResult(cast<OpResult>(value).getResultNumber());
+  }
+
+  OpBuilder &builder;
+  bool nested;
+  unsigned maxClones;
+  unsigned numClones = 0;
+  SmallVector<Facts> contexts;
+  std::map<SmallVector<std::pair<const void *, const void *>>, unsigned> ids;
+  DenseMap<std::pair<Value, unsigned>, Value> memo;
+  DenseMap<Attribute, Value> constants;
+};
+} // namespace
+
 /// The ops of `value`'s cone, operands before users.
 static SmallVector<Operation *> coneOf(Value value) {
   SmallVector<Operation *> order;
@@ -294,7 +432,7 @@ struct CancelAddOperands : public OpRewritePattern<comb::ICmpOp> {
 };
 } // namespace
 
-LogicalResult SubstituteAntecedentPass::initialize(MLIRContext *context) {
+LogicalResult SimplifyODCPass::initialize(MLIRContext *context) {
   RewritePatternSet set(context);
   set.add<CancelAddOperands>(context);
   for (auto *dialect : context->getLoadedDialects())
@@ -309,7 +447,7 @@ LogicalResult SubstituteAntecedentPass::initialize(MLIRContext *context) {
 /// ops with structurally equal ones of the cone. Unlike CSE this ignores
 /// discardable attributes: the two sides of a check usually carry different
 /// `sv.namehint`s (`int_result` vs `mul_result`) and would not be merged.
-void SubstituteAntecedentPass::simplify(ltl::ImplicationOp impl) {
+void SimplifyODCPass::simplify(ltl::ImplicationOp impl) {
   Operation *root = impl;
   auto consequent = [&] { return impl.getConsequent(); };
   for (unsigned iter = 0; iter < 8; ++iter) {
@@ -398,14 +536,14 @@ static SmallVector<Value> splitCandidates(Value value) {
 }
 
 /// Try a case split of `impl`; replace it and return true on success.
-bool SubstituteAntecedentPass::split(ltl::ImplicationOp &impl) {
+bool SimplifyODCPass::split(ltl::ImplicationOp &impl) {
   Value consequent = impl.getConsequent();
   if (matchPattern(consequent, m_Constant()))
     return false;
   for (auto s : splitCandidates(consequent)) {
     for (bool v : {true, false}) {
       OpBuilder builder(impl);
-      llvm::MapVector<Value, IntegerAttr> facts;
+      Facts facts;
       facts.insert({s, IntegerAttr::get(s.getType(), v)});
       Value cofactor = substitute(consequent, facts, builder);
       if (cofactor == consequent)
@@ -444,7 +582,7 @@ bool SubstituteAntecedentPass::split(ltl::ImplicationOp &impl) {
   return false;
 }
 
-void SubstituteAntecedentPass::runOnOperation() {
+void SimplifyODCPass::runOnOperation() {
   SmallVector<Operation *> asserts;
   getOperation()->walk([&](Operation *op) {
     if (isa<verif::AssertOp, verif::AssumeOp, verif::ClockedAssertOp,
@@ -476,19 +614,18 @@ void SubstituteAntecedentPass::runOnOperation() {
       continue;
     }
 
-    llvm::MapVector<Value, IntegerAttr> facts;
-    if (antecedent)
-      collectFacts(antecedent, facts);
-    if (enable)
-      collectFacts(enable, facts);
-    if (facts.empty())
-      continue;
-
     OpBuilder builder(op);
-    Value newConsequent = substitute(consequent, facts, builder);
+    ODCRewriter rewriter(builder, !antecedentOnly, maxClones);
+    unsigned ctx = rewriter.context({});
+    if (enable)
+      ctx = rewriter.extend(ctx, enable, true);
+    if (antecedent)
+      ctx = rewriter.extend(ctx, antecedent, true);
+    Value newConsequent = rewriter.rewrite(consequent, ctx);
+    numClones += rewriter.getNumClones();
     if (newConsequent == consequent)
       continue;
-    ++numSubstituted;
+    ++numRewritten;
 
     // Work on an implication of our own, used by this assertion only.
     if (!antecedent)
@@ -505,7 +642,7 @@ void SubstituteAntecedentPass::runOnOperation() {
       ++numSplits;
     if (isTrue(newImpl.getConsequent())) {
       ++numProved;
-      op->emitRemark("consequent holds under the antecedent");
+      op->emitRemark("property holds under its don't-cares");
     }
   }
 }

@@ -52,11 +52,14 @@ the repo's nix flake failed on truncated source downloads); rIC3 and ABC.
      under every synthesis configuration.
    - circt-synth's ConvertCombToDatapath makes a_check_acc_init_zero 50x
      slower for IC3 (1-2 s -> 40-117 s) with fewer ANDs.
-   - New pass `verif-substitute-antecedent`: substitute facts implied by an
-     assertion's antecedent into its consequent (with restricted
-     canonicalization, hashing that ignores names, case splits). Solves 5 of
-     the 12 (one folds away, four in < 1 s, a_mul_result in 60-146 s); the
-     rest need sequential invariants on the MULH accumulator.
+   - New pass `verif-simplify-odc`: simplify assertion logic with its
+     observability don't-cares (facts from the enable, the antecedent, and
+     mux selects / and-or operands inside the property), with restricted
+     canonicalization, hashing that ignores names, case splits. The
+     antecedent alone solves 5 of the 12 (one folds away, four in < 1 s,
+     a_mul_result in 60-146 s); the rest need sequential invariants on the
+     MULH accumulator. The nested don't-cares change nothing on ex_stage;
+     properties with more structure are needed (core-level SVA).
 
 ## Open next steps (not started)
 

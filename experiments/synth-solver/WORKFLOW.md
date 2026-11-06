@@ -2,8 +2,8 @@
 
 How the experiments in this directory are run, and the steps to take a new
 simplification from an idea to a tested CIRCT pass with solver results.
-`verif-substitute-antecedent` (lib/Dialect/Verif/Transforms/
-SubstituteAntecedent.cpp) was done this way and serves as the example.
+`verif-simplify-odc` (lib/Dialect/Verif/Transforms/SimplifyODC.cpp) was done
+this way and serves as the example.
 
 The objective is solver time (rIC3 IC3 on the AIGER model), not AND count:
 fewer ANDs can be much slower (circt-synth's datapath lowering, see
@@ -35,7 +35,7 @@ For CV32E40X (cv32e40x/README.md has the details and known gaps):
 
     cv32e40x/import.sh cv32e40x_ex_stage ex.mlir ex_stage_env mult div
     cv32e40x/lower_regs.py ex.mlir MODEL.mlir --top cv32e40x_ex_stage \
-        --assert a_mul_result [--substitute-antecedent]
+        --assert a_mul_result [--odc full|antecedent]
     cv32e40x/run_configs.sh MODELDIR ASSERT... > results.tsv
 
 - `import.sh` runs circt-verilog on the core and binds the SVA modules.
@@ -67,7 +67,10 @@ not merge ops that differ in `sv.namehint`.
 3. Look at the hard cones (`cone.py --print`) and write down why the
    solver struggles (e.g. a multiplier miter that is only an identity under
    the assertion's antecedent).
-4. Check the idea by hand on a small CIRCT example (edit the IR, run
+4. Prefer generalizing an existing pass to adding a parallel one: the
+   antecedent substitution became the `antecedent-only` mode of the ODC
+   pass. Keep the narrower mode as an option for ablations.
+5. Check the idea by hand on a small CIRCT example (edit the IR, run
    `circt-opt --canonicalize --cse`) before writing code.
 
 A Python prototype on the lowered model is fine to test an idea quickly,

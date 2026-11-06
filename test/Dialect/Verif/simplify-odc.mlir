@@ -1,4 +1,5 @@
-// RUN: circt-opt %s --pass-pipeline='builtin.module(hw.module(verif-substitute-antecedent))' --verify-diagnostics | FileCheck %s
+// RUN: circt-opt %s --pass-pipeline='builtin.module(hw.module(verif-simplify-odc))' --verify-diagnostics | FileCheck %s
+// RUN: circt-opt %s --pass-pipeline='builtin.module(hw.module(verif-simplify-odc{antecedent-only}))' --verify-diagnostics | FileCheck %s
 
 // The antecedent picks the mux input, so both sides of the comparison are the
 // same product. The design (the output) keeps the original mux.
@@ -16,7 +17,7 @@ hw.module @MuxOperand(in %clk : i1, in %op : i1, in %a : i8, in %b : i8,
   // CHECK: [[P:%.+]] = ltl.implication %op, [[TRUE]]
   // CHECK: verif.clocked_assert [[P]]
   %p = ltl.implication %op, %eq : i1, i1
-  // expected-remark @below {{consequent holds under the antecedent}}
+  // expected-remark @below {{property holds under its don't-cares}}
   verif.clocked_assert %p, posedge %clk : !ltl.property
   // CHECK: hw.output [[R]]
   hw.output %r : i8
@@ -53,7 +54,7 @@ hw.module @Facts(in %clk : i1, in %en : i1, in %state : i2, in %kill : i1,
   %eq = comb.icmp eq %z, %a : i8
   // CHECK: ltl.implication {{%.+}}, %true
   %p = ltl.implication %ante, %eq : i1, i1
-  // expected-remark @below {{consequent holds under the antecedent}}
+  // expected-remark @below {{property holds under its don't-cares}}
   verif.clocked_assert %p if %en, posedge %clk : !ltl.property
 }
 

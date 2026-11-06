@@ -101,16 +101,21 @@ when a MULH starts, but the accumulator is fed by the multiplier.
 it is as fast as raw on both accumulator properties; the 12 multiplier
 checks still time out.
 
-## Substituting the antecedent (verif-substitute-antecedent)
+## Observability don't-cares (verif-simplify-odc)
 
 The multiplier checks are datapath miters: the design's 34-bit multiplier
 (operands picked by muxes on operator and FSM state, plus the accumulator)
 against a multiplier written in the SVA. The CIRCT pass
-`verif-substitute-antecedent` (lib/Dialect/Verif/Transforms/
-SubstituteAntecedent.cpp) rewrites each assertion `a |-> c` (enable `en`):
+`verif-simplify-odc` (lib/Dialect/Verif/Transforms/SimplifyODC.cpp)
+simplifies the logic of each assertion with its observability don't-cares:
+a value only has to be right where the property observes it.
 
-1. Facts implied by `a` and `en` (conjuncts, negated disjuncts, `x == C`)
-   are substituted into a copy of `c`'s cone; the design is not modified.
+1. Facts that hold where a value is observed are substituted into a copy of
+   it; the design is not modified. The facts come from the enable and the
+   antecedent of `a |-> c` (option `antecedent-only`, the first version of
+   the pass), and inside the property from mux selects (`mux(s, x, y)`: x
+   where s = 1) and and/or operands (`a & b`: b where a = 1), accumulating
+   along the paths. Facts are conjuncts, negated disjuncts and `x == C`.
 2. The logic used only by the assertion is canonicalized and merged with
    structurally equal logic of the cone, ignoring discardable attributes
    (CSE does not merge the two multipliers, whose `sv.namehint`s differ). An
@@ -119,14 +124,14 @@ SubstituteAntecedent.cpp) rewrites each assertion `a |-> c` (enable `en`):
    `c[s := v]` folds to true, the assertion becomes
    `(a && s != v) |-> c[s := !v]`.
 
-When `c` folds to true the pass emits a remark; `lower_regs.py
---substitute-antecedent` runs the pass before lowering the assertions and
-reports these as proved. A Python prototype of the same rewriting (on the
+When `c` folds to true the pass emits a remark; `lower_regs.py --odc
+full|antecedent` runs the pass before lowering the assertions and reports
+these as proved. A Python prototype of the same rewriting (on the
 lowered `bad` output) gave the same models, except that a_mul_result kept
 the multiplier there.
 
-Results (results-ex_stage-subst-run1.tsv, 300 s, raw or
-`circt-synth --disable-datapath` after the pass):
+Results with `antecedent-only` (results-ex_stage-odc-run1.tsv, 300 s, raw
+or `circt-synth --disable-datapath` after the pass):
 
 | assert | before (any config) | with the pass |
 |---|---|---|
@@ -153,3 +158,11 @@ Results (results-ex_stage-subst-run1.tsv, 300 s, raw or
 - Applied to the next-state logic, the same rules grew the AIG by 60%
   (narrower copies of the multiplier, Python prototype): the pass only
   rewrites logic used by the assertion alone.
+
+The full pass (don't-cares inside the property too) gives the same models
+as `antecedent-only` on all 23 ex_stage assertions: their consequents are
+single comparisons, and nested muxes on the same condition in the design are
+already folded by canonicalize. A sweep of the other modules found no more
+assertions to compare: most SVA files are written for binding in the core
+(ports of other modules) or use `disable iff` inside expressions, which
+circt-verilog does not support; only mult and div import on their own.

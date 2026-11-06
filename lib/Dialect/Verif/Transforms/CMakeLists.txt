@@ -7,7 +7,7 @@ add_circt_dialect_library(CIRCTVerifTransforms
   PrepareForFormal.cpp
   SimplifyAssumeEq.cpp
   StripContracts.cpp
-  SubstituteAntecedent.cpp
+  SimplifyODC.cpp
   VerifyClockedAssertLike.cpp
 
   DEPENDS

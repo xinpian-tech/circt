@@ -167,15 +167,19 @@ def SimplifyAssumeEqPass : Pass<"simplify-assume-eq", "hw::HWModuleOp"> {
   }];
 }
 
-def SubstituteAntecedentPass : Pass<"verif-substitute-antecedent",
-                                    "hw::HWModuleOp"> {
-  let summary = "Simplify the consequent of assertions under their antecedent";
+def SimplifyODCPass : Pass<"verif-simplify-odc", "hw::HWModuleOp"> {
+  let summary = "Simplify assertions with observability don't-cares";
   let description = [{
-    An assertion `a |-> c` only checks `c` in cycles where `a` holds, and an
-    assertion with an enable only where the enable holds. This pass collects
-    facts implied by the antecedent and the enable (conjuncts, negated
-    disjuncts, and `x == C` comparisons) and substitutes them into a copy of
-    the consequent's combinational cone. The design logic is not modified.
+    A value in the logic of a property only has to be right where the
+    property observes it: the property of an assertion where its enable
+    holds, the consequent of `a |-> c` where `a` holds, the operands of
+    `mux(s, x, y)` where `s` is 1 or 0, the second operand of an and (or)
+    where the first one is 1 (0). This pass reads facts from these conditions
+    (conjuncts, negated disjuncts, and `x == C` comparisons), accumulates
+    them along the paths from the property, and substitutes them into a copy
+    of the logic. The design logic is not modified. With `antecedent-only`,
+    only the enable and the antecedent are used, which substitutes the
+    antecedent into the consequent.
 
     The copy is canonicalized and merged with structurally equal logic of the
     cone (ignoring discardable attributes such as `sv.namehint`). The facts
@@ -191,12 +195,19 @@ def SubstituteAntecedentPass : Pass<"verif-substitute-antecedent",
     canonicalize afterwards to remove the logic left unused.
   }];
   let options = [
+    Option<"antecedentOnly", "antecedent-only", "bool", "false",
+           "Only use the enable and the antecedent, not the don't-cares "
+           "inside the consequent">,
+    Option<"maxClones", "max-clones", "unsigned", "10000",
+           "Stop opening new contexts after this many copied ops per "
+           "assertion">,
     Option<"maxSplits", "max-splits", "unsigned", "4",
            "Maximum number of case splits per assertion">
   ];
   let statistics = [
-    Statistic<"numSubstituted", "num-substituted",
-              "Number of assertions whose consequent was rewritten">,
+    Statistic<"numRewritten", "num-rewritten",
+              "Number of assertions whose logic was rewritten">,
+    Statistic<"numClones", "num-clones", "Number of ops copied">,
     Statistic<"numSplits", "num-splits", "Number of case splits">,
     Statistic<"numProved", "num-proved",
               "Number of assertions whose consequent folded to true">

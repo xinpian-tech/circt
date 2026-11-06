@@ -45,12 +45,12 @@ from circt.ir import (Attribute, Context, InsertionPoint, IntegerAttr,
 
 PRE = ("builtin.module(hw-flatten-modules,"
        "hw.module(llhd-hoist-signals,llhd-sig2reg,llhd-combine-drives,"
-       "canonicalize{SUBST},lower-ltl-to-core,lower-seq-shiftreg,"
+       "canonicalize{ODC},lower-ltl-to-core,lower-seq-shiftreg,"
        "lower-seq-compreg-ce),cse,hw-flatten-io,"
        "hw.module(hw-aggregate-to-comb,canonicalize),cse)")
-# --substitute-antecedent: simplify each assertion's consequent under its
-# antecedent (verif-substitute-antecedent) before the assertions are lowered.
-SUBST = ",verif-substitute-antecedent,canonicalize"
+# --odc full|antecedent: simplify the assertions with their observability
+# don't-cares (verif-simplify-odc) before they are lowered.
+ODC = ",verif-simplify-odc{OPTS},canonicalize"
 # Bitcasts (also those of aggregate registers below) are converted last:
 # hw-aggregate-to-comb turns struct_create into hw.bitcast, and canonicalize
 # folds the struct_create/struct_explode pairs left by hw-convert-bitcasts.
@@ -595,9 +595,11 @@ def main():
   ap.add_argument("--assume",
                   default="",
                   help="comma-separated SVA labels to use as assumptions")
-  ap.add_argument("--substitute-antecedent",
-                  action="store_true",
-                  help="run verif-substitute-antecedent before lowering")
+  ap.add_argument("--odc",
+                  choices=["full", "antecedent"],
+                  default=None,
+                  help="run verif-simplify-odc (antecedent: with "
+                  "antecedent-only) before lowering")
   ap.add_argument("--list",
                   action="store_true",
                   help="print the assertion labels and exit")
@@ -606,19 +608,21 @@ def main():
     circt.register_dialects(ctx)
     # LLHD passes are not in the Python bindings: run circt-opt.
     pre = subprocess.run([
-        "circt-opt", args.inp, "--pass-pipeline=" +
-        PRE.replace("{SUBST}", SUBST if args.substitute_antecedent else ""),
+        "circt-opt", args.inp, "--pass-pipeline=" + PRE.replace(
+            "{ODC}", "" if not args.odc else ODC.replace(
+                "{OPTS}",
+                "{antecedent-only}" if args.odc == "antecedent" else "")),
         "--mlir-print-op-generic", "--mlir-print-debuginfo"
     ],
                          check=True,
                          capture_output=True,
                          text=True)
-    # assertions that verif-substitute-antecedent proved (and canonicalize
+    # assertions that verif-simplify-odc proved (and canonicalize
     # then removed) are reported as remarks at their source location
     proved = sorted({
         label_at(f'loc("{p}":{l}:') for p, l in re.findall(
-            r'^(\S+?):(\d+):\d+: remark: consequent holds under the '
-            r'antecedent', pre.stderr, re.M)
+            r"^(\S+?):(\d+):\d+: remark: property holds under its "
+            r"don't-cares", pre.stderr, re.M)
     })
     ctx.allow_unregistered_dialects = True  # LLHD ops, generic form
     m = Module.parse(pre.stdout)
@@ -642,7 +646,7 @@ def main():
       keep = set(args.asserts.split(",")) if args.asserts else None
       assume = set(filter(None, args.assume.split(",")))
       for l in proved:
-        print(f"{l}: proved by verif-substitute-antecedent")
+        print(f"{l}: proved by verif-simplify-odc")
       bad, labels, assumed = Props(top, clk).run(
           keep - set(proved) if keep else None, assume)
       if args.list:
