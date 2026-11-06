@@ -12,7 +12,8 @@ R=$CV/rtl
 wrap=$(mktemp --suffix=.sv)
 python3 $H/make_wrapper.py $CV $wrap ${drop:+--drop $drop}
 files=$(grep -vE '^\s*(//|\+incdir|$)' $CV/cv32e40x_manifest.flist |
-  sed "s|\${DESIGN_RTL_DIR}|$R|; s|.*/bhv/cv32e40x_wrapper.sv|$wrap|")
+  sed "s|\${DESIGN_RTL_DIR}|$R|; s|.*/bhv/cv32e40x_wrapper.sv|$wrap|;
+       s|.*/bhv/cv32e40x_sim_clock_gate.sv|$H/sv/cv32e40x_clock_gate_formal.sv|")
 # FORMAL leaves out covergroup instances; the write_buffer SVA declares
 # `state` as logic for an enum port.
 cd / && circt-verilog -DFORMAL -Wno-implicit-port-type-mismatch \

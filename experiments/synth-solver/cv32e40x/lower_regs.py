@@ -43,11 +43,17 @@ from circt.ir import (Attribute, Context, InsertionPoint, IntegerAttr,
                       IntegerType, Location, Module, Operation, StringAttr,
                       Type)
 
-PRE = ("builtin.module(hw-flatten-modules,"
-       "hw.module(llhd-hoist-signals,llhd-sig2reg,llhd-combine-drives,"
-       "canonicalize{ODC},lower-ltl-to-core,lower-seq-shiftreg,"
-       "lower-seq-compreg-ce),cse,hw-flatten-io,"
-       "hw.module(hw-aggregate-to-comb,canonicalize),cse)")
+# The LLHD process lowering runs again after flattening: processes that read
+# signals of other modules (SVA helper logic bound with hierarchical
+# references) only become registers once those references are resolved.
+PRE = (
+    "builtin.module(hw-flatten-modules,"
+    "hw.module(llhd-mem2reg,llhd-hoist-signals,llhd-deseq,"
+    "llhd-lower-processes,canonicalize,llhd-remove-control-flow,canonicalize,"
+    "llhd-sig2reg,llhd-combine-drives,"
+    "llhd-sig2reg,canonicalize{ODC},lower-ltl-to-core,lower-seq-shiftreg,"
+    "lower-seq-compreg-ce),cse,hw-flatten-io,"
+    "hw.module(hw-aggregate-to-comb,canonicalize),cse)")
 # --odc full|antecedent: simplify the assertions with their observability
 # don't-cares (verif-simplify-odc) before they are lowered.
 ODC = ",verif-simplify-odc{OPTS},canonicalize"
