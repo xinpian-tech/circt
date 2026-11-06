@@ -251,8 +251,11 @@ private:
     auto *op = value.getDefiningOp();
     if (!op || !isCopyable(op))
       return value;
-    // Deep cones: keep substituting, but stop opening new contexts.
-    bool open = nested && depth < 256;
+    // Deep cones: substitute the context's facts without recursion (and
+    // without opening new contexts), so that the stack stays bounded.
+    if (depth >= 256)
+      return substitute(value, contexts[ctx], builder);
+    bool open = nested;
     ++depth;
 
     if (auto mux = dyn_cast<comb::MuxOp>(op)) {
@@ -320,46 +323,32 @@ private:
 };
 } // namespace
 
-/// The ops of `value`'s cone, operands before users.
-static SmallVector<Operation *> coneOf(Value value) {
-  SmallVector<Operation *> order;
-  SmallVector<std::pair<Operation *, bool>> worklist;
-  DenseSet<Operation *> visited;
-  if (auto *op = value.getDefiningOp(); op && isCopyable(op))
-    worklist.push_back({op, false});
+/// The ops in the cone of `value` whose results are only used by `root` or by
+/// other such ops: the logic that belongs to this assertion alone, which may
+/// be rewritten without changing the design. Operands come before users. The
+/// walk stops at shared logic, so its cost does not depend on the design.
+static SmallVector<Operation *> ownedOps(Value value, Operation *root) {
+  DenseSet<Operation *> owned;
+  SmallVector<Operation *> order, worklist;
+  if (auto *op = value.getDefiningOp())
+    worklist.push_back(op);
   while (!worklist.empty()) {
-    auto [op, expanded] = worklist.pop_back_val();
-    if (expanded) {
-      order.push_back(op);
+    auto *op = worklist.pop_back_val();
+    if (owned.contains(op) || !isCopyable(op))
       continue;
-    }
-    if (!visited.insert(op).second)
-      continue;
-    worklist.push_back({op, true});
-    for (auto operand : op->getOperands())
-      if (auto *def = operand.getDefiningOp();
-          def && isCopyable(def) && !visited.count(def))
-        worklist.push_back({def, false});
-  }
-  return order;
-}
-
-/// The ops of the cone whose results are only used by `root` or by other such
-/// ops: the logic that belongs to this assertion alone, which may be rewritten
-/// without changing the design.
-static SmallVector<Operation *> exclusiveOps(ArrayRef<Operation *> cone,
-                                             Operation *root) {
-  DenseSet<Operation *> exclusive;
-  for (auto *op : llvm::reverse(cone))
-    if (llvm::all_of(op->getUsers(), [&](Operation *user) {
-          return user == root || exclusive.count(user);
+    // Retried each time one of its users becomes owned.
+    if (!llvm::all_of(op->getUsers(), [&](Operation *user) {
+          return user == root || owned.contains(user);
         }))
-      exclusive.insert(op);
-  SmallVector<Operation *> result;
-  for (auto *op : cone)
-    if (exclusive.count(op))
-      result.push_back(op);
-  return result;
+      continue;
+    owned.insert(op);
+    order.push_back(op);
+    for (auto operand : op->getOperands())
+      if (auto *def = operand.getDefiningOp())
+        worklist.push_back(def);
+  }
+  std::reverse(order.begin(), order.end());
+  return order;
 }
 
 static bool isTrue(Value value) {
@@ -367,18 +356,24 @@ static bool isTrue(Value value) {
   return matchPattern(value, m_ConstantInt(&c)) && c.isOne();
 }
 
-/// Erase the ops of `value`'s cone that are left without uses.
-static void eraseDead(Value value) {
-  SmallVector<Operation *> worklist;
-  if (auto *op = value.getDefiningOp())
-    worklist.push_back(op);
+/// Erase the ops of the cones of `values` that are left without uses.
+static void eraseDead(ArrayRef<Value> values) {
+  // Take the defining ops first: erasing one cone may free the others.
+  SetVector<Operation *> worklist;
+  for (auto value : values)
+    if (auto *op = value.getDefiningOp())
+      worklist.insert(op);
+  DenseSet<Operation *> erased;
   while (!worklist.empty()) {
     auto *op = worklist.pop_back_val();
-    if (!op->use_empty() || !(isCopyable(op) || isa<ltl::ImplicationOp>(op)))
+    if (erased.contains(op) || !op->use_empty() ||
+        !(isCopyable(op) || isa<ltl::ImplicationOp>(op)))
       continue;
     for (auto operand : op->getOperands())
-      if (auto *def = operand.getDefiningOp(); def && def != op)
-        worklist.push_back(def);
+      if (auto *def = operand.getDefiningOp();
+          def && def != op && !erased.contains(def))
+        worklist.insert(def);
+    erased.insert(op);
     op->erase();
   }
 }
@@ -450,49 +445,70 @@ LogicalResult SimplifyODCPass::initialize(MLIRContext *context) {
 void SimplifyODCPass::simplify(ltl::ImplicationOp impl) {
   Operation *root = impl;
   auto consequent = [&] { return impl.getConsequent(); };
+  auto flags =
+      OperationEquivalence::Flags(OperationEquivalence::IgnoreLocations |
+                                  OperationEquivalence::IgnoreDiscardableAttrs);
   for (unsigned iter = 0; iter < 8; ++iter) {
-    auto cone = coneOf(consequent());
-    auto owned = exclusiveOps(cone, root);
+    auto owned = ownedOps(consequent(), root);
     GreedyRewriteConfig config;
     config.setStrictness(GreedyRewriteStrictness::ExistingAndNewOps);
     bool changed = false;
     (void)applyOpPatternsGreedily(owned, *patterns, config, &changed);
 
-    // Structural hashing over the (new) cone; values not defined by a
-    // copyable op are their own representative.
-    cone = coneOf(consequent());
-    owned = exclusiveOps(cone, root);
-    DenseSet<Operation *> isOwned(owned.begin(), owned.end());
+    // Merge each owned op with an equivalent op that uses the same operands
+    // (found through the operands' users, as CSE would), operands first.
+    owned = ownedOps(consequent(), root);
     DenseMap<Value, Value> rep;
     auto repOf = [&](Value v) {
       auto it = rep.find(v);
       return it == rep.end() ? v : it->second;
     };
-    auto flags = OperationEquivalence::Flags(
-        OperationEquivalence::IgnoreLocations |
-        OperationEquivalence::IgnoreDiscardableAttrs);
+    auto equivalent = [&](Operation *op, Operation *other) {
+      return other != op && other->getName() == op->getName() &&
+             other->getNumResults() == op->getNumResults() &&
+             !rep.count(other->getResult(0)) &&
+             OperationEquivalence::isEquivalentTo(
+                 op, other,
+                 [&](Value a, Value b) {
+                   return success(repOf(a) == repOf(b));
+                 },
+                 nullptr, flags);
+    };
     std::unordered_multimap<size_t, Operation *> table;
-    bool merged = false;
-    for (auto *op : cone) {
-      auto hash = OperationEquivalence::computeHash(
+    // Constants have no operands to find equals through: index the block's.
+    DenseMap<Attribute, Operation *> constants;
+    for (auto &op : *impl->getBlock())
+      if (auto c = dyn_cast<hw::ConstantOp>(op))
+        constants.try_emplace(c.getValueAttr(), &op);
+    for (auto *op : owned) {
+      auto hash = size_t(OperationEquivalence::computeHash(
           op, [&](Value v) { return hash_value(repOf(v)); },
-          OperationEquivalence::ignoreHashValue, flags);
+          OperationEquivalence::ignoreHashValue, flags));
       Operation *match = nullptr;
-      auto range = table.equal_range(size_t(hash));
+      // Owned ops seen before, then shared ops using the same first operand.
+      auto range = table.equal_range(hash);
       for (auto it = range.first; it != range.second && !match; ++it)
-        if (OperationEquivalence::isEquivalentTo(
-                op, it->second,
-                [&](Value a, Value b) { return success(repOf(a) == repOf(b)); },
-                nullptr, flags))
+        if (equivalent(op, it->second))
           match = it->second;
+      if (auto c = dyn_cast<hw::ConstantOp>(op))
+        if (auto *other = constants.lookup(c.getValueAttr());
+            other && other != op)
+          match = other;
+      if (!match && op->getNumOperands() > 0)
+        for (auto *user : repOf(op->getOperand(0)).getUsers())
+          if (user->getBlock() == op->getBlock() && equivalent(op, user)) {
+            match = user;
+            break;
+          }
       if (!match) {
-        table.insert({size_t(hash), op});
+        table.insert({hash, op});
         continue;
       }
       for (auto [from, to] : llvm::zip(op->getResults(), match->getResults()))
         rep[from] = repOf(to);
     }
     // Only the assertion's own ops are rewired to the representatives.
+    bool merged = false;
     SmallVector<Value> replaced;
     for (auto *op : owned)
       for (auto &operand : op->getOpOperands())
@@ -501,8 +517,12 @@ void SimplifyODCPass::simplify(ltl::ImplicationOp impl) {
           operand.set(r);
           merged = true;
         }
-    for (auto v : replaced)
-      eraseDead(v);
+    if (auto r = repOf(consequent()); r != consequent()) {
+      replaced.push_back(consequent());
+      impl->setOperand(1, r);
+      merged = true;
+    }
+    eraseDead(replaced);
     if (!changed && !merged)
       break;
   }
@@ -510,9 +530,9 @@ void SimplifyODCPass::simplify(ltl::ImplicationOp impl) {
 
 /// 1-bit signals in the cones of the mux conditions of `value`'s cone that
 /// are not themselves logic: inputs, registers, fields and bits of them.
-static SmallVector<Value> splitCandidates(Value value) {
+static SmallVector<Value> splitCandidates(Value value, Operation *root) {
   SetVector<Value> result;
-  for (auto *op : coneOf(value)) {
+  for (auto *op : ownedOps(value, root)) {
     auto mux = dyn_cast<comb::MuxOp>(op);
     if (!mux)
       continue;
@@ -540,7 +560,7 @@ bool SimplifyODCPass::split(ltl::ImplicationOp &impl) {
   Value consequent = impl.getConsequent();
   if (matchPattern(consequent, m_Constant()))
     return false;
-  for (auto s : splitCandidates(consequent)) {
+  for (auto s : splitCandidates(consequent, impl)) {
     for (bool v : {true, false}) {
       OpBuilder builder(impl);
       Facts facts;
