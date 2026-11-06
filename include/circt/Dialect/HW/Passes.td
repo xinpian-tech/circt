@@ -169,6 +169,21 @@ def HWBypassInnerSymbols : Pass<"hw-bypass-inner-symbols", "hw::HWModuleOp"> {
   ];
 }
 
+def HWConeOfInfluence : Pass<"hw-cone-of-influence", "hw::HWModuleOp"> {
+  let summary = "Remove the logic that cannot affect the module outputs";
+  let description = [{
+    Keeps the operations in the transitive fan-in of the module's outputs and
+    of operations of the Verif, Sim and SV dialects (assertions, prints), and
+    removes all others. Unlike canonicalization this also removes dead cycles, e.g.
+    registers that only feed each other, and LLHD signals that are not read on
+    a path to an output (their drives are kept for every live signal).
+    Instances are not roots: an instance whose results are unused is removed.
+  }];
+  let statistics = [
+    Statistic<"numErasedOps", "num-erased-ops", "Number of operations erased">
+  ];
+}
+
 def HWConvertBitcasts : Pass<"hw-convert-bitcasts", "mlir::ModuleOp"> {
   let summary = "Convert hw.bitcast operations to bit extracts and concats";
   let description = [{
