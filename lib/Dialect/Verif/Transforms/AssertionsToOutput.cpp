@@ -15,6 +15,10 @@
 // ##2 c`): it is checked when the consequent ends, with registers holding the
 // earlier steps; EN must hold in every step, as for `disable iff`.
 //
+// All assertions are on one clock, or on gated versions of it
+// (`seq.clock_gate`): those are checked in the cycles where the gate is
+// enabled, and their registers count cycles of the gated clock.
+//
 //===----------------------------------------------------------------------===//
 
 #include "circt/Dialect/Comb/CombOps.h"
@@ -52,6 +56,10 @@ struct Clocked {
   verif::ClockEdge edge;
   StringRef label;
   bool isAssume;
+  /// For an assertion on a gated clock: `enable` held in every cycle of the
+  /// ungated clock since the previous cycle of the gated clock (a `disable
+  /// iff` also applies between the cycles of the gated clock).
+  Value enableSince;
 
   static std::optional<Clocked> get(Operation *op) {
     auto from = [&](auto clocked, bool isAssume) {
@@ -236,9 +244,12 @@ FailureOr<Value> Lowering::violation(const Clocked &op, std::string &reason) {
   for (auto step : csteps)
     fails.push_back(past(notOf(step.value), *cend - step.time));
   terms.push_back(orOf(fails, loc));
+  // EN in the first step, and since then (for a gated clock: also in the
+  // cycles in between).
   if (enable)
     for (unsigned k = 0; k <= total; ++k)
-      terms.push_back(past(enable, k));
+      terms.push_back(
+          past(k == total || !op.enableSince ? enable : op.enableSince, k));
   return andOf(terms, loc);
 }
 
@@ -260,12 +271,49 @@ LogicalResult AssertionsToOutputPass::lower(hw::HWModuleOp module,
   if (ops.empty())
     return success();
 
-  // One clock: the registers created for sequences and assumptions use it.
-  Value clockI1 = ops.front().clock;
+  // One clock, possibly gated: the clock of the output. An assertion on a
+  // gated version of it (`seq.clock_gate`) is checked in the cycles where the
+  // gate is enabled, and its registers are clocked by the gated clock (see
+  // seq-clock-gate-to-enable).
+  OpBuilder builder(body->getTerminator());
+  auto loc = module.getLoc();
+  auto baseOf = [&](Value clockI1, Value &enable) -> Value {
+    Value value = clockI1;
+    while (true) {
+      auto fromClock = value.getDefiningOp<seq::FromClockOp>();
+      if (!fromClock)
+        return value;
+      Value clock = fromClock.getInput();
+      if (auto gate = clock.getDefiningOp<seq::ClockGateOp>()) {
+        Value gateEnable = gate.getEnable();
+        if (auto testEnable = gate.getTestEnable())
+          gateEnable = comb::OrOp::create(builder, loc, gateEnable, testEnable,
+                                          true);
+        enable = enable ? comb::AndOp::create(builder, loc, enable, gateEnable,
+                                              true)
+                              .getResult()
+                        : gateEnable;
+        clock = gate.getInput();
+      }
+      if (auto toClock = clock.getDefiningOp<seq::ToClockOp>()) {
+        value = toClock.getInput();
+        continue;
+      }
+      return clock;
+    }
+  };
+  SmallVector<Value> gateEnables;
+  Value base;
   for (auto &op : ops) {
-    if (op.clock != clockI1 || op.edge != verif::ClockEdge::Pos) {
+    Value enable;
+    Value opBase = baseOf(op.clock, enable);
+    gateEnables.push_back(enable);
+    if (!base)
+      base = opBase;
+    if (opBase != base || op.edge != verif::ClockEdge::Pos) {
       op.op->emitError("verif-assertions-to-output needs all assertions on the "
-                       "rising edge of the same clock");
+                       "rising edge of the same clock (or gated versions "
+                       "of it)");
       return failure();
     }
   }
@@ -276,12 +324,14 @@ LogicalResult AssertionsToOutputPass::lower(hw::HWModuleOp module,
   for (auto &label : assumes)
     assumed.insert(label);
 
-  OpBuilder builder(body->getTerminator());
-  auto loc = module.getLoc();
-  Value clock = seq::ToClockOp::create(builder, loc, clockI1);
+  Value clock = isa<seq::ClockType>(base.getType())
+                    ? base
+                    : seq::ToClockOp::create(builder, loc, base).getResult();
   Lowering lowering(builder, clock);
+  // One lowering per gated clock, for the registers of its assertions.
+  DenseMap<Value, std::unique_ptr<Lowering>> gatedLowerings;
   SmallVector<Value> violations, assumptions;
-  for (auto &op : ops) {
+  for (auto [op, gateEnable] : llvm::zip(ops, gateEnables)) {
     StringRef label = op.label;
     if (!label.empty())
       found.insert(label);
@@ -289,7 +339,29 @@ LogicalResult AssertionsToOutputPass::lower(hw::HWModuleOp module,
     if (!isAssume && !selected.empty() && !selected.contains(label))
       continue;
     std::string reason;
-    auto violation = lowering.violation(op, reason);
+    Lowering *opLowering = &lowering;
+    Clocked gatedOp = op;
+    if (gateEnable && op.enable) {
+      // `enable` held in every ungated cycle since the last gated one:
+      // `broken` is set by a cycle without it, and cleared by a gated cycle.
+      auto opLoc = op.op->getLoc();
+      auto broken = lowering.reg(lowering.orOf({}, opLoc), opLoc);
+      Value brokenNow =
+          lowering.orOf({broken, lowering.notOf(op.enable)}, opLoc);
+      broken.getInputMutable().assign(comb::MuxOp::create(
+          builder, opLoc, gateEnable, lowering.orOf({}, opLoc), brokenNow,
+          true));
+      gatedOp.enableSince =
+          lowering.andOf({op.enable, lowering.notOf(broken)}, opLoc);
+    }
+    if (gateEnable) {
+      auto &gated = gatedLowerings[op.clock];
+      if (!gated)
+        gated = std::make_unique<Lowering>(
+            builder, seq::ToClockOp::create(builder, loc, op.clock));
+      opLowering = gated.get();
+    }
+    auto violation = opLowering->violation(gatedOp, reason);
     if (failed(violation)) {
       // An assertion that is asked for must be checked; a dropped assumption
       // only allows more behaviors.
@@ -302,7 +374,10 @@ LogicalResult AssertionsToOutputPass::lower(hw::HWModuleOp module,
       ++numSkipped;
       continue;
     }
-    (isAssume ? assumptions : violations).push_back(*violation);
+    Value checked = *violation;
+    if (gateEnable)
+      checked = lowering.andOf({checked, gateEnable}, op.op->getLoc());
+    (isAssume ? assumptions : violations).push_back(checked);
   }
   numAsserts += violations.size();
   numAssumes += assumptions.size();
@@ -323,6 +398,8 @@ LogicalResult AssertionsToOutputPass::lower(hw::HWModuleOp module,
     op.op->erase();
   SetVector<Operation *> worklist(lowering.visited.begin(),
                                   lowering.visited.end());
+  for (auto &[clock, gated] : gatedLowerings)
+    worklist.insert(gated->visited.begin(), gated->visited.end());
   bool changed = true;
   while (changed) {
     changed = false;
