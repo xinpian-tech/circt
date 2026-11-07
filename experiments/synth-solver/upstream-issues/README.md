@@ -17,6 +17,22 @@ xinpian-tech/circt `exp/synth-for-solver`, which has fixes for some of them
 | 7 | 07-hier-ref-interface-member.sv | rejected | error | open |
 | 8 | 08-assertion-labels.sv | information lost | no labels | fixed (uncommitted at time of writing) |
 
+## Upstream status (searched 2026-11-07)
+
+Searched all llvm/circt issues and PRs mentioning ImportVerilog,
+circt-verilog, slang or Moore (782) for each topic.
+
+| # | Existing upstream report | Action |
+|---|--------------------------|--------|
+| 1 | none (#10191 and #6930 use `\|=>` but do not notice the encoding) | new issue |
+| 2 | related: #10191 (open) gets the same `unsupported expression: DisableIff` from `disable iff` under a default clocking block; #9875 (merged) handles `@(clk) disable iff` written inline. Named properties are not covered | new issue, mention #10191 |
+| 3 | none | new issue |
+| 4 | none; merged hierarchical-name fixes (#10255 deduped instances, #10341, #10773 subroutines) do not cover references into sibling subtrees | new issue |
+| 5 | #10829 (merged) added packed aggregates to sampled value functions; unpacked arrays still fail | new issue, mention #10829 |
+| 6 | none; #7918 (open) is a different wrong `hw.array_slice` (extract of an array of arrays) | new issue, mention #7918 |
+| 7 | **#11122 (open), fix in PR #11130 (open)**: "Resolve hierarchical outputs from expanded interfaces", same error with a parent reading `second.command.valid` | do not file; add this reproducer (sibling port connection) as a comment on #11122 and check #11130 against it |
+| 8 | none; #11065 (merged) and #10796 (closed) are about where labeled assertions are emitted, not the `label` attribute | new issue |
+
 Issues 1 and 4 are the most serious: the import succeeds but the result
 means something else, so a formal tool proves or refutes the wrong property.
 
