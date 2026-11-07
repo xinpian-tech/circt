@@ -4,30 +4,39 @@ Flow for one module of the CV32E40X core
 (`/var/storage/workspaces/clo91eaf/p530jg-source-20261021/cv32e40x`):
 
     import.sh TOP OUT.mlir [SVA...]        circt-verilog, binds SVA modules
-    lower_regs.py IN.mlir OUT.mlir ...     makes it acceptable to circt-synth
+    lower.sh IN.mlir OUT.mlir --assert L   one safety model (circt-opt only)
     circt-synth | circt-translate --export-aiger
     ric3 check MODEL.aig ic3
 
 `run_ex_stage.sh` runs the ex_stage baseline below. `cone.py` shows what is
 left of an assertion's `bad` cone. ../WORKFLOW.md describes how to add a pass.
 
-## What lower_regs.py fixes
+## What lower.sh does (CIRCT passes)
 
-- AIGER export ignores the reset, reset value and initial value of
-  seq.compreg (every latch starts at 0, no reset). Registers with a reset
-  are rewritten so the AIG starts in the reset state; registers without one
-  get a free initial value (`--noreset`).
-- Struct/array registers, and hw.bitcast to structs that circt-synth's own
-  canonicalize recreates.
-- LLHD signals assigned piecewise (per bit, element or field, as in a
-  generate loop building a tree in one vector) that llhd-sig2reg leaves.
-- SVA assertions (after lower-ltl-to-core) to one output `bad`, with
-  assumptions; labels come from the `a_name :` at the source line.
+`lower.sh` replaced the Python script lower_regs.py; every step is a C++
+pass on this branch:
+- `llhd-combine-drives{free-undriven}`: LLHD signals assigned piecewise (per
+  bit, element or field, as in a generate loop building a tree in one
+  vector), also with a read-modify-write drive of the whole signal (checked
+  bit by bit to pass the other parts through); undriven parts of signals
+  without initial value take any value (Python used 0).
+- `verif-assertions-to-output{asserts=L}`: SVA assertions (after
+  lower-ltl-to-core: booleans, fixed-delay sequences and implications
+  between them) and all assumptions to one output `bad`. Assertions are
+  selected by their SVA label, which ImportVerilog now keeps (Python read
+  it from the source line).
+- `seq-lower-firreg-to-compreg`: registers with a reset start in the reset
+  value (non-constant: taken in the first cycle), with a preset in the
+  preset, else with any value; asynchronous resets are exact (the reset
+  value is visible in the cycle where the reset is asserted; Python treated
+  them as synchronous). Aggregate registers on their bits.
+- ExportAIGER writes constant initial values of latches (AIGER 1.9) and
+  rejects registers with a reset instead of dropping it.
+- `verif-lower-symbolic-values{mode=hw-input}`: free values to inputs.
 
-Checks: `aigreach.py` (explicit-state reachability on tiny AIGs) on small
-reset/struct/assertion examples, which rIC3 agrees with; ff_one compared with
-a reference on 4033 inputs. `cex.py` prints an rIC3 counterexample by input
-name.
+Checks: lit tests of each pass; `aigreach.py` (explicit-state reachability
+on tiny AIGs); the whole-core results with the Python and the C++ lowering
+(run 3 vs run 4). `cex.py` prints an rIC3 counterexample by input name.
 
 ## Status (2026-11-06)
 
@@ -68,7 +77,7 @@ name.
 with all its SVA: `make_wrapper.py` writes bhv/cv32e40x_wrapper.sv without
 core_log and rvfi (they read signals by hierarchical name), and
 sv/cv32e40x_core_top.sv instantiates the eXtension interface for the
-wrapper's interface ports (X_EXT = 0). 197 assertions; lower_regs.py handles
+wrapper's interface ports (X_EXT = 0). 197 assertions; the lowering handles
 181 (boolean or fixed-delay sequences on both sides of `|->`; it skips
 `until`, goto repetition and sequence `or`, 6 assertions).
 
@@ -128,6 +137,27 @@ DBG_NUM_TRIGGERS = 0.
 - The SAT results are counterexamples under an unconstrained environment
   (bus, interrupts, debug); they need environment assumptions to mean
   design bugs.
+
+### Run 4 (results-core-odc-run4.tsv), C++ lowering
+
+Same as run 3 with lower.sh (CIRCT passes only) instead of lower_regs.py:
+exact asynchronous resets, assertions selected by their SVA label, and
+plain sequence properties supported. 265 labels; all 727 obligations
+proved.
+
+| mode       | PROVED by pass | UNSAT | SAT | TO | unsupported |
+|------------|---------------:|------:|----:|---:|------------:|
+| none       |              0 |   156 |  70 | 32 |           7 |
+| antecedent |             20 |   141 |  73 | 24 |           7 |
+| full       |             20 |   140 |  68 | 30 |           7 |
+
+- Compared with run 3: no assertion changes between SAT and UNSAT/PROVED,
+  and no disagreement between modes. 14 assertions the solver proved in
+  run 3 are now proved by verif-simplify-odc itself (the piecewise signals
+  are now merged before it runs, so it sees through them).
+- The 7 unsupported assertions (`until`, goto repetition, sequence `or`)
+  are reported as errors when selected; lower_regs.py skipped them
+  silently, so they were not in run 3.
 
 ### Run 2 (results-core-odc-run2.tsv), with cut points (superseded)
 
@@ -234,7 +264,7 @@ is Shannon expansion on a 1-bit signal), so assertions and assumptions keep
 their meaning; only properties of the module body are handled (graph region),
 and only properties without sequences (`a`, `c` 1-bit, same cycle).
 
-When an assertion's `c` folds to true the pass emits a remark; `lower_regs.py --odc
+When an assertion's `c` folds to true the pass emits a remark; `lower.sh --odc
 full|antecedent` runs the pass before lowering the assertions and reports
 these as proved. A Python prototype of the same rewriting (on the
 lowered `bad` output) gave the same models, except that a_mul_result kept

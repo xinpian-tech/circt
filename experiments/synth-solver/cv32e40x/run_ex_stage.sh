@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ex_stage baseline: one model per SVA assertion (mult, div) under the
 # environment assumption sv/cv32e40x_ex_stage_env_sva.sv, lowered with
-# lower_regs.py + circt-synth, checked with rIC3 IC3.
+# lower.sh + circt-synth, checked with rIC3 IC3.
 # Output TSV on stdout: assert latches ands result seconds
 set -u
 H=$(cd "$(dirname "$0")" && pwd)
@@ -12,7 +12,7 @@ mkdir -p $OUT
 $H/import.sh cv32e40x_ex_stage $OUT/ex.mlir ex_stage_env mult div
 export H OUT RIC3 TL CIRCT_PY
 one() { l=$1; f=$OUT/$l
-  $CIRCT_PY $H/lower_regs.py $OUT/ex.mlir $f.mlir --top cv32e40x_ex_stage --assert $l >$f.log 2>&1 || { printf "%s\t\t\tPREP_FAIL\t\n" $l; return; }
+  $H/lower.sh $OUT/ex.mlir $f.mlir --assert $l --pre-cache $OUT/pre >$f.log 2>&1 || { printf "%s\t\t\tPREP_FAIL\t\n" $l; return; }
   circt-synth $f.mlir 2>>$f.log | circt-translate --export-aiger -o $f.aig 2>>$f.log || { printf "%s\t\t\tSYNTH_FAIL\t\n" $l; return; }
   s=$(date +%s.%N)
   timeout $TL $RIC3 check $f.aig --ui false --cex ic3 --rseed 0 >$f.cex 2>/dev/null
@@ -20,5 +20,5 @@ one() { l=$1; f=$OUT/$l
   printf "%s\t%s\t%s\t%s\t%.1f\n" $l "$(head -1 $f.aig | awk '{print $4"\t"$6}')" "${r:-TO}" "$(echo "$(date +%s.%N)-$s" | bc)"; }
 export -f one
 printf "assert\tlatches\tands\tresult\tseconds\n"
-$CIRCT_PY $H/lower_regs.py $OUT/ex.mlir /dev/null --top cv32e40x_ex_stage --list 2>/dev/null |
+$H/lower.sh $OUT/ex.mlir --list --pre-cache $OUT/pre 2>/dev/null |
   xargs -P $P -I{} bash -c 'one {}' | sort

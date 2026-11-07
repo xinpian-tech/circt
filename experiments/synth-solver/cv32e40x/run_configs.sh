@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Synthesis configurations x solvers on ex_stage assertion models.
 #   run_configs.sh MODELDIR ASSERT...
-# MODELDIR holds ASSERT.mlir from lower_regs.py (run_ex_stage.sh writes them).
+# MODELDIR holds ASSERT.mlir from lower.sh (run_ex_stage.sh writes them).
 # Output TSV on stdout: assert config engine latches ands result seconds
 set -u
 H=$(cd "$(dirname "$0")" && pwd)

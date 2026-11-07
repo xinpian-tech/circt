@@ -73,14 +73,18 @@ the repo's nix flake failed on truncated source downloads); rIC3 and ABC.
      needs the obligation (only well defined in reachable states); proved
      for all models. Run 3 (exact): antecedent-only solves 6 more (the
      multiplier checks a_mul_result, a_shift_result_*), loses none.
+   - lower_regs.py replaced by C++ passes (lower.sh): assertion labels in
+     ImportVerilog, verif-assertions-to-output, seq-lower-firreg-to-compreg
+     (exact async reset), ExportAIGER latch initial values,
+     llhd-combine-drives for piecewise and read-modify-write signals. Run 4
+     agrees with run 3 on every assertion.
 
 ## Open next steps (not started)
 
 - Environment assumptions for the core (OBI protocol, interrupts, debug) so
   that SAT results mean design bugs.
-- Replace lower_regs.py by C++ passes (in progress: assertion labels,
-  verif-assertions-to-output, seq-lower-firreg-to-compreg, ExportAIGER
-  initial values, llhd-combine-drives for piecewise signals).
+- Sequence operators not yet lowered by verif-assertions-to-output
+  (`until`, goto repetition, sequence `or`; 7 core assertions).
 
 - The 3 rocket asserts never solved and the unstable ones (e.g.
   assert__assert_103#23): find what makes them hard (invariant size vs query

@@ -167,7 +167,7 @@ def width_of(ty):
 
 def normalize(line):
   """Reduce CIRCT's printed syntax to the subset parsed below (output of
-    cv32e40x/lower_regs.py: attribute dicts, `bin` flags, register names and
+    the CV32E40X lowering: attribute dicts, `bin` flags, register names and
     symbols, case equality on two-valued logic)."""
   line = re.sub(r" \{[^{}]*\}(?= :)", "", line)
   line = line.replace(" bin ", " ")

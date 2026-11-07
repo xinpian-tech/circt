@@ -41,15 +41,15 @@ For CV32E40X (cv32e40x/README.md has the details and known gaps):
 
     cv32e40x/import.sh cv32e40x_ex_stage ex.mlir ex_stage_env mult div
     cv32e40x/import_core.sh core.mlir DROP      # whole core, all SVA
-    cv32e40x/lower_regs.py ex.mlir MODEL.mlir --top cv32e40x_ex_stage \
-        --assert a_mul_result [--odc full|antecedent]
+    cv32e40x/lower.sh ex.mlir MODEL.mlir --assert a_mul_result \
+        [--odc full|antecedent] [--pre-cache PREFIX]
     cv32e40x/run_configs.sh MODELDIR ASSERT... > results.tsv
 
 - `import.sh` runs circt-verilog on the core and binds the SVA modules.
-- `lower_regs.py` makes one model per assertion: reset semantics (AIGER
-  latches start at 0), LLHD signals, aggregate registers, SVA -> one `bad`
-  output, assumptions folded in. Its PRE pipeline is where verif-level
-  passes go (before `lower-ltl-to-core`).
+- `lower.sh` makes one model per assertion with circt-opt only: LLHD
+  signals, SVA -> one `bad` output (assumptions folded in), registers with
+  explicit initial values (see cv32e40x/README.md). Its PRE pipeline is
+  where verif-level passes go (before `lower-ltl-to-core`).
 - `run_configs.sh` lowers each model with several configurations (`raw`,
   `canon`, `synth`, `synth-area`, `synth-nodp`, `sc`, ...), exports AIGER and
   runs rIC3 with and without its own preprocessing. Output TSV: assert,
@@ -58,7 +58,8 @@ For CV32E40X (cv32e40x/README.md has the details and known gaps):
   `bad` cone (size, multipliers), `cex.py` decodes a counterexample,
   `aigreach.py` checks tiny AIGs exhaustively.
 
-Known traps: ExportAIGER drops register resets (lower_regs.py handles it);
+Known traps: ExportAIGER used to drop register resets (now an error; lower
+them with seq-lower-firreg-to-compreg);
 MLIR CSE does not merge ops that differ in `sv.namehint`; `hw-imdce` crashes
 on lowered designs (use `hw-cone-of-influence`). circt-verilog used to encode
 `a |=> b` as `|->`; fixed on this branch. Frontend gaps found so far are
@@ -113,7 +114,8 @@ replaces it.
   `GreedyRewriteStrictness::ExistingAndNewOps`); add only the patterns that
   are missing.
 - Never drop a property silently: emit a remark when it is proved, and make
-  the flow report it (lower_regs.py turns the remarks into "proved by ...").
+  the flow report it (lower.sh turns the remarks, which name the SVA label,
+  into "proved by ...").
 - `clang-format -i` the C++ (`clang-format` is in the toolchain shell).
 
 ## 5. Testing

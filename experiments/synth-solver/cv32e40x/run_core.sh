@@ -13,8 +13,8 @@ MODES=${MODES:-"none antecedent full"}
 DROP=${DROP:-debug_triggers,mpu}
 mkdir -p $OUT
 [ -s $OUT/core.mlir ] || $H/import_core.sh $OUT/core.mlir $DROP 2>$OUT/import.err
-[ -s $OUT/asserts.txt ] || $CIRCT_PY $H/lower_regs.py $OUT/core.mlir /dev/null \
-  --top cv32e40x_core_top --list > $OUT/asserts.txt 2>$OUT/list.err
+[ -s $OUT/asserts.txt ] || $H/lower.sh $OUT/core.mlir --list \
+  --pre-cache $OUT/pre.none > $OUT/asserts.txt 2>$OUT/list.err
 # Word-level cycles are split. The core still has a cycle of bits (wb_stage
 # <-> controller_fsm) that is only well defined in reachable states:
 # synth-remove-false-cycles rebuilds it as its unique fixed point and adds an
@@ -26,9 +26,10 @@ export H OUT RIC3 TL CIRCT_PY EXPORT
 
 lower() { a=$1 m=$2 f=$OUT/$1.$2
   opt=""; [ $m != none ] && opt="--odc $m"
-  $CIRCT_PY $H/lower_regs.py $OUT/core.mlir $f.mlir --top cv32e40x_core_top \
-    --assert $a $opt --pre-cache $OUT/pre.$m > $f.log 2>&1 ||
+  $H/lower.sh $OUT/core.mlir $f.mlir --assert $a $opt \
+    --pre-cache $OUT/pre.$m > $f.log 2>&1 ||
     { echo "lower failed $a $m" >&2; return; }
+  [ -s $f.mlir ] || return 0  # proved by verif-simplify-odc
   circt-opt $f.mlir --pass-pipeline="builtin.module($EXPORT)" \
     --mlir-pass-statistics 2>$f.export.log |
     circt-translate --export-aiger --exclude-symbol-table -o $f.full.aig \

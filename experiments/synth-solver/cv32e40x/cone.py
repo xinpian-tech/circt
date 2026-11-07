@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Show the combinational cone of `bad` in a model written by lower_regs.py.
+"""Show the combinational cone of `bad` in a model written by lower.sh.
 
     cone.py MODEL.mlir           # size of the cone and number of comb.mul
     cone.py MODEL.mlir --print   # the ops of the cone, from bad down
