@@ -64,16 +64,23 @@ the repo's nix flake failed on truncated source downloads); rIC3 and ABC.
    - Whole core with all SVA (except debug_triggers, mpu): import and LLHD
      fixed in CIRCT, 266 assertions export. The pass proves 14 and turns 4
      timeouts into 3-5 s proofs; other proof times barely change. One
-     logically acyclic cycle of bits (wb_stage <-> controller_fsm) is left;
-     run 2 cut it with free inputs, so only its UNSAT results count. The
-     cutting option was removed from comb-split-word-cycles (not
-     equivalence-preserving); exact removal is open.
+     cycle of bits (wb_stage <-> controller_fsm) is left; run 2 cut it with
+     free inputs (only UNSAT valid; option since removed).
+   - New pass `synth-remove-false-cycles`: rebuilds cycles bit by bit,
+     removes those whose cut bits stop mattering after k iterations (SAT,
+     CaDiCaL), and otherwise rebuilds them as their unique fixed point under
+     an obligation output that the model checker proves 0. The core's cycle
+     needs the obligation (only well defined in reachable states); proved
+     for all models. Run 3 (exact): antecedent-only solves 6 more (the
+     multiplier checks a_mul_result, a_shift_result_*), loses none.
 
 ## Open next steps (not started)
 
-- Remove the wb_stage <-> controller_fsm cycle exactly (SAT check that its
-  value does not depend on the cut point), then rerun the core with
-  environment assumptions so that SAT results mean something.
+- Environment assumptions for the core (OBI protocol, interrupts, debug) so
+  that SAT results mean design bugs.
+- Replace lower_regs.py by C++ passes (in progress: assertion labels,
+  verif-assertions-to-output, seq-lower-firreg-to-compreg, ExportAIGER
+  initial values, llhd-combine-drives for piecewise signals).
 
 - The 3 rocket asserts never solved and the unstable ones (e.g.
   assert__assert_103#23): find what makes them hard (invariant size vs query

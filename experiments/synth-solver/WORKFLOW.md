@@ -17,10 +17,16 @@ cv32e40x/README.md).
       nix-shell experiments/synth-solver/toolchain.nix --run \
         "ninja -C build -j16 bin/circt-opt bin/circt-synth"
 
+- The build has CaDiCaL (`cmake -DCIRCT_CADICAL_ENABLED=ON build`, fetched
+  by CMake from GitHub), needed by synth-remove-false-cycles and the
+  `cadical` lit feature.
 - Store paths are not GC roots. If the compiler in `build/CMakeCache.txt`
   is gone, running `nix-shell toolchain.nix` fetches it back to the same path
   (same nixpkgs). If ninja wants to rebuild everything after that, run
-  `ninja -C build -t restat` first. Do not add GC roots.
+  `ninja -C build -t restat` first. Do not add GC roots. If rIC3 fails with
+  "required file not found", its loader or libraries were collected: `strings
+  ric3 | grep /nix/store` lists them, `nix-store -r PATH` fetches each back
+  (no root).
 - Tools the machine lacks come from nixpkgs: `nix-shell -p
   python3Packages.yapf --run "yapf -i FILE"`, likewise for others.
 - rIC3: `yjh-workspace/rIC3-target-rebuild-20261106/release/ric3` (built from
@@ -91,6 +97,13 @@ replaces it.
   No abstractions in passes (e.g. cutting a loop with a free input): they
   make SAT results unreliable. If one is needed for an experiment, keep it
   out of the pass and label the results.
+- A rewrite that is exact only in reachable states is allowed as a proof
+  obligation: the pass adds an output that is 1 where the rewrite may be
+  wrong, the flow proves it 0 with the model checker, and results of models
+  whose obligation is not proved are not used (synth-remove-false-cycles
+  `obligation`, run_core.sh: INVALID).
+- For passes on small logic, fuzz against brute force
+  (fuzz_remove_false_cycles.py).
 - Do not touch the design logic that next states depend on: copy what you
   rewrite and only rewrite logic used by the property alone. Rewriting the
   next-state logic (e.g. narrowing a shared multiplier) grew the AIG by 60%

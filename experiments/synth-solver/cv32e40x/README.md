@@ -86,17 +86,54 @@ One cycle of bits is left, wb_stage <-> controller_fsm: `instr_valid` in
 wb_stage uses `!halt_wb && !kill_wb`, `wb_valid` depends on it,
 `pending_single_step` depends on `wb_valid`, and the FSM branch it selects
 drives `halt_wb`/`kill_wb` (controller_fsm.sv:461, 665, 1064; the RTL notes
-the path is never sensitized). It stays with DBG_NUM_TRIGGERS = 0. Removing
-it exactly needs a functional check (e.g. SAT: the cycle's value does not
-depend on the cut point); not done. Until then the export fails on the
-models whose cone contains it.
+that debug entries halt WB, which pulls `wb_valid` and the step request
+low). It is 403 bits after bit-blasting, with 5 cut bits, and stays with
+DBG_NUM_TRIGGERS = 0.
 
-### Run 2 (results-core-odc-run2.tsv), with cut points
+`synth-remove-false-cycles` (Synth, after convert-comb-to-synth) handles it:
+- Combinationally the cycle can close: the SAT check "F^k(X) does not
+  depend on the cut bits X" fails up to k = 64, and the counterexample only
+  sets registers, i.e. it needs states the design does not reach.
+- Iterating F does not converge even in reachable states (obligation with
+  k = 1..8 is SAT): the cycle is not constructive (ternary simulation would
+  not settle).
+- It has exactly one consistent assignment in every reachable state: with
+  `obligation fixpoint-obligation` the cut bits are computed as the unique
+  v in {0,1}^5 with F(v) = v (32 copies of the cycle logic), and the
+  obligation output (1 unless exactly one v matches) is proved 0 by rIC3 in
+  1.5 s. By induction over the run, the rebuilt model then equals the
+  original. run_core.sh splits each exported AIG into the model and its
+  obligation (aigsel.py) and reports INVALID for models whose obligation is
+  not proved.
 
-266 assertions (258 labels), rIC3 IC3, 60 s, modes none / antecedent-only
-/ full. This run cut the remaining cycle with free inputs (6 per model, in
-763 of the 798 models), an option of comb-split-word-cycles that has since
-been removed because it changes the model: it over-approximates, so the
+### Run 3 (results-core-odc-run3.tsv), exact
+
+266 assertions (258 labels), rIC3 IC3, 60 s. All 763 obligations proved
+(35 models do not contain the cycle).
+
+| mode       | PROVED by pass | UNSAT | SAT | TO |
+|------------|---------------:|------:|----:|---:|
+| none       |              0 |   165 |  73 | 28 |
+| antecedent |             14 |   156 |  74 | 22 |
+| full       |             14 |   155 |  70 | 27 |
+
+- No disagreement between modes; no assertion proved in run 2 is SAT now,
+  and 43 of run 2's SAT results (spurious, from the cut points) are UNSAT.
+- `antecedent-only` solves 6 assertions that time out without it, loses
+  none: a_mul_result (13 s) and a_shift_result_ll/lh/hl/hh (proved by the
+  pass or 6-10 s), plus one SAT. The full pass gains 7 and loses 6 (all
+  results at 27-47 s of the 60 s limit, i.e. noise).
+- On assertions solved with and without the pass, the time is about the
+  same (UNSAT: 1329 s vs 1353 s; SAT: 963 s vs 932 s).
+- The SAT results are counterexamples under an unconstrained environment
+  (bus, interrupts, debug); they need environment assumptions to mean
+  design bugs.
+
+### Run 2 (results-core-odc-run2.tsv), with cut points (superseded)
+
+Same setup, but the remaining cycle was cut with free inputs (6 per model,
+in 763 of the 798 models), an option of comb-split-word-cycles that has
+since been removed because it changes the model: it over-approximates, so the
 UNSAT results are valid, but SAT results are not (the two counterexamples
 checked, a_mul_valid/none and a_shift_result_hh/full, depend on the cut
 inputs). The environment (bus, interrupts, debug) is also unconstrained.
