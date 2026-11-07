@@ -7,9 +7,11 @@
 //===----------------------------------------------------------------------===//
 
 #include "circt/Dialect/Comb/CombOps.h"
+#include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/HW/HWTypes.h"
 #include "circt/Dialect/LLHD/LLHDOps.h"
 #include "circt/Dialect/LLHD/LLHDPasses.h"
+#include "circt/Dialect/Verif/VerifOps.h"
 #include "circt/Support/UnusedOpPruner.h"
 #include "mlir/IR/Matchers.h"
 #include "llvm/Support/Debug.h"
@@ -145,7 +147,10 @@ struct ModuleContext {
   // Utilities to aggregate drives to a signal.
   void aggregateDrives(Signal &signal);
   void addDefaultDriveSlices(Signal &signal,
-                             SmallVectorImpl<DriveSlice> &slices);
+                             SmallVectorImpl<DriveSlice> &slices,
+                             Value fill = {});
+  bool separateWholeDrive(Signal &signal, SmallVectorImpl<DriveSlice> &slices,
+                          DriveSlice &whole);
   void aggregateDriveSlices(Signal &signal, Value driveDelay, Value driveEnable,
                             ArrayRef<DriveSlice> slices);
 
@@ -157,6 +162,8 @@ struct ModuleContext {
   SmallVector<Signal *> rootSignals;
   /// Helper to clean up unused ops.
   UnusedOpPruner pruner;
+  /// Fill undriven parts of signals without initial value with any value.
+  bool freeUndriven = false;
 
 private:
   using SignalKey = std::pair<PointerUnion<Value, Signal *>, unsigned>;
@@ -379,25 +386,186 @@ void ModuleContext::aggregateDrives(Signal &signal) {
 
   // If the signal has no unknown uses and all drives have the same delay and
   // condition, we can use the signal's default value to fill in undriven
-  // slices.
+  // slices. A drive of the whole signal that only passes the probed value
+  // through where other drives assign parts of it (a read-modify-write, as
+  // left by an `always_comb` that assigns some fields while others have their
+  // own continuous assignments) fills these slices instead.
+  DriveSlice whole;
   if (!hasUnknownUses && drives.size() == 1) {
     auto &slices = drives.begin()->second;
-    addDefaultDriveSlices(signal, slices);
+    if (separateWholeDrive(signal, slices, whole))
+      addDefaultDriveSlices(signal, slices, whole.value);
+    else
+      addDefaultDriveSlices(signal, slices);
   }
 
   // Combine driven values that uniquely cover the entire signal without gaps or
   // overlaps.
   for (auto &[key, slices] : drives) {
     llvm::sort(slices, [](auto &a, auto &b) { return a.offset < b.offset; });
+    auto numComplete = signal.completeDrives.size();
     aggregateDriveSlices(signal, key.first, key.second, slices);
+    if (whole.op) {
+      // Drop the whole drive once the slices it filled replace it; restore it
+      // as a slice otherwise, so that nothing is lost.
+      if (signal.completeDrives.size() > numComplete)
+        pruner.eraseNow(whole.op);
+      whole = {};
+    }
   }
+}
+
+/// The bit range of a drive slice of `type` (offset and length as in
+/// `DriveSlice`), in the layout of `hw.bitcast`.
+static std::optional<std::pair<unsigned, unsigned>>
+getSliceBits(Type type, unsigned offset, unsigned length) {
+  if (isa<IntegerType>(type))
+    return std::make_pair(offset, length);
+  if (auto arrayType = hw::type_dyn_cast<hw::ArrayType>(type)) {
+    auto width = hw::getBitWidth(arrayType.getElementType());
+    if (width < 0)
+      return std::nullopt;
+    return std::make_pair(offset * unsigned(width),
+                          std::max(1u, length) * unsigned(width));
+  }
+  if (auto structType = hw::type_dyn_cast<hw::StructType>(type)) {
+    auto elements = structType.getElements();
+    if (length != 0)
+      return std::nullopt;
+    unsigned low = hw::getBitWidth(structType);
+    for (unsigned i = 0; i <= offset; ++i)
+      low -= hw::getBitWidth(elements[i].type);
+    return std::make_pair(low,
+                          unsigned(hw::getBitWidth(elements[offset].type)));
+  }
+  return std::nullopt;
+}
+
+/// The bit of the probed value of `signal` that bit `bit` of `value` always
+/// equals, if `value` only passes it through (bitcasts, concatenations,
+/// extractions, struct and array creation and access, muxes of such values).
+static std::optional<unsigned> getProbedBit(
+    Value value, unsigned bit, Value signal,
+    DenseMap<std::pair<Value, unsigned>, std::optional<unsigned>> &cache,
+    unsigned depth = 0) {
+  auto key = std::make_pair(value, bit);
+  if (auto it = cache.find(key); it != cache.end())
+    return it->second;
+  if (depth > 64)
+    return std::nullopt;
+  cache[key] = std::nullopt; // breaks cycles
+  auto recurse = [&](Value v, unsigned b) {
+    return getProbedBit(v, b, signal, cache, depth + 1);
+  };
+  auto fieldLow = [](hw::StructType type, unsigned index) {
+    unsigned low = hw::getBitWidth(type);
+    for (unsigned i = 0; i <= index; ++i)
+      low -= hw::getBitWidth(type.getElements()[i].type);
+    return low;
+  };
+  std::optional<unsigned> result;
+  auto *op = value.getDefiningOp();
+  if (auto probe = dyn_cast_or_null<ProbeOp>(op)) {
+    if (probe.getSignal() == signal)
+      result = bit;
+  } else if (auto cast = dyn_cast_or_null<hw::BitcastOp>(op)) {
+    result = recurse(cast.getInput(), bit);
+  } else if (auto extract = dyn_cast_or_null<comb::ExtractOp>(op)) {
+    result = recurse(extract.getInput(), bit + extract.getLowBit());
+  } else if (auto concat = dyn_cast_or_null<comb::ConcatOp>(op)) {
+    unsigned low = 0;
+    for (auto input : llvm::reverse(concat.getInputs())) {
+      unsigned width = hw::getBitWidth(input.getType());
+      if (bit < low + width) {
+        result = recurse(input, bit - low);
+        break;
+      }
+      low += width;
+    }
+  } else if (auto mux = dyn_cast_or_null<comb::MuxOp>(op)) {
+    auto a = recurse(mux.getTrueValue(), bit);
+    auto b = recurse(mux.getFalseValue(), bit);
+    if (a && a == b)
+      result = a;
+  } else if (auto create = dyn_cast_or_null<hw::StructCreateOp>(op)) {
+    auto type = hw::type_cast<hw::StructType>(create.getType());
+    for (auto [i, input] : llvm::enumerate(create.getInput())) {
+      unsigned low = fieldLow(type, i);
+      if (bit >= low && bit < low + hw::getBitWidth(input.getType())) {
+        result = recurse(input, bit - low);
+        break;
+      }
+    }
+  } else if (auto inject = dyn_cast_or_null<hw::StructInjectOp>(op)) {
+    auto type = hw::type_cast<hw::StructType>(inject.getType());
+    unsigned index = inject.getFieldIndex();
+    unsigned low = fieldLow(type, index);
+    if (bit >= low &&
+        bit < low + hw::getBitWidth(type.getElements()[index].type))
+      result = recurse(inject.getNewValue(), bit - low);
+    else
+      result = recurse(inject.getInput(), bit);
+  } else if (auto extract = dyn_cast_or_null<hw::StructExtractOp>(op)) {
+    auto type = hw::type_cast<hw::StructType>(extract.getInput().getType());
+    result = recurse(extract.getInput(),
+                     bit + fieldLow(type, extract.getFieldIndex()));
+  } else if (auto create = dyn_cast_or_null<hw::ArrayCreateOp>(op)) {
+    auto inputs = create.getInputs();
+    unsigned width = hw::getBitWidth(inputs[0].getType());
+    unsigned element = bit / width;
+    result = recurse(inputs[inputs.size() - 1 - element], bit % width);
+  } else if (auto get = dyn_cast_or_null<hw::ArrayGetOp>(op)) {
+    APInt index;
+    if (matchPattern(get.getIndex(), m_ConstantInt(&index))) {
+      unsigned width = hw::getBitWidth(get.getType());
+      result = recurse(get.getInput(), bit + index.getZExtValue() * width);
+    }
+  }
+  cache[key] = result;
+  return result;
+}
+
+/// If `slices` contains a drive of the entire signal besides drives of parts
+/// of it, and the entire drive's value equals the probed signal on those
+/// parts, remove it from `slices` into `whole`.
+bool ModuleContext::separateWholeDrive(Signal &signal,
+                                       SmallVectorImpl<DriveSlice> &slices,
+                                       DriveSlice &whole) {
+  auto type = cast<RefType>(signal.value.getType()).getNestedType();
+  unsigned length = getLength(signal.value.getType());
+  if (slices.size() < 2 || hw::type_isa<hw::UnionType>(type) ||
+      hw::getBitWidth(type) < 0)
+    return false;
+  auto *it = llvm::find_if(slices, [&](auto &slice) {
+    return slice.op && slice.offset == 0 && slice.length == length &&
+           slice.op.getValue().getType() == type;
+  });
+  if (it == slices.end())
+    return false;
+  DenseMap<std::pair<Value, unsigned>, std::optional<unsigned>> cache;
+  for (auto &slice : slices) {
+    if (&slice == &*it)
+      continue;
+    auto bits = getSliceBits(type, slice.offset, slice.length);
+    if (!bits)
+      return false;
+    for (unsigned b = bits->first; b < bits->first + bits->second; ++b)
+      if (getProbedBit(it->value, b, signal.value, cache) != b)
+        return false;
+  }
+  LLVM_DEBUG(llvm::dbgs() << "- Whole drive " << it->op
+                          << " fills the undriven parts of " << signal << "\n");
+  whole = *it;
+  slices.erase(it);
+  return true;
 }
 
 /// Fill gaps in a list of drive slices with parts of the signal's default
 /// value. The slices do not have to be sorted. The filler slices are appended
 /// to `slices` directly.
 void ModuleContext::addDefaultDriveSlices(Signal &signal,
-                                          SmallVectorImpl<DriveSlice> &slices) {
+                                          SmallVectorImpl<DriveSlice> &slices,
+                                          Value fill) {
   auto type = cast<RefType>(signal.value.getType()).getNestedType();
 
   // Sort the slices such that we can find gaps easily.
@@ -460,14 +628,22 @@ void ModuleContext::addDefaultDriveSlices(Signal &signal,
   // potentially have to walk up our parent signals to find an actual `llhd.sig`
   // op, and then descend back down, extracting subfields.
   auto signalOp = signal.value.getDefiningOp<SignalOp>();
-  if (!signalOp || !signalOp.getInit())
+  if (!signalOp)
     return;
-  auto defaultValue = signalOp.getInit();
-
-  // Create drives with the default value for the gaps we've filled in.
   ImplicitLocOpBuilder builder(signal.value.getLoc(),
                                signal.value.getContext());
   builder.setInsertionPointAfterValue(signal.value);
+  // A whole drive passing the other parts through, the initial value, or,
+  // without one, any value (the signal is undriven there).
+  Value defaultValue = fill ? fill : signalOp.getInit();
+  if (!defaultValue && freeUndriven)
+    defaultValue = verif::SymbolicValueOp::create(builder, type, StringAttr());
+  if (!defaultValue)
+    return;
+  if (fill)
+    builder.setInsertionPointAfterValue(fill);
+
+  // Create drives with the default value for the gaps we've filled in.
 
   for (auto &slice : gapSlices) {
     LLVM_DEBUG(llvm::dbgs()
@@ -680,6 +856,7 @@ void ModuleContext::aggregateDriveSlices(Signal &signal, Value driveDelay,
 namespace {
 struct CombineDrivesPass
     : public llhd::impl::CombineDrivesPassBase<CombineDrivesPass> {
+  using CombineDrivesPassBase::CombineDrivesPassBase;
   void runOnOperation() override;
 };
 } // namespace
@@ -688,6 +865,7 @@ void CombineDrivesPass::runOnOperation() {
   LLVM_DEBUG(llvm::dbgs() << "Combining drives in "
                           << getOperation().getModuleNameAttr() << "\n");
   ModuleContext context(getOperation());
+  context.freeUndriven = freeUndriven;
 
   // Take note of all projection operations.
   for (auto &op : *context.moduleOp.getBodyBlock())

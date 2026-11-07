@@ -167,6 +167,48 @@ def SimplifyAssumeEqPass : Pass<"simplify-assume-eq", "hw::HWModuleOp"> {
   }];
 }
 
+def AssertionsToOutputPass : Pass<"verif-assertions-to-output",
+                                  "mlir::ModuleOp"> {
+  let summary = "Turn clocked assertions and assumptions into a safety output";
+  let description = [{
+    Replaces the clocked assertions and assumptions of each module by one i1
+    output that is 1 in a cycle where an assertion is violated and all
+    assumptions held up to and including that cycle (AIGER `bad` semantics).
+
+    A property is an i1, a sequence of fixed delays (`ltl.delay` with length
+    0, `ltl.concat`), or an implication between such sequences, the forms
+    left by lower-ltl-to-core for SVA such as `a ##1 b |-> ##2 c`. Such an
+    implication is checked in the cycle where its consequent ends, with
+    registers (starting at 0) for the earlier steps, and its enable must
+    hold in every step. All assertions must use the rising edge of the same
+    clock.
+
+    `asserts` selects assertions by label (default: all); a selected
+    assertion that is missing or unsupported is an error, other unsupported
+    properties are left out with a warning. `assumes` lists labels of
+    assertions to use as assumptions. With `replace-outputs` (default), the
+    output replaces the module's outputs.
+  }];
+  let options = [
+    ListOption<"asserts", "asserts", "std::string",
+               "Labels of the assertions to check (default: all)">,
+    ListOption<"assumes", "assumes", "std::string",
+               "Labels of assertions to use as assumptions">,
+    Option<"outputName", "output-name", "std::string", "\"bad\"",
+           "Name of the output">,
+    Option<"replaceOutputs", "replace-outputs", "bool", "true",
+           "Replace the outputs of the module by the new output">
+  ];
+  let statistics = [
+    Statistic<"numAsserts", "num-asserts", "Number of assertions checked">,
+    Statistic<"numAssumes", "num-assumes", "Number of assumptions">,
+    Statistic<"numSkipped", "num-skipped",
+              "Number of unsupported properties left out">
+  ];
+  let dependentDialects = ["comb::CombDialect", "hw::HWDialect",
+                           "seq::SeqDialect"];
+}
+
 def SimplifyODCPass : Pass<"verif-simplify-odc", "hw::HWModuleOp"> {
   let summary = "Simplify assertions with observability don't-cares";
   let description = [{

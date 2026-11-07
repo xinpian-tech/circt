@@ -84,10 +84,22 @@ def CombineDrivesPass : Pass<"llhd-combine-drives", "hw::HWModuleOp"> {
   let description = [{
     If individual drives cover all of an aggregate signal's fields, merge them
     into a single drive of the whole aggregate value.
+
+    Undriven parts take the signal's initial value, or any value
+    (`verif.symbolic_value`) with `free-undriven` if it has none. A drive of
+    the whole signal besides drives of parts of it is merged too if its value
+    equals the probed signal on those parts (a read-modify-write): it then
+    provides the remaining parts.
   }];
+  let options = [
+    Option<"freeUndriven", "free-undriven", "bool", "false",
+           "Fill undriven parts of signals without initial value with any "
+           "value">
+  ];
   let dependentDialects = [
     "comb::CombDialect",
     "hw::HWDialect",
+    "verif::VerifDialect",
   ];
 }
 

@@ -25,6 +25,7 @@
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/DialectRegistry.h"
+#include "mlir/IR/Matchers.h"
 #include "mlir/IR/OperationSupport.h"
 #include "mlir/IR/RegionKindInterface.h"
 #include "mlir/IR/Visitors.h"
@@ -98,6 +99,8 @@ private:
   SmallVector<std::pair<Object, StringAttr>> inputs;
   SmallVector<std::tuple<Object, StringAttr, Object>>
       latches; // current, name, next
+  /// Initial values of the latches (AIGER 1.9), parallel to `latches`.
+  SmallVector<bool> latchInits;
   SmallVector<std::pair<Object, StringAttr>> outputs;
   SmallVector<std::tuple<Object, Object, Object>> andGates; // lhs, rhs0, rhs1
 
@@ -122,8 +125,10 @@ private:
   }
 
   /// Add a latch to the AIGER file
-  void addLatch(Object current, Object next, StringAttr name = {}) {
+  void addLatch(Object current, Object next, StringAttr name = {},
+                bool init = false) {
     latches.push_back({current, getIndexName(current, name), next});
+    latchInits.push_back(init);
   }
 
   /// Add an output to the AIGER file
@@ -244,7 +249,8 @@ LogicalResult AIGERExporter::writeLatches() {
   LLVM_DEBUG(llvm::dbgs() << "Writing latches\n");
 
   // Write latch definitions
-  for (auto [current, currentName, next] : latches) {
+  for (auto [latch, init] : llvm::zip(latches, latchInits)) {
+    auto [current, currentName, next] = latch;
 
     // For next state, we need to handle potential inversions
     // Check if next state comes from an inverter or has inversions
@@ -252,10 +258,14 @@ LogicalResult AIGERExporter::writeLatches() {
 
     if (options.binaryFormat) {
       // In binary format, current literal is not needed
-      os << nextLiteral << "\n";
+      os << nextLiteral;
     } else {
-      os << getLiteral(current) << " " << nextLiteral << "\n";
+      os << getLiteral(current) << " " << nextLiteral;
     }
+    // AIGER 1.9 initial value; 0 is the default.
+    if (init)
+      os << " 1";
+    os << "\n";
   }
 
   return success();
@@ -521,7 +531,7 @@ LogicalResult AIGERExporter::visit(Operation *op) {
       .Case<comb::ConcatOp>([&](auto op) { return visit(op); })
       .Case<comb::ExtractOp>([&](auto op) { return visit(op); })
       .Case<comb::ReplicateOp>([&](auto op) { return visit(op); })
-      .Case<hw::HWModuleOp, hw::ConstantOp, hw::OutputOp>(
+      .Case<hw::HWModuleOp, hw::ConstantOp, hw::OutputOp, seq::InitialOp>(
           [](auto) { return success(); })
       .Default([&](Operation *op) -> LogicalResult {
         // Handle unknown operations if handler is set
@@ -579,9 +589,30 @@ LogicalResult AIGERExporter::visit(aig::AndInverterOp op) {
 }
 
 LogicalResult AIGERExporter::visit(seq::CompRegOp op) {
+  // AIGER latches have no reset: it would be dropped.
+  if (op.getReset())
+    return op.emitError("register with a reset cannot be exported to AIGER; "
+                        "lower the reset first");
+  // A constant initial value becomes the latches' initial values. Without
+  // one, latches start at 0.
+  APInt init(getBitWidth(op), 0);
+  if (auto initial = op.getInitialValue()) {
+    auto result = dyn_cast<OpResult>(initial);
+    auto initialOp =
+        result ? dyn_cast<seq::InitialOp>(result.getOwner()) : seq::InitialOp();
+    APInt value;
+    if (!initialOp ||
+        !matchPattern(initialOp.getBodyBlock()->getTerminator()->getOperand(
+                          result.getResultNumber()),
+                      m_ConstantInt(&value)))
+      return op.emitError("only constant initial values can be exported to "
+                          "AIGER");
+    init = value;
+  }
   // Handle registers (latches in AIGER)
   for (int64_t i = 0; i < getBitWidth(op); ++i)
-    addLatch({op.getResult(), i}, {op.getInput(), i}, op.getNameAttr());
+    addLatch({op.getResult(), i}, {op.getInput(), i}, op.getNameAttr(),
+             init[i]);
 
   LLVM_DEBUG(llvm::dbgs() << "  Found latch: " << op << "\n");
   if (handler)

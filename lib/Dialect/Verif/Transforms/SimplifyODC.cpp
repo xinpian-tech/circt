@@ -69,6 +69,10 @@ struct SimplifyODCPass : verif::impl::SimplifyODCPassBase<SimplifyODCPass> {
   bool split(ltl::ImplicationOp &impl);
 
   std::shared_ptr<const FrozenRewritePatternSet> patterns;
+  /// One constant per value in the module, found once per run. These are
+  /// never erased or rewritten, so that they stay valid merge targets.
+  DenseMap<Attribute, Operation *> constants;
+  DenseSet<Operation *> pinned;
 };
 } // namespace
 
@@ -327,25 +331,40 @@ private:
 /// other such ops: the logic that belongs to this assertion alone, which may
 /// be rewritten without changing the design. Operands come before users. The
 /// walk stops at shared logic, so its cost does not depend on the design.
-static SmallVector<Operation *> ownedOps(Value value, Operation *root) {
+static SmallVector<Operation *> ownedOps(Value value, Operation *root,
+                                         const DenseSet<Operation *> &pinned) {
   DenseSet<Operation *> owned;
   SmallVector<Operation *> order, worklist;
+  // Uses of each op's results by ops that are neither `root` nor owned. Each
+  // use is counted once, so values with many users stay cheap.
+  DenseMap<Operation *, unsigned> remaining;
+  auto remainingUses = [&](Operation *op) -> unsigned & {
+    auto [it, inserted] = remaining.try_emplace(op, 0);
+    if (inserted)
+      for (auto &use : op->getUses())
+        if (use.getOwner() != root)
+          ++it->second;
+    return it->second;
+  };
+  auto ownable = [&](Operation *op) {
+    return isCopyable(op) && !pinned.contains(op);
+  };
   if (auto *op = value.getDefiningOp())
-    worklist.push_back(op);
+    if (ownable(op) && remainingUses(op) == 0)
+      worklist.push_back(op);
   while (!worklist.empty()) {
     auto *op = worklist.pop_back_val();
-    if (owned.contains(op) || !isCopyable(op))
+    if (!owned.insert(op).second)
       continue;
-    // Retried each time one of its users becomes owned.
-    if (!llvm::all_of(op->getUsers(), [&](Operation *user) {
-          return user == root || owned.contains(user);
-        }))
-      continue;
-    owned.insert(op);
     order.push_back(op);
-    for (auto operand : op->getOperands())
-      if (auto *def = operand.getDefiningOp())
+    for (auto operand : op->getOperands()) {
+      auto *def = operand.getDefiningOp();
+      if (!def || owned.contains(def) || !ownable(def))
+        continue;
+      auto &count = remainingUses(def);
+      if (--count == 0)
         worklist.push_back(def);
+    }
   }
   std::reverse(order.begin(), order.end());
   return order;
@@ -357,7 +376,8 @@ static bool isTrue(Value value) {
 }
 
 /// Erase the ops of the cones of `values` that are left without uses.
-static void eraseDead(ArrayRef<Value> values) {
+static void eraseDead(ArrayRef<Value> values,
+                      const DenseSet<Operation *> &pinned) {
   // Take the defining ops first: erasing one cone may free the others.
   SetVector<Operation *> worklist;
   for (auto value : values)
@@ -366,7 +386,7 @@ static void eraseDead(ArrayRef<Value> values) {
   DenseSet<Operation *> erased;
   while (!worklist.empty()) {
     auto *op = worklist.pop_back_val();
-    if (erased.contains(op) || !op->use_empty() ||
+    if (erased.contains(op) || pinned.contains(op) || !op->use_empty() ||
         !(isCopyable(op) || isa<ltl::ImplicationOp>(op)))
       continue;
     for (auto operand : op->getOperands())
@@ -449,7 +469,7 @@ void SimplifyODCPass::simplify(ltl::ImplicationOp impl) {
       OperationEquivalence::Flags(OperationEquivalence::IgnoreLocations |
                                   OperationEquivalence::IgnoreDiscardableAttrs);
   for (unsigned iter = 0; iter < 8; ++iter) {
-    auto owned = ownedOps(consequent(), root);
+    auto owned = ownedOps(consequent(), root, pinned);
     GreedyRewriteConfig config;
     config.setStrictness(GreedyRewriteStrictness::ExistingAndNewOps);
     bool changed = false;
@@ -457,7 +477,7 @@ void SimplifyODCPass::simplify(ltl::ImplicationOp impl) {
 
     // Merge each owned op with an equivalent op that uses the same operands
     // (found through the operands' users, as CSE would), operands first.
-    owned = ownedOps(consequent(), root);
+    owned = ownedOps(consequent(), root, pinned);
     DenseMap<Value, Value> rep;
     auto repOf = [&](Value v) {
       auto it = rep.find(v);
@@ -476,10 +496,6 @@ void SimplifyODCPass::simplify(ltl::ImplicationOp impl) {
     };
     std::unordered_multimap<size_t, Operation *> table;
     // Constants have no operands to find equals through: index the block's.
-    DenseMap<Attribute, Operation *> constants;
-    for (auto &op : *impl->getBlock())
-      if (auto c = dyn_cast<hw::ConstantOp>(op))
-        constants.try_emplace(c.getValueAttr(), &op);
     for (auto *op : owned) {
       auto hash = size_t(OperationEquivalence::computeHash(
           op, [&](Value v) { return hash_value(repOf(v)); },
@@ -494,8 +510,12 @@ void SimplifyODCPass::simplify(ltl::ImplicationOp impl) {
         if (auto *other = constants.lookup(c.getValueAttr());
             other && other != op)
           match = other;
-      if (!match && op->getNumOperands() > 0)
-        for (auto *user : repOf(op->getOperand(0)).getUsers())
+      // Values with very many users are skipped: scanning them for every op
+      // is quadratic, and only costs merges.
+      Value first =
+          op->getNumOperands() > 0 ? repOf(op->getOperand(0)) : Value();
+      if (!match && first && !first.hasNUsesOrMore(257))
+        for (auto *user : first.getUsers())
           if (user->getBlock() == op->getBlock() && equivalent(op, user)) {
             match = user;
             break;
@@ -522,7 +542,7 @@ void SimplifyODCPass::simplify(ltl::ImplicationOp impl) {
       impl->setOperand(1, r);
       merged = true;
     }
-    eraseDead(replaced);
+    eraseDead(replaced, pinned);
     if (!changed && !merged)
       break;
   }
@@ -530,9 +550,10 @@ void SimplifyODCPass::simplify(ltl::ImplicationOp impl) {
 
 /// 1-bit signals in the cones of the mux conditions of `value`'s cone that
 /// are not themselves logic: inputs, registers, fields and bits of them.
-static SmallVector<Value> splitCandidates(Value value, Operation *root) {
+static SmallVector<Value> splitCandidates(Value value, Operation *root,
+                                          const DenseSet<Operation *> &pinned) {
   SetVector<Value> result;
-  for (auto *op : ownedOps(value, root)) {
+  for (auto *op : ownedOps(value, root, pinned)) {
     auto mux = dyn_cast<comb::MuxOp>(op);
     if (!mux)
       continue;
@@ -560,7 +581,7 @@ bool SimplifyODCPass::split(ltl::ImplicationOp &impl) {
   Value consequent = impl.getConsequent();
   if (matchPattern(consequent, m_Constant()))
     return false;
-  for (auto s : splitCandidates(consequent, impl)) {
+  for (auto s : splitCandidates(consequent, impl, pinned)) {
     for (bool v : {true, false}) {
       OpBuilder builder(impl);
       Facts facts;
@@ -574,7 +595,7 @@ bool SimplifyODCPass::split(ltl::ImplicationOp &impl) {
       bool proved = isTrue(trial.getConsequent());
       Value rest = trial.getConsequent();
       trial.erase();
-      eraseDead(rest);
+      eraseDead(rest, pinned);
       if (!proved)
         continue;
 
@@ -593,7 +614,7 @@ bool SimplifyODCPass::split(ltl::ImplicationOp &impl) {
           ltl::ImplicationOp::create(builder, impl.getLoc(), antecedent, other);
       impl.getResult().replaceAllUsesWith(newImpl.getResult());
       impl.erase();
-      eraseDead(consequent);
+      eraseDead(consequent, pinned);
       impl = newImpl;
       simplify(impl);
       return true;
@@ -603,6 +624,12 @@ bool SimplifyODCPass::split(ltl::ImplicationOp &impl) {
 }
 
 void SimplifyODCPass::runOnOperation() {
+  constants.clear();
+  pinned.clear();
+  for (auto &op : *getOperation().getBodyBlock())
+    if (auto c = dyn_cast<hw::ConstantOp>(op))
+      if (constants.try_emplace(c.getValueAttr(), &op).second)
+        pinned.insert(&op);
   SmallVector<Operation *> asserts;
   // Only properties in the module body: copies are placed before the
   // property, which needs a graph region (no dominance between ops).
@@ -657,14 +684,16 @@ void SimplifyODCPass::runOnOperation() {
     op->setOperand(0, newImpl);
     if (impl && impl->use_empty())
       impl->erase();
-    eraseDead(consequent);
+    eraseDead(consequent, pinned);
     simplify(newImpl);
     for (unsigned n = 0; n < maxSplits && split(newImpl); ++n)
       ++numSplits;
     if (isTrue(newImpl.getConsequent()) &&
         isa<verif::AssertOp, verif::ClockedAssertOp>(op)) {
       ++numProved;
-      op->emitRemark("property holds under its don't-cares");
+      auto remark = op->emitRemark("property holds under its don't-cares");
+      if (auto label = op->getAttrOfType<StringAttr>("label"))
+        remark << " (label '" << label.getValue() << "')";
     }
   }
 }

@@ -54,8 +54,8 @@ hw.module @Facts(in %clk : i1, in %en : i1, in %state : i2, in %kill : i1,
   %eq = comb.icmp eq %z, %a : i8
   // CHECK: ltl.implication {{%.+}}, %true
   %p = ltl.implication %ante, %eq : i1, i1
-  // expected-remark @below {{property holds under its don't-cares}}
-  verif.clocked_assert %p if %en, posedge %clk : !ltl.property
+  // expected-remark @below {{property holds under its don't-cares (label 'a_facts')}}
+  verif.clocked_assert %p if %en, posedge %clk label "a_facts" : !ltl.property
 }
 
 // `x + acc == x` becomes `acc == 0`.
