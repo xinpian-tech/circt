@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Import the whole CV32E40X core with all its SVA bound (bhv/cv32e40x_wrapper.sv
-# without core_log/rvfi, see make_wrapper.py) under sv/cv32e40x_core_top.sv.
+# Import the whole CV32E40X core with all its SVA bound (bhv/cv32e40x_wrapper.sv,
+# including core_log and rvfi) under sv/cv32e40x_core_top.sv. UVM reporting in
+# the SVA uses the stand-ins of circt-verilog --uvm-stubs.
 #   import_core.sh OUT.mlir [DROP]   DROP: comma-separated modules whose SVA
 #                                    is left out
 set -eu
@@ -16,7 +17,7 @@ files=$(grep -vE '^\s*(//|\+incdir|$)' $CV/cv32e40x_manifest.flist |
        s|.*/bhv/cv32e40x_sim_clock_gate.sv|$H/sv/cv32e40x_clock_gate_formal.sv|")
 # FORMAL leaves out covergroup instances; the write_buffer SVA declares
 # `state` as logic for an enum port.
-cd / && circt-verilog -DFORMAL -Wno-implicit-port-type-mismatch \
+cd / && circt-verilog -DFORMAL -Wno-implicit-port-type-mismatch --uvm-stubs \
   --mlir-print-debuginfo -I $R/include -I $CV/bhv -I $CV/bhv/include \
-  -I $CV/sva '-Duvm_error(a,b)=$error(b);' $H/sv/uvm_stub.sv $files \
+  -I $CV/sva $files \
   $H/sv/cv32e40x_core_top.sv --top=cv32e40x_core_top ${GFLAGS:-} -o $out

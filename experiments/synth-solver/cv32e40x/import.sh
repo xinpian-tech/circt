@@ -22,8 +22,8 @@ if [ $# -gt 0 ]; then
   { echo "module sva_binds;"
     for m in "$@"; do echo "  bind cv32e40x_${m%_env} cv32e40x_${m}_sva ${m}_sva (.*);"; done
     echo "endmodule"; } > $b
-  sva="$H/sv/uvm_stub.sv $sva $b" tops="$tops --top=sva_binds"
+  sva="$sva $b" tops="$tops --top=sva_binds"
 fi
 # run from / so the source locations resolve from anywhere
-cd / && circt-verilog --mlir-print-debuginfo -I $R/include -I $CV/bhv/include \
-  '-Duvm_error(a,b)=$error(b);' $files $sva $tops -o $out
+cd / && circt-verilog --mlir-print-debuginfo --uvm-stubs -I $R/include \
+  -I $CV/bhv/include $files $sva $tops -o $out

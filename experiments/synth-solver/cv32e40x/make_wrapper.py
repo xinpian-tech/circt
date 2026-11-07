@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
-"""Write a formal version of bhv/cv32e40x_wrapper.sv: the core with all SVA
-bound, without the simulation-only parts that circt-verilog cannot import
-(core_log and rvfi read signals by hierarchical names; the rvfi SVA and the
-tracer are bound to rvfi).
+"""Write a copy of bhv/cv32e40x_wrapper.sv (the core with all SVA bound),
+optionally without the SVA bound to some modules.
 
     make_wrapper.py CV32E40X_DIR OUT.sv [--drop MODULE,...]
 
 --drop removes the SVA bound to cv32e40x_MODULE (for SVA that circt-verilog
-cannot import yet).
+cannot import yet). core_log and rvfi are kept: circt-verilog imports them
+(their hierarchical references become cross-module references).
 """
 
 import re
@@ -23,11 +22,6 @@ def cut(text, start, end_re):
 
 def main():
   text = open(sys.argv[1] + "/bhv/cv32e40x_wrapper.sv").read()
-  text = cut(text, "    cv32e40x_core_log\n", r"core_log_i\(.*?\);\n")
-  text = cut(text, "    cv32e40x_rvfi\n", r"rvfi_i\s*\(.*?\n\s*\);\n")
-  text = cut(text, "`ifndef FORMAL\n  bind cv32e40x_rvfi:", r"`endif\n")
-  text = cut(text, "  bind cv32e40x_rvfi:", r"\.\*\);\n")
-  assert "rvfi_i" not in text and "core_log_i" not in text
   if "--drop" in sys.argv:
     for m in sys.argv[sys.argv.index("--drop") + 1].split(","):
       while f"bind cv32e40x_{m}:" in text:
