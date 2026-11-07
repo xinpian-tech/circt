@@ -1,5 +1,6 @@
 add_circt_dialect_library(CIRCTSeqTransforms
   LowerFirRegToCompReg.cpp
+  ClockGateToEnable.cpp
   ExternalizeClockGate.cpp
   HWMemSimImpl.cpp
   RegOfVecToMem.cpp
