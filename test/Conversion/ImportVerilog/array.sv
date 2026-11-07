@@ -222,3 +222,20 @@ module repro(
     wire [15:0] lut [0:3] = '{ 16'h0201, 16'h0274, 16'h02d6, 16'h0378 };
     assign out = lut[index];
 endmodule
+
+// Constant unpacked arrays of packed structs keep the struct element type.
+// CHECK-LABEL: @ConstArrayOfStructs
+// CHECK-DAG: %[[C5:.*]] = moore.constant 5 : l9
+// CHECK-DAG: %[[C2:.*]] = moore.constant 2 : l9
+// CHECK-DAG: %[[E0:.*]] = moore.sbv_to_packed %[[C2]] : struct<{lo: l8, b: l1}>
+// CHECK-DAG: %[[E1:.*]] = moore.sbv_to_packed %[[C5]] : struct<{lo: l8, b: l1}>
+// CHECK: %[[ARR:.*]] = moore.array_create %[[E0]], %[[E1]] : {{.*}} -> uarray<2 x struct<{lo: l8, b: l1}>>
+// CHECK: moore.dyn_extract %[[ARR]] from %{{.*}} : uarray<2 x struct<{lo: l8, b: l1}>>, l1 -> struct<{lo: l8, b: l1}>
+typedef struct packed {
+  logic [7:0] lo;
+  logic b;
+} cfg_t;
+module ConstArrayOfStructs(input logic idx, output cfg_t o);
+  localparam cfg_t CFG [2] = '{'{lo: 8'h1, b: 1'b0}, '{lo: 8'h2, b: 1'b1}};
+  assign o = CFG[idx];
+endmodule

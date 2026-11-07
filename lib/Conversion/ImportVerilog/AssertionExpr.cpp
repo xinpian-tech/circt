@@ -304,6 +304,51 @@ struct AssertionExprVisitor {
 };
 } // namespace
 
+/// Concatenate the bits of an unpacked array or struct (recursively) into one
+/// two-valued integer, for sampled value functions that only compare values
+/// (`$stable`, `$changed`): two values are equal iff their concatenations are.
+static Value flattenUnpackedForCompare(Context &context, Value value,
+                                       Location loc) {
+  auto &builder = context.builder;
+  auto type = value.getType();
+  if (isa<moore::PackedType>(type)) {
+    value =
+        context.materializePackedToSBVConversion(value, loc, /*fallible=*/true);
+    auto intTy = value ? dyn_cast<moore::IntType>(value.getType())
+                       : moore::IntType();
+    if (!intTy)
+      return {};
+    if (intTy.getDomain() == Domain::FourValued)
+      value = builder.createOrFold<moore::LogicToIntOp>(loc, value);
+    return value;
+  }
+  SmallVector<Value> parts;
+  if (auto arrayTy = dyn_cast<moore::UnpackedArrayType>(type)) {
+    for (unsigned i = 0, e = arrayTy.getSize(); i != e; ++i) {
+      Value elem = moore::ExtractOp::create(
+          builder, loc, arrayTy.getElementType(), value, i);
+      parts.push_back(flattenUnpackedForCompare(context, elem, loc));
+      if (!parts.back())
+        return {};
+    }
+  } else if (auto structTy = dyn_cast<moore::UnpackedStructType>(type)) {
+    for (auto &member : structTy.getMembers()) {
+      Value field = moore::StructExtractOp::create(builder, loc, member.type,
+                                                   member.name, value);
+      parts.push_back(flattenUnpackedForCompare(context, field, loc));
+      if (!parts.back())
+        return {};
+    }
+  } else {
+    return {};
+  }
+  if (parts.empty())
+    return {};
+  if (parts.size() == 1)
+    return parts[0];
+  return moore::ConcatOp::create(builder, loc, parts);
+}
+
 FailureOr<Value> Context::convertSampledValueCallArity1(
     const slang::ast::SystemSubroutine &subroutine, Location loc, Value value,
     Type originalType, Value clockVal) {
@@ -430,9 +475,20 @@ Value Context::convertSampledValueCallExpression(
     valTy = dyn_cast<moore::IntType>(value.getType());
     if (!valTy) {
       if (!isa<moore::PackedType>(value.getType())) {
-        mlir::emitError(loc)
-            << "expected integer argument for `" << subroutine.name << "`";
-        return {};
+        // `$stable` and `$changed` only compare the value with its past one,
+        // so unpacked arrays and structs can be compared on their bits.
+        using ksn = slang::parsing::KnownSystemName;
+        auto nameId = subroutine.knownNameId;
+        if (nameId == ksn::Stable || nameId == ksn::Changed)
+          value = flattenUnpackedForCompare(*this, value, loc);
+        else
+          value = {};
+        if (!value) {
+          mlir::emitError(loc)
+              << "expected integer argument for `" << subroutine.name << "`";
+          return {};
+        }
+        originalType = value.getType();
       }
       value = materializePackedToSBVConversion(value, loc, /*fallible=*/false);
       if (!value)
