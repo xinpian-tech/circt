@@ -654,3 +654,11 @@ func.func @ReadMemOps(%arg0: !moore.string, %arg1: !moore.ref<uarray<16 x l8>>, 
   moore.builtin.readmem hex %arg0, %arg2 {dimDescending = array<i1: false>, dimLows = array<i64: 0>} : !moore.ref<queue<l8, 0>>
   return
 }
+
+// CHECK-LABEL: moore.module @CrossModuleReferences()
+moore.module @CrossModuleReferences() {
+  // CHECK: moore.xmr up 1 path ["u_core", "gen_0.u"] target "state" : <l1>
+  %0 = moore.xmr up 1 path ["u_core", "gen_0.u"] target "state" : <l1>
+  // CHECK: moore.xmr up 0 path [] target "x" : <i32>
+  %1 = moore.xmr up 0 path [] target "x" : <i32>
+}
