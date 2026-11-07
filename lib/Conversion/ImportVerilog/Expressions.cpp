@@ -1039,24 +1039,6 @@ struct RvalueExprVisitor : public ExprVisitor {
       return value;
     }
 
-    // For cross-instance hierarchical references, prefer the isntance-aware
-    // hierValueSymbols lookup. Sibling instances elaborate distinct symbol
-    // objects for the same logical variable, and this map keeps p1 vs p2
-    // resolutions separate where the scoped table could conflate them.
-    if (auto key = context.buildHierValueKey(expr)) {
-      if (auto it = context.hierValueSymbols.find(*key);
-          it != context.hierValueSymbols.end()) {
-        auto value = it->second;
-        if (isa<moore::RefType>(value.getType())) {
-          auto readOp = moore::ReadOp::create(builder, hierLoc, value);
-          if (context.rvalueReadCallback)
-            context.rvalueReadCallback(readOp);
-          value = readOp.getResult();
-        }
-        return value;
-      }
-    }
-
     // Fall back to scoped symbol table (same-scope lookups, self-refs).
     if (auto value = context.valueSymbols.lookup(&expr.symbol)) {
       if (isa<moore::RefType>(value.getType())) {
@@ -1101,6 +1083,18 @@ struct RvalueExprVisitor : public ExprVisitor {
     }
     if (auto value = context.materializeConstant(constant, *expr.type, loc))
       return value;
+
+    // A variable or net of another instance: a cross-module reference.
+    if (!isCompileTimeConstant(expr.symbol.kind) &&
+        expr.symbol.getParentScope()->getContainingInstance()) {
+      auto value = context.materializeXmr(expr.symbol, loc);
+      if (!value)
+        return {};
+      auto readOp = moore::ReadOp::create(builder, loc, value);
+      if (context.rvalueReadCallback)
+        context.rvalueReadCallback(readOp);
+      return readOp.getResult();
+    }
 
     // Emit an error for those hierarchical values not recorded in the
     // `valueSymbols`.
@@ -2127,6 +2121,15 @@ struct RvalueExprVisitor : public ExprVisitor {
     // argument will be found for variables captured from an outer scope).
     for (auto *sym : lowering->capturedSymbols) {
       Value val = context.valueSymbols.lookup(sym);
+      // A hierarchical reference to another instance.
+      if (!val && context.currentBody &&
+          sym->getParentScope()->getContainingInstance() &&
+          sym->getParentScope()->getContainingInstance() !=
+              context.currentBody) {
+        val = context.materializeXmr(*sym, loc);
+        if (!val)
+          return {};
+      }
       if (!val) {
         mlir::emitError(loc) << "failed to resolve captured variable `"
                              << sym->name << "` at call site";
@@ -2684,15 +2687,6 @@ struct LvalueExprVisitor : public ExprVisitor {
     if (auto value = context.resolveCapturedValue(expr.symbol))
       return value;
 
-    // For cross-instance hierarchical references, use the instance-aware
-    // hierValueSymbols lookup (same priority and rationale as rvalue
-    // visitor).
-    if (auto key = context.buildHierValueKey(expr)) {
-      if (auto it = context.hierValueSymbols.find(*key);
-          it != context.hierValueSymbols.end())
-        return it->second;
-    }
-
     // Fall back to scoped symbol table (same-scope lookups, self-refs).
     if (auto value = context.valueSymbols.lookup(&expr.symbol))
       return value;
@@ -2703,6 +2697,11 @@ struct LvalueExprVisitor : public ExprVisitor {
     // Handle global variables.
     if (auto globalOp = context.globalVariables.lookup(&expr.symbol))
       return moore::GetGlobalVariableOp::create(builder, loc, globalOp);
+
+    // A variable or net of another instance: a cross-module reference.
+    if (!isCompileTimeConstant(expr.symbol.kind) &&
+        expr.symbol.getParentScope()->getContainingInstance())
+      return context.materializeXmr(expr.symbol, loc);
 
     // Emit an error for those hierarchical values not recorded in the
     // `valueSymbols`.
@@ -2808,31 +2807,6 @@ Value Context::resolveCapturedValue(const slang::ast::ValueSymbol &sym) {
   return valueSymbols.lookup(&sym);
 }
 
-std::optional<std::pair<const slang::ast::InstanceSymbol *, mlir::StringAttr>>
-Context::buildHierValueKey(
-    const slang::ast::HierarchicalValueExpression &expr) {
-  if (expr.ref.path.empty())
-    return std::nullopt;
-
-  const slang::ast::InstanceSymbol *firstInst = nullptr;
-  SmallVector<StringRef, 4> names;
-  for (auto &elem : expr.ref.path) {
-    if (auto *inst = elem.symbol->as_if<slang::ast::InstanceSymbol>()) {
-      if (!firstInst) {
-        firstInst = inst;
-      } else {
-        names.push_back(inst->name);
-      }
-    }
-  }
-  names.push_back(expr.symbol.name);
-  std::string hierName = llvm::join(names, ".");
-
-  if (!firstInst)
-    return std::nullopt;
-  return std::make_pair(firstInst, builder.getStringAttr(hierName));
-}
-
 //===----------------------------------------------------------------------===//
 // Entry Points
 //===----------------------------------------------------------------------===//
@@ -2932,7 +2906,8 @@ Value Context::materializeFixedSizeUnpackedArrayType(
     return {};
 
   auto arrayType = dyn_cast<moore::UnpackedArrayType>(type);
-  if (!arrayType || constant.elements().size() != arrayType.getSize())
+  if (!arrayType || !constant.isUnpacked() ||
+      constant.elements().size() != arrayType.getSize())
     return {};
 
   // Materialize every element with the element type (integers, packed

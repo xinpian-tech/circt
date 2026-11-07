@@ -1,4 +1,4 @@
-// RUN: circt-translate --import-verilog %s | FileCheck %s
+// RUN: circt-translate --import-verilog %s | circt-opt --moore-resolve-xmr | FileCheck %s
 // RUN: circt-verilog --ir-moore %s
 // REQUIRES: slang
 

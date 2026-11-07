@@ -473,6 +473,10 @@ void circt::registerFromVerilogTranslation() {
 
 /// Optimize and simplify the Moore dialect IR.
 void circt::populateVerilogToMoorePipeline(OpPassManager &pm) {
+  // Replace cross-module references by ports before anything can remove or
+  // rename the variables and nets they refer to by name.
+  pm.addPass(moore::createResolveXMR());
+
   {
     // Perform an initial cleanup and preprocessing across all
     // modules/functions.

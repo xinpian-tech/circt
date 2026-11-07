@@ -62,9 +62,11 @@ on tiny AIGs); the whole-core results with the Python and the C++ lowering
     were rejected ("unsupported expression: DisableIff").
   - Covergroup declarations were rejected as module members.
   - Hierarchical references into a sibling subtree (bind ports of
-    controller_fsm SVA) were left as dangling ports of the top module, and
-    interface members or non-reference values gave instance operands of the
-    wrong type.
+    controller_fsm SVA) were left as dangling ports of the top module. Now
+    ImportVerilog creates a cross-module reference (`moore.xmr`: up to the
+    common ancestor, down by instance names) and `moore-resolve-xmr`
+    replaces it with ports, for all instances; this also covers interface
+    members of other instances.
   - `$stable` / `$changed` of unpacked arrays and structs were rejected
     (debug_triggers SVA): they now compare the concatenated bits.
   - Constant unpacked arrays of packed structs were built with integer

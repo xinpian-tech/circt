@@ -11,10 +11,10 @@ xinpian-tech/circt `exp/synth-for-solver`, which has fixes for some of them
 | 1 | 01-nonoverlap-implication.sv | wrong semantics, silent | wrong IR | fixed (6d9159ae0) |
 | 2 | 02-named-property-disable-iff.sv | rejected | error | fixed (6d9159ae0) |
 | 3 | 03-covergroup.sv, 03b-covergroup-instance.sv | rejected | error | declaration fixed (6d9159ae0); instance open |
-| 4 | 04-hier-ref-sibling.sv, 04b-hier-ref-sibling-bind.sv | wrong semantics, silent | free input | fixed (5854bf3d4, f58e05fb7) |
+| 4 | 04-hier-ref-sibling.sv, 04b-hier-ref-sibling-bind.sv | wrong semantics, silent | free input | fixed (`moore.xmr` + `moore-resolve-xmr`) |
 | 5 | 05-stable-unpacked-array.sv | rejected | error | fixed (dc33b7cd0; `$stable`/`$changed` only) |
 | 6 | 06-param-array-of-structs-index.sv | invalid IR | verifier error | fixed (dc33b7cd0; verifier unchanged) |
-| 7 | 07-hier-ref-interface-member.sv | rejected | error | open |
+| 7 | 07-hier-ref-interface-member.sv | rejected | error | fixed (`moore.xmr` + `moore-resolve-xmr`) |
 | 8 | 08-assertion-labels.sv | information lost | no labels | fixed (uncommitted at time of writing) |
 
 ## Upstream status (searched 2026-11-07)
@@ -171,14 +171,35 @@ Expected: `core` gets an output `state` (as for references from the
 parent), and `top` connects it to `u_ctrl`. The same happens for
 references to input ports (`top.u_core.d`).
 
-The branch fix (`HierarchicalNames.cpp`, `Structure.cpp`): the input chain
-stops at the first module that also contains the referenced symbol (the
-common ancestor), output ports are added from the symbol's module up to it,
-and if the referencing instance is converted before the providing one, a
-placeholder is used and resolved later. Values that are not references
-(e.g. input ports) are passed through a wire. Bind-elaborated instances are
-matched by name and definition, and placeholders that stay unresolved are
-reported as errors instead of leaking into the output.
+Branch fix, a different design (cross-module references): ImportVerilog
+no longer creates the ports itself. Each reference to another instance
+becomes a `moore.xmr` op that says how to reach the target from the
+referencing module: up N instances to the common ancestor, down by instance
+names, and the target's name there (as the module conversion names it:
+generate-block prefixes, instance arrays, flattened interface members):
+
+```mlir
+// in @ctrl, for top.u_core.state
+%0 = moore.xmr up 1 path ["u_core"] target "state" : <l1>
+```
+
+A new pass, `moore-resolve-xmr`, the first pass of the circt-verilog
+pipeline (before anything can remove or rename the target variables),
+replaces them with ports: an input on the referencing module, passed by
+every instance from its parent, recursively up N levels, and outputs from
+the target's module up to the ancestor. Ports are shared between references
+to the same target and named as before (`u_core.state`, `Foo.r`). Since
+the whole hierarchy exists when the pass runs, there is no order problem
+(the referencing instance may come first) and no special case for `bind`.
+The path is relative, so a module that slang deduplicates (two instances of
+`mid`, each with a checker reading `l.x` of its own `mid`) refers to the
+target of each instance. Not supported, reported as errors: references
+that resolve differently in different instances of one module (checked
+over all instances before the conversion; slang does not deduplicate such
+modules, so this is a safety net), references into another top-level
+module (upstream gives the referencing top module a free input), and
+targets that are not found or not unique. The previous port-threading code
+in ImportVerilog (`hierPaths`, placeholders) is removed.
 
 ## 5. `$stable` of an unpacked array is rejected
 
@@ -273,6 +294,9 @@ Interface instances are flattened into the instantiating module, so the
 member is a signal of `core`; the hierarchical-name analysis does not find
 it there (probably it looks for an output of the interface instance).
 Expected: export the flattened member signal from `core`.
+
+Branch: fixed by the cross-module references of issue 4; the target is the
+flattened member `bus_valid` of `core`.
 
 ## 8. Assertion labels are dropped
 
