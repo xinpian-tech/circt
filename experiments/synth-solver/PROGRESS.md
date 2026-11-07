@@ -61,7 +61,8 @@ the repo's nix flake failed on truncated source downloads); rIC3 and ABC.
      MULH accumulator. The nested don't-cares change nothing on ex_stage;
      properties with more structure are needed (core-level SVA).
 
-   - Whole core with all SVA (except debug_triggers, mpu): import and LLHD
+   - Whole core with all SVA (debug_triggers and mpu left out until
+     2026-11-07, imported since, 17 more assertions): import and LLHD
      fixed in CIRCT, 266 assertions export. The pass proves 14 and turns 4
      timeouts into 3-5 s proofs; other proof times barely change. One
      cycle of bits (wb_stage <-> controller_fsm) is left; run 2 cut it with

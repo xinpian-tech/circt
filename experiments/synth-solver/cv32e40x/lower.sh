@@ -17,6 +17,8 @@
 #
 # Assertions proved by verif-simplify-odc are removed by it: for those,
 # "LABEL: proved by verif-simplify-odc" is printed and no model is written.
+# Assertions folded to true during PRE (gone without a remark) print
+# "LABEL: folded to true by the lowering".
 set -euo pipefail
 in=$1; shift
 out=
@@ -49,11 +51,17 @@ if [ ! -s $pre.mlir ]; then
     { cat $pre.err.tmp >&2; exit 1; }
   mv $pre.err.tmp $pre.err; mv $pre.mlir.tmp $pre.mlir
 fi
+labels() { (grep -oE 'verif\.(clocked_)?assert .* label "[^"]+"' "$1" || true) |
+  sed -E 's/.*label "([^"]+)".*/\1/' | sed '/^$/d' | sort -u; }
 proved=$( (grep -oE "remark: property holds under its don't-cares \(label '[^']+'\)" \
   $pre.err || true) | sed -E "s/.*label '([^']+)'.*/\1/" | sort -u)
+# Assertions of the input that PRE removed without a remark were folded to
+# true by canonicalize (an assert of a constant true, e.g. after
+# verif-simplify-odc and lower-ltl-to-core): they hold too.
+folded=$(comm -23 <(labels $in) <(labels $pre.mlir) | comm -23 - <(echo "$proved"))
+proved=$(printf '%s\n%s\n' "$proved" "$folded" | sed '/^$/d' | sort -u)
 if [ -n "$list" ]; then
-  { grep -oE 'verif\.clocked_assert .* label "[^"]+"' $pre.mlir |
-      sed -E 's/.*label "([^"]+)".*/\1/'; echo "$proved"; } | sed '/^$/d' | sort -u
+  { labels $pre.mlir; echo "$proved"; } | sed '/^$/d' | sort -u
   exit 0
 fi
 [ -n "$out" ] || { echo "no output file" >&2; exit 2; }
@@ -61,7 +69,8 @@ fi
 # Selected assertions proved by verif-simplify-odc have no model.
 left=
 for l in ${asserts//,/ }; do
-  if grep -qxF "$l" <<<"$proved"; then echo "$l: proved by verif-simplify-odc"
+  if grep -qxF "$l" <<<"$folded"; then echo "$l: folded to true by the lowering"
+  elif grep -qxF "$l" <<<"$proved"; then echo "$l: proved by verif-simplify-odc"
   else left=$left${left:+,}$l; fi
 done
 if [ -n "$asserts" ] && [ -z "$left" ]; then exit 0; fi

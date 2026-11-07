@@ -40,7 +40,7 @@ cv32e40x/README.md).
 For CV32E40X (cv32e40x/README.md has the details and known gaps):
 
     cv32e40x/import.sh cv32e40x_ex_stage ex.mlir ex_stage_env mult div
-    cv32e40x/import_core.sh core.mlir DROP      # whole core, all SVA
+    cv32e40x/import_core.sh core.mlir [DROP]    # whole core, all SVA
     cv32e40x/lower.sh ex.mlir MODEL.mlir --assert a_mul_result \
         [--odc full|antecedent] [--pre-cache PREFIX]
     cv32e40x/run_configs.sh MODELDIR ASSERT... > results.tsv

@@ -12,8 +12,8 @@ xinpian-tech/circt `exp/synth-for-solver`, which has fixes for some of them
 | 2 | 02-named-property-disable-iff.sv | rejected | error | fixed (6d9159ae0) |
 | 3 | 03-covergroup.sv, 03b-covergroup-instance.sv | rejected | error | declaration fixed (6d9159ae0); instance open |
 | 4 | 04-hier-ref-sibling.sv, 04b-hier-ref-sibling-bind.sv | wrong semantics, silent | free input | fixed (5854bf3d4, f58e05fb7) |
-| 5 | 05-stable-unpacked-array.sv | rejected | error | open |
-| 6 | 06-param-array-of-structs-index.sv | invalid IR | verifier error | open |
+| 5 | 05-stable-unpacked-array.sv | rejected | error | fixed (dc33b7cd0; `$stable`/`$changed` only) |
+| 6 | 06-param-array-of-structs-index.sv | invalid IR | verifier error | fixed (dc33b7cd0; verifier unchanged) |
 | 7 | 07-hier-ref-interface-member.sv | rejected | error | open |
 | 8 | 08-assertion-labels.sv | information lost | no labels | fixed (uncommitted at time of writing) |
 
@@ -198,6 +198,11 @@ slang accepts this (sampled value functions, IEEE 1800-2017 16.9.3); the
 CV32E40X debug-trigger SVA uses `$stable` on arrays of trigger registers.
 Expected: compare the whole array (e.g. element-wise).
 
+Branch fix (`AssertionExpr.cpp`): for `$stable` and `$changed`, unpacked
+arrays and structs are concatenated (recursively, element by element) into
+one integer, which is then compared with its `ltl.past` value. `$past`,
+`$rose` and `$fell` of unpacked values are still rejected.
+
 ## 6. Dynamic index into a constant array of packed structs gives invalid IR
 
 ```systemverilog
@@ -232,6 +237,12 @@ materialized with the packed integer type as element type, and the
 result type (MooreToCore then emits the invalid `hw.array_slice`). A
 variable array of the same type (`cfg_t arr [2]`) imports correctly. Found
 with a `parameter pma_cfg_t PMA_CFG[...]` indexed in a loop (CV32E40X MPU).
+
+Branch fix (`Expressions.cpp`, `materializeFixedSizeUnpackedArrayType`):
+each element is materialized with `materializeConstant` and the array's
+element type (packed structs, packed arrays, strings, nested unpacked
+arrays), instead of an integer of the element's width. The
+`moore.dyn_extract` verifier is unchanged.
 
 ## 7. Hierarchical reference to an interface member in a sibling subtree
 

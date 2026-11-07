@@ -65,16 +65,18 @@ on tiny AIGs); the whole-core results with the Python and the C++ lowering
     controller_fsm SVA) were left as dangling ports of the top module, and
     interface members or non-reference values gave instance operands of the
     wrong type.
-- Open, worked around by leaving the SVA out (`import_core.sh` DROP):
-  debug_triggers (`$stable` of an unpacked array), mpu (invalid
-  `hw.array_slice` of the PMA configuration with PMA_NUM_REGIONS = 0).
+  - `$stable` / `$changed` of unpacked arrays and structs were rejected
+    (debug_triggers SVA): they now compare the concatenated bits.
+  - Constant unpacked arrays of packed structs were built with integer
+    elements, giving an invalid `hw.array_slice` (mpu SVA, `PMA_CFG[i]`):
+    elements now keep the declared element type.
 - `hw-imdce` crashes on the lowered core; `hw-cone-of-influence` (new) is
   used instead.
 
 ## Whole core
 
-`import_core.sh OUT.mlir debug_triggers,mpu` imports the core
-with all its SVA: `make_wrapper.py` writes bhv/cv32e40x_wrapper.sv without
+`import_core.sh OUT.mlir` imports the core with all its SVA (none
+left out since 2026-11-07; before, debug_triggers and mpu were dropped): `make_wrapper.py` writes bhv/cv32e40x_wrapper.sv without
 core_log and rvfi (they read signals by hierarchical name), and
 sv/cv32e40x_core_top.sv instantiates the eXtension interface for the
 wrapper's interface ports (X_EXT = 0). 197 assertions; the lowering handles
@@ -158,6 +160,32 @@ proved.
 - The 7 unsupported assertions (`until`, goto repetition, sequence `or`)
   are reported as errors when selected; lower_regs.py skipped them
   silently, so they were not in run 3.
+
+### Run 5 (results-core-odc-run5-new.tsv), debug_triggers and mpu SVA
+
+With the ImportVerilog fixes for `$stable` of unpacked arrays and constant
+arrays of packed structs, the SVA of debug_triggers and mpu imports (no
+SVA is left out any more). The 17 assertions that are new compared with
+run 4, same setup (TL = 60 s); all obligations proved:
+
+| mode       | PROVED by pass | FOLDED | UNSAT | SAT | TO |
+|------------|---------------:|-------:|------:|----:|---:|
+| none       |              0 |      0 |    14 |   0 |  3 |
+| antecedent |              0 |      1 |    13 |   0 |  3 |
+| full       |              2 |      1 |    11 |   1 |  2 |
+
+- FOLDED: the assertion is folded to an assert of true during the
+  lowering (canonicalize after verif-simplify-odc and lower-ltl-to-core),
+  without a remark of the pass. lower.sh used to report "no assertion
+  labeled" for these; it now prints "folded to true by the lowering".
+  a_dm_region_nonatomic_dbg is FOLDED with ODC and UNSAT (4 s) without.
+  14 assertions of runs 3 and 4 are folded in all modes (e.g.
+  a_lsu_no_xif_req_if_xext_disabled with X_EXT = 0); they were missing
+  from the lists of those runs and are now listed as FOLDED.
+- a_tdata1_writes_unique is SAT with full ODC (48 s) and TO otherwise;
+  BMC finds a counterexample at depth 30 in both the none and the full
+  model, so the result agrees. As for the other SAT results, the
+  environment is unconstrained.
 
 ### Run 2 (results-core-odc-run2.tsv), with cut points (superseded)
 

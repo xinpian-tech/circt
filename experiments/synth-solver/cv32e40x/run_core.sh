@@ -10,7 +10,7 @@ source $H/../env.sh
 RIC3=${RIC3:-/var/storage/workspaces/clo91eaf/yjh-workspace/rIC3-target-rebuild-20261106/release/ric3}
 OUT=${OUT:-$(mktemp -d)}; TL=${TL:-60}; P=${P:-14}
 MODES=${MODES:-"none antecedent full"}
-DROP=${DROP:-debug_triggers,mpu}
+DROP=${DROP:-}
 mkdir -p $OUT
 [ -s $OUT/core.mlir ] || $H/import_core.sh $OUT/core.mlir $DROP 2>$OUT/import.err
 [ -s $OUT/asserts.txt ] || $H/lower.sh $OUT/core.mlir --list \
@@ -29,7 +29,7 @@ lower() { a=$1 m=$2 f=$OUT/$1.$2
   $H/lower.sh $OUT/core.mlir $f.mlir --assert $a $opt \
     --pre-cache $OUT/pre.$m > $f.log 2>&1 ||
     { echo "lower failed $a $m" >&2; return; }
-  [ -s $f.mlir ] || return 0  # proved by verif-simplify-odc
+  [ -s $f.mlir ] || return 0  # proved by verif-simplify-odc or folded
   circt-opt $f.mlir --pass-pipeline="builtin.module($EXPORT)" \
     --mlir-pass-statistics 2>$f.export.log |
     circt-translate --export-aiger --exclude-symbol-table -o $f.full.aig \
@@ -62,6 +62,8 @@ printf "assert\tmode\tlatches\tands\tobligation\tresult\tseconds\n"
 for a in $(cat $OUT/asserts.txt); do for m in $MODES; do f=$OUT/$a.$m
   if grep -q "^$a: proved by verif-simplify-odc" $f.log 2>/dev/null; then
     printf "%s\t%s\t0\t0\t-\tPROVED\t0\n" $a $m; continue; fi
+  if grep -q "^$a: folded to true by the lowering" $f.log 2>/dev/null; then
+    printf "%s\t%s\t0\t0\t-\tFOLDED\t0\n" $a $m; continue; fi
   [ -s $f.aig ] || { printf "%s\t%s\t\t\t\tFAIL\t\n" $a $m; continue; }
   obl=-; [ -s $f.obl.aig ] && obl=$(result $f.obl.aig 2) && obl=${obl:-TO}
   r=$(result $f.aig 2); r=${r:-TO}
