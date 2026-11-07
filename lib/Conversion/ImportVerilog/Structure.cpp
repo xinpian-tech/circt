@@ -676,20 +676,36 @@ struct ModuleVisitor : public BaseVisitor {
       }
       const auto *connInst = it->second;
       // Look up the InterfaceLowering for that instance.
-      auto *ifaceLowering = context.interfaceInstances.lookup(connInst);
-      if (!ifaceLowering) {
+      Value val;
+      if (auto *ifaceLowering = context.interfaceInstances.lookup(connInst)) {
+        // Find the expanded SSA value for this body member.
+        auto valIt = ifaceLowering->expandedMembers.find(fp.bodySym);
+        if (valIt == ifaceLowering->expandedMembers.end()) {
+          mlir::emitError(loc)
+              << "unresolved interface port signal `" << fp.name << "`";
+          return failure();
+        }
+        val = valIt->second;
+      } else if (connInst->getParentScope()->getContainingInstance() !=
+                 context.currentBody) {
+        // An interface instance of another module, connected by a
+        // hierarchical name (`.bus(u_core.bus)`): refer to the member there.
+        const auto *member = connInst->body.find(fp.bodySym->name);
+        const auto *valueSym =
+            member ? member->as_if<slang::ast::ValueSymbol>() : nullptr;
+        if (!valueSym) {
+          mlir::emitError(loc)
+              << "unresolved interface port signal `" << fp.name << "`";
+          return failure();
+        }
+        val = context.materializeXmr(*valueSym, loc);
+        if (!val)
+          return failure();
+      } else {
         mlir::emitError(loc)
             << "interface instance `" << connInst->name << "` was not expanded";
         return failure();
       }
-      // Find the expanded SSA value for this body member.
-      auto valIt = ifaceLowering->expandedMembers.find(fp.bodySym);
-      if (valIt == ifaceLowering->expandedMembers.end()) {
-        mlir::emitError(loc)
-            << "unresolved interface port signal `" << fp.name << "`";
-        return failure();
-      }
-      Value val = valIt->second;
       if (fp.direction == hw::ModulePort::Output) {
         outputValues[*fp.outputIdx] = val;
       } else {

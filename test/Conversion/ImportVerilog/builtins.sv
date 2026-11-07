@@ -1856,3 +1856,15 @@ module SampledUnpacked(input logic clk, input logic [7:0] a [2],
   // CHECK: verif.assert {{%.+}} label "stable_struct"
   stable_struct: assert property (@(posedge clk) $stable(s));
 endmodule
+
+// `$past` with a number of cycles, and of packed structs.
+// CHECK-LABEL: moore.module @PastCycles
+module PastCycles(input logic clk, input logic [3:0] a);
+  typedef struct packed { logic [1:0] x; logic y; } s_t;
+  s_t s, t;
+  // CHECK: ltl.past {{%.+}}, 3 clk {{%.+}} : i4
+  past3: assert property (@(posedge clk) $past(a, 3) == a);
+  // CHECK: ltl.past {{%.+}}, 1 clk {{%.+}} : i3
+  // CHECK: moore.sbv_to_packed {{%.+}} : struct<{x: l2, y: l1}>
+  always_ff @(posedge clk) t <= $past(s);
+endmodule

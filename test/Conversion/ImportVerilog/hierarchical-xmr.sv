@@ -56,3 +56,27 @@ module top(input logic clk, input logic d);
   // An element of an instance array.
   assign c = u_arr[1].state;
 endmodule
+
+// An interface port connected to an interface instance of another module.
+interface Obi;
+  logic req;
+  logic gnt;
+  modport monitor(input req, input gnt);
+endinterface
+module ObiCore(input logic clk);
+  Obi bus();
+  assign bus.req = clk;
+endmodule
+module ObiMon(Obi.monitor m, output logic o);
+  assign o = m.req & m.gnt;
+endmodule
+// CHECK-LABEL: moore.module @ObiTop
+// CHECK: moore.xmr up 0 path ["core_i"] target "bus_req" : <l1>
+// CHECK: moore.xmr up 0 path ["core_i"] target "bus_gnt" : <l1>
+// CHECK: moore.instance "mon_i" @ObiMon
+// RESOLVED-LABEL: moore.module @ObiTop
+// RESOLVED: %core_i.bus_req, %core_i.bus_gnt = moore.instance "core_i" @ObiCore
+module ObiTop(input logic clk, output logic o);
+  ObiCore core_i(.clk(clk));
+  ObiMon mon_i(.m(core_i.bus), .o(o));
+endmodule

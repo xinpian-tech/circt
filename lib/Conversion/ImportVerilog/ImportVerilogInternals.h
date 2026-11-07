@@ -467,11 +467,12 @@ struct Context {
                           Location loc,
                           std::span<const slang::ast::Expression *const> args);
 
-  /// Convert sampled value system function calls with a single argument.
+  /// Convert sampled value system function calls with a single argument
+  /// (`delay` is the number of cycles of `$past`).
   FailureOr<Value>
   convertSampledValueCallArity1(const slang::ast::SystemSubroutine &subroutine,
                                 Location loc, Value value, Type originalType,
-                                Value clockVal);
+                                Value clockVal, unsigned delay = 1);
 
   /// Evaluate the constant value of an expression.
   slang::ConstantValue evaluateConstant(const slang::ast::Expression &expr);
