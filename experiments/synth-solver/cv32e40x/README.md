@@ -78,19 +78,40 @@ on tiny AIGs); the whole-core results with the Python and the C++ lowering
 ## Whole core
 
 `import_core.sh OUT.mlir` imports the core with all its SVA (none
-left out since 2026-11-07; before, debug_triggers and mpu were dropped): `make_wrapper.py` writes bhv/cv32e40x_wrapper.sv without
-core_log and rvfi (they read signals by hierarchical name), and
+left out since 2026-11-07; before, debug_triggers and mpu were dropped),
+from the original bhv/cv32e40x_wrapper.sv including core_log and rvfi (and
+the SVA bound to rvfi; until 2026-11-07 make_wrapper.py removed them), with
+`circt-verilog --uvm-stubs` for the UVM reporting of the SVA.
 sv/cv32e40x_core_top.sv instantiates the eXtension interface for the
-wrapper's interface ports (X_EXT = 0). 197 assertions; the lowering handles
-181 (boolean or fixed-delay sequences on both sides of `|->`; it skips
-`until`, goto repetition and sequence `or`, 6 assertions).
+wrapper's interface ports (X_EXT = 0). 574 assertion ops, 338 labels.
+verif-assertions-to-output handles boolean or fixed-delay sequences on both
+sides of `|->`; it skips `until`, goto repetition and sequence `or`. Some
+rvfi assertions do not export yet: rvfi keeps an `llhd.process` that
+llhd-deseq does not turn into registers.
+
+Clock gating (since 2026-11-07): the core runs in functional mode
+(`scan_cg_en_i = 0`), with the original latch-based clock gate of the sleep
+unit. `llhd-raise-clock-gates` turns the latch and AND into
+`seq.clock_gate`, `seq-clock-gate-to-enable` gives the registers on the
+gated clock a clock enable (exact at every edge of the ungated clock: the
+latch holds the enable at the rising edge), and verif-assertions-to-output
+checks assertions on the gated clock in its cycles (delays count gated
+cycles; a `disable iff` also applies in the cycles in between). Before, the
+gate was kept open (scan mode, `sv/cv32e40x_clock_gate_formal.sv`), so the
+core clock never stopped in sleep. A sample of 40 assertions (sleep, WFI,
+fencei, and random ones; results-core-functional-sample.tsv, mode none,
+60 s) compared with scan mode: no assertion goes from UNSAT to SAT; two go
+from SAT to UNSAT or timeout (a_branch_taken_ex_flush,
+a_csr_wr_in_wb_no_fetch; their scan-mode counterexamples were not
+analysed). A first version that checked `disable iff` only in gated cycles
+gave a spurious counterexample for a_no_wfi_wakeup_on_wfe (a reset pulse
+while the clock was gated).
 
 The LLHD signals that blocked the AIGER export were fixed in CIRCT (CSR
 bits and register-file words written by separate `always_ff`s: llhd-mem2reg
 hoists their projections; probed projections in llhd-sig2reg; array slices
-in `always_comb`), the clock gate is modelled open
-(sv/cv32e40x_clock_gate_formal.sv), and hierarchical references between
-sibling subtrees (bind ports) are wired by ImportVerilog. The export
+in `always_comb`), and hierarchical references (bind ports, rvfi) are
+cross-module references. The export
 pipeline (`run_core.sh`) is hw-cone-of-influence, hw-aggregate-to-comb,
 comb-split-word-cycles (word-level false loops: struct fields depending on
 each other) and the synth lowering.

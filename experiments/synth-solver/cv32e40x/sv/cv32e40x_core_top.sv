@@ -1,6 +1,6 @@
 // Top for formal: cv32e40x_wrapper (all SVA bound) with the eXtension
-// interface instantiated inside (X_EXT = 0: no coprocessor) and the clock
-// gate kept open.
+// interface instantiated inside (X_EXT = 0: no coprocessor), in functional
+// mode (scan clock gate enable 0).
 // Generated from bhv/cv32e40x_wrapper.sv; regenerate if its ports change.
 module cv32e40x_core_top #(parameter int DBG_NUM_TRIGGERS = 1) (
   input  logic        clk_i,
@@ -54,10 +54,11 @@ module cv32e40x_core_top #(parameter int DBG_NUM_TRIGGERS = 1) (
   input  logic        fetch_enable_i,
   output logic        core_sleep_o
 );
-  // The clock gate of the sleep unit is a latch; keep it open (the core clock
-  // runs in every cycle), which approximates sleep.
+  // Functional mode: the sleep unit gates the core clock. The latch-based
+  // clock gate becomes a clock enable in the lowering (llhd-raise-clock-gates,
+  // seq-clock-gate-to-enable).
   logic scan_cg_en_i;
-  assign scan_cg_en_i = 1'b1;
+  assign scan_cg_en_i = 1'b0;
   cv32e40x_if_xif xif ();
   // No coprocessor: its outputs are 0.
   assign xif.compressed_ready = 1'b0;

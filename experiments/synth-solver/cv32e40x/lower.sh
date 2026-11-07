@@ -6,12 +6,16 @@
 #            [--odc full|antecedent] [--pre-cache PREFIX]
 #   lower.sh IN.mlir --list [--odc full|antecedent] [--pre-cache PREFIX]
 #
-# PRE (independent of the assertion, cached with --pre-cache): flatten, LLHD
+# PRE (independent of the assertion, cached with --pre-cache): flatten,
+# latch-based clock gates to seq.clock_gate (registers on the gated clock get
+# a clock enable: one clock domain for AIGER), LLHD
 # processes and signals to registers and logic (llhd-combine-drives fills
 # undriven parts of signals without initial value with any value), SVA to
 # LTL to core, aggregates to integers; with --odc, verif-simplify-odc first.
 # MODEL: the selected assertions (by SVA label; default all) and all
-# assumptions become one output `bad` (verif-assertions-to-output), seq.firreg
+# assumptions become one output `bad` (verif-assertions-to-output; assertions
+# on the gated clock count in its cycles; their registers also get the clock
+# enable), seq.firreg
 # becomes seq.compreg with an initial value (registers with reset start in
 # reset; others with any value), symbolic values become inputs.
 #
@@ -41,7 +45,7 @@ case $odc in
   antecedent) ODC=",verif-simplify-odc{antecedent-only},canonicalize" ;;
   *) echo "--odc full|antecedent" >&2; exit 2 ;;
 esac
-PRE="builtin.module(hw-flatten-modules,symbol-dce,hw.module(llhd-mem2reg,llhd-hoist-signals,llhd-deseq,llhd-lower-processes,canonicalize,llhd-remove-control-flow,canonicalize,llhd-sig2reg,llhd-combine-drives{free-undriven},llhd-sig2reg,canonicalize$ODC,lower-ltl-to-core,lower-seq-shiftreg,lower-seq-compreg-ce),cse,hw-flatten-io,hw.module(hw-aggregate-to-comb,canonicalize),cse)"
+PRE="builtin.module(hw-flatten-modules,symbol-dce,hw.module(llhd-raise-clock-gates,llhd-mem2reg,llhd-hoist-signals,llhd-deseq,llhd-lower-processes,canonicalize,llhd-remove-control-flow,canonicalize,llhd-sig2reg,llhd-combine-drives{free-undriven},llhd-sig2reg,canonicalize,seq-clock-gate-to-enable$ODC,lower-ltl-to-core,lower-seq-shiftreg,seq-clock-gate-to-enable,lower-seq-compreg-ce),cse,hw-flatten-io,hw.module(hw-aggregate-to-comb,canonicalize),cse)"
 
 tmp=$(mktemp -d)
 trap 'rm -rf $tmp' EXIT
@@ -78,7 +82,7 @@ if [ -n "$asserts" ] && [ -z "$left" ]; then exit 0; fi
 opts=
 [ -n "$left" ] && opts="asserts=$left"
 [ -n "$assumes" ] && opts="$opts${opts:+ }assumes=$assumes"
-MODEL="builtin.module(verif-assertions-to-output{$opts},hw.module(seq-lower-firreg-to-compreg),verif-lower-symbolic-values{mode=hw-input},canonicalize,cse,hw-convert-bitcasts,canonicalize,hw-convert-bitcasts,canonicalize,cse)"
+MODEL="builtin.module(verif-assertions-to-output{$opts},hw.module(seq-clock-gate-to-enable,seq-lower-firreg-to-compreg),verif-lower-symbolic-values{mode=hw-input},canonicalize,cse,hw-convert-bitcasts,canonicalize,hw-convert-bitcasts,canonicalize,cse)"
 circt-opt $pre.mlir --pass-pipeline="$MODEL" -o $out
 if grep -qE '\bllhd\.' $out; then
   echo "warning: LLHD ops left: $(grep -oE '\bllhd\.[a-z_.]+' $out | sort -u | tr '\n' ' ')" >&2
