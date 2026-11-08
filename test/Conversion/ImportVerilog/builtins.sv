@@ -1824,3 +1824,35 @@ module ReadMemBuiltins;
     $readmemh("mem.data", mem, startDyn, finishDyn);
   end
 endmodule
+
+// `$stable` and `$changed` of unpacked arrays and structs compare all bits.
+// CHECK-LABEL: moore.module @SampledUnpacked
+module SampledUnpacked(input logic clk, input logic [7:0] a [2],
+                       input bit [3:0] b [2]);
+  typedef struct { logic [1:0] x; bit y; } s_t;
+  s_t s;
+  // CHECK: [[A:%.+]] = moore.read %a
+  // CHECK: [[A0:%.+]] = moore.extract [[A]] from 0 : uarray<2 x l8> -> l8
+  // CHECK: [[A0I:%.+]] = moore.logic_to_int [[A0]] : l8
+  // CHECK: [[A1:%.+]] = moore.extract [[A]] from 1 : uarray<2 x l8> -> l8
+  // CHECK: [[A1I:%.+]] = moore.logic_to_int [[A1]] : l8
+  // CHECK: [[AC:%.+]] = moore.concat [[A0I]], [[A1I]] : (!moore.i8, !moore.i8) -> i16
+  // CHECK: [[AB:%.+]] = moore.to_builtin_int [[AC]] : i16
+  // CHECK: [[AP:%.+]] = ltl.past [[AB]], 1 clk {{%.+}} : i16
+  // CHECK: comb.icmp eq [[AP]], [[AB]] : i16
+  // CHECK: verif.assert {{%.+}}
+  stable_array: assert property (@(posedge clk) $stable(a));
+  // CHECK: moore.extract {{%.+}} from 0 : uarray<2 x i4> -> i4
+  // CHECK: moore.extract {{%.+}} from 1 : uarray<2 x i4> -> i4
+  // CHECK: [[BC:%.+]] = moore.concat {{%.+}}, {{%.+}} : (!moore.i4, !moore.i4) -> i8
+  // CHECK: [[BB:%.+]] = moore.to_builtin_int [[BC]] : i8
+  // CHECK: [[BP:%.+]] = ltl.past [[BB]], 1 clk {{%.+}} : i8
+  // CHECK: comb.icmp ne [[BP]], [[BB]] : i8
+  // CHECK: verif.assert {{%.+}}
+  changed_array: assert property (@(posedge clk) $changed(b));
+  // CHECK: moore.struct_extract {{%.+}}, "x" : ustruct<{x: l2, y: i1}> -> l2
+  // CHECK: moore.struct_extract {{%.+}}, "y" : ustruct<{x: l2, y: i1}> -> i1
+  // CHECK: moore.concat {{%.+}}, {{%.+}} : (!moore.i2, !moore.i1) -> i3
+  // CHECK: verif.assert {{%.+}}
+  stable_struct: assert property (@(posedge clk) $stable(s));
+endmodule
