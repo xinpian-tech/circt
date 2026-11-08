@@ -14,7 +14,9 @@
 #ifndef CIRCT_DIALECT_VERIF_VERIFPASSES_H
 #define CIRCT_DIALECT_VERIF_VERIFPASSES_H
 
+#include "circt/Dialect/Comb/CombDialect.h"
 #include "circt/Dialect/HW/HWDialect.h"
+#include "circt/Dialect/Seq/SeqDialect.h"
 #include "circt/Dialect/SV/SVDialect.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassRegistry.h"
