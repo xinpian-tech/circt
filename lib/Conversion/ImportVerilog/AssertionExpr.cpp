@@ -351,7 +351,7 @@ static Value flattenUnpackedForCompare(Context &context, Value value,
 
 FailureOr<Value> Context::convertSampledValueCallArity1(
     const slang::ast::SystemSubroutine &subroutine, Location loc, Value value,
-    Type originalType, Value clockVal) {
+    Type originalType, Value clockVal, unsigned delay) {
   using ksn = slang::parsing::KnownSystemName;
   auto nameId = subroutine.knownNameId;
 
@@ -361,6 +361,13 @@ FailureOr<Value> Context::convertSampledValueCallArity1(
       v = moore::FromBuiltinIntOp::create(builder, loc, v);
       if (ty.getDomain() == Domain::FourValued)
         v = moore::IntToLogicOp::create(builder, loc, v);
+    } else if (auto packed = dyn_cast<moore::PackedType>(originalType)) {
+      // A packed struct or array: back from its bits.
+      auto sbv = packed.getSimpleBitVector();
+      v = moore::FromBuiltinIntOp::create(builder, loc, v);
+      if (sbv && sbv.getDomain() == Domain::FourValued)
+        v = moore::IntToLogicOp::create(builder, loc, v);
+      v = materializeConversion(originalType, v, false, loc);
     }
     return v;
   };
@@ -407,7 +414,8 @@ FailureOr<Value> Context::convertSampledValueCallArity1(
   }
 
   case ksn::Past:
-    return castToMoore(ltl::PastOp::create(builder, loc, value, 1, clockVal));
+    return castToMoore(
+        ltl::PastOp::create(builder, loc, value, delay, clockVal));
 
   default:
     return Value{};
@@ -468,8 +476,29 @@ Value Context::convertSampledValueCallExpression(
   Type originalType;
   moore::IntType valTy;
 
+  // `$past(expr, n)` with a constant number of cycles.
+  unsigned delay = 1;
+  if (args.size() == 2 &&
+      subroutine.knownNameId == slang::parsing::KnownSystemName::Past) {
+    auto cycles = evaluateConstant(*args[1]);
+    if (!cycles.isInteger() || cycles.integer().hasUnknown() ||
+        (cycles.integer().isSigned() && cycles.integer().isNegative()) ||
+        !cycles.integer().as<unsigned>() ||
+        *cycles.integer().as<unsigned>() < 1) {
+      mlir::emitError(loc) << "expected a constant number of cycles of at "
+                              "least 1 for `$past`";
+      return {};
+    }
+    delay = *cycles.integer().as<unsigned>();
+  } else if (args.size() != 1) {
+    mlir::emitError(loc) << "unsupported system call `" << subroutine.name
+                         << "` with " << args.size() << " arguments";
+    return {};
+  }
+
   switch (args.size()) {
   case (1):
+  case (2):
     value = this->convertRvalueExpression(*args[0]);
     originalType = value.getType();
     valTy = dyn_cast<moore::IntType>(value.getType());
@@ -510,7 +539,7 @@ Value Context::convertSampledValueCallExpression(
     if (!intVal)
       return {};
     result = this->convertSampledValueCallArity1(subroutine, loc, intVal,
-                                                 originalType, clockVal);
+                                                 originalType, clockVal, delay);
     break;
 
   default:
