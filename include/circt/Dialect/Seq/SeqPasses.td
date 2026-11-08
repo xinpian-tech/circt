@@ -15,6 +15,42 @@
 
 include "mlir/Pass/PassBase.td"
 
+def LowerFirRegToCompReg : Pass<"seq-lower-firreg-to-compreg",
+                                "hw::HWModuleOp"> {
+  let summary = "Lower seq.firreg to seq.compreg with an initial value";
+  let description = [{
+    Lowers `seq.firreg` to `seq.compreg` without reset and with an explicit
+    constant initial value, for formal backends that only take plain
+    registers with an initial state (e.g. AIGER latches).
+
+    A reset becomes a mux on the next value; an asynchronous reset is also
+    applied to the value read in the cycle where it is asserted. The
+    initial state is, in this order: the reset value with `initial-reset`
+    (the run starts in reset; a non-constant reset value is taken in the
+    first cycle through a mux on a `first` register), the preset, or any
+    value (`verif.symbolic_value`, taken in the first cycle) with
+    `free-initial` (firreg registers start randomized), else 0. Aggregate
+    registers are lowered on their bits.
+  }];
+  let options = [
+    Option<"initialReset", "initial-reset", "bool", "true",
+           "Registers with a reset start in their reset value">,
+    Option<"freeInitial", "free-initial", "bool", "true",
+           "Other registers without preset start with any value (else 0)">
+  ];
+  let statistics = [
+    Statistic<"numConstReset", "num-const-reset",
+              "Registers starting in a constant reset value">,
+    Statistic<"numValueReset", "num-value-reset",
+              "Registers starting in a non-constant reset value">,
+    Statistic<"numPreset", "num-preset", "Registers starting in their preset">,
+    Statistic<"numFree", "num-free", "Registers starting with any value">,
+    Statistic<"numZero", "num-zero", "Registers starting at 0">
+  ];
+  let dependentDialects = ["circt::comb::CombDialect", "circt::hw::HWDialect",
+                           "circt::verif::VerifDialect"];
+}
+
 def LowerSeqCompRegCE : Pass<"lower-seq-compreg-ce", "hw::HWModuleOp"> {
   let summary = "Lower seq.compreg.ce to seq.compreg";
   let description = [{
