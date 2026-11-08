@@ -1,4 +1,5 @@
 add_circt_dialect_library(CIRCTVerifTransforms
+  AssertionsToOutput.cpp
   CombineAssertLike.cpp
   FoldAssume.cpp
   LowerContracts.cpp
@@ -17,6 +18,7 @@ add_circt_dialect_library(CIRCTVerifTransforms
   CIRCTComb
   CIRCTHW
   CIRCTLTL
+  CIRCTSeq
   CIRCTSupport
   CIRCTSV
   CIRCTVerif
