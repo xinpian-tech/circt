@@ -167,6 +167,53 @@ def SimplifyAssumeEqPass : Pass<"simplify-assume-eq", "hw::HWModuleOp"> {
   }];
 }
 
+def SimplifyODCPass : Pass<"verif-simplify-odc", "hw::HWModuleOp"> {
+  let summary = "Simplify assertions with observability don't-cares";
+  let description = [{
+    A value in the logic of a property only has to be right where the
+    property observes it: the property of an assertion where its enable
+    holds, the consequent of `a |-> c` where `a` holds, the operands of
+    `mux(s, x, y)` where `s` is 1 or 0, the second operand of an and (or)
+    where the first one is 1 (0). This pass reads facts from these conditions
+    (conjuncts, negated disjuncts, and `x == C` comparisons), accumulates
+    them along the paths from the property, and substitutes them into a copy
+    of the logic. The design logic is not modified. With `antecedent-only`,
+    only the enable and the antecedent are used, which substitutes the
+    antecedent into the consequent.
+
+    The copy is canonicalized and merged with structurally equal logic of the
+    cone (ignoring discardable attributes such as `sv.namehint`). The facts
+    typically decide the muxes that select operands, so that both sides of a
+    datapath check become the same value and the consequent folds to true; a
+    remark is emitted for such assertions. If it does not fold, the pass
+    tries case splits on 1-bit signals that select muxes: when the consequent
+    folds to true for `s == v`, the assertion becomes
+    `(a && s != v) |-> c[s := !v]`.
+
+    Applies to `verif.assert`, `verif.assume` and their clocked forms whose
+    property is a boolean or an `ltl.implication` of booleans. Run
+    canonicalize afterwards to remove the logic left unused.
+  }];
+  let options = [
+    Option<"antecedentOnly", "antecedent-only", "bool", "false",
+           "Only use the enable and the antecedent, not the don't-cares "
+           "inside the consequent">,
+    Option<"maxClones", "max-clones", "unsigned", "10000",
+           "Stop opening new contexts after this many copied ops per "
+           "assertion">,
+    Option<"maxSplits", "max-splits", "unsigned", "4",
+           "Maximum number of case splits per assertion">
+  ];
+  let statistics = [
+    Statistic<"numRewritten", "num-rewritten",
+              "Number of assertions whose logic was rewritten">,
+    Statistic<"numClones", "num-clones", "Number of ops copied">,
+    Statistic<"numSplits", "num-splits", "Number of case splits">,
+    Statistic<"numProved", "num-proved",
+              "Number of assertions whose consequent folded to true">
+  ];
+}
+
 def StripContractsPass : Pass<"strip-contracts"> {
   let summary = "Remove contracts from the IR";
   let description = [{
