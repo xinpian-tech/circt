@@ -41,3 +41,14 @@ hw.module @balance(in %a: i1, in %b: i1, in %c: i1, in %d: i1, in %e: i1, in %f:
     hw.output %5 : i1
 }
 
+
+// A cut whose function is the constant 1 (its SOP has a cube without
+// literals) is rebuilt as a constant.
+// CHECK-LABEL: hw.module @constant_one
+// CHECK:         %[[TRUE:.+]] = hw.constant true
+// CHECK:         hw.output %[[TRUE]]
+hw.module @constant_one(in %a : i1, out o : i1) {
+  %0 = synth.aig.and_inv %a, not %a : i1
+  %1 = synth.aig.and_inv not %0 : i1
+  hw.output %1 : i1
+}
