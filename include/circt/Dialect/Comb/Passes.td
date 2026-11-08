@@ -55,29 +55,6 @@ def BalanceMux : Pass<"comb-balance-mux"> {
       "Minimum number of linear mux chains to trigger rebalancing">];
 }
 
-def SplitWordCycles : Pass<"comb-split-word-cycles", "hw::HWModuleOp"> {
-  let summary = "Split combinational cycles that exist only at word level";
-  let description = [{
-    A word-level combinational cycle need not be a cycle of bits, e.g. when a
-    field of a struct assigned in an `always_comb` depends on another of its
-    fields. Passes that order logic topologically at word level (bit-blasting
-    for AIGER export) reject such modules. This pass pushes `comb.extract`
-    through the `comb.mux`, `and`, `or`, `xor`, `concat` and `replicate` ops of
-    each cycle, so that the cycle splits into the parts actually used, until
-    no cycle is left. Logic outside of cycles is left alone. A warning is
-    emitted if a cycle remains (a cycle of bits). The pass only applies
-    equivalence-preserving rewrites.
-  }];
-  let options = [
-    Option<"maxIterations", "max-iterations", "unsigned", "64",
-           "Maximum number of splitting rounds">
-  ];
-  let statistics = [
-    Statistic<"numPushed", "num-pushed",
-              "Number of extracts pushed into their input">
-  ];
-}
-
 def AssumeTwoValued : Pass<"comb-assume-two-valued"> {
   let summary = "Simplify under assumption of two-valued logic";
   let description = [{
