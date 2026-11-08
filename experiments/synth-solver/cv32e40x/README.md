@@ -113,15 +113,33 @@ hoists their projections; probed projections in llhd-sig2reg; array slices
 in `always_comb`), and hierarchical references (bind ports, rvfi) are
 cross-module references. The export
 pipeline (`run_core.sh`) is hw-cone-of-influence, hw-aggregate-to-comb,
-comb-split-word-cycles (word-level false loops: struct fields depending on
-each other) and the synth lowering.
+bit-blasting (synth-lower-word-to-bits) and canonicalize before and after
+convert-comb-to-synth, and the rest of the synth lowering.
+synth-lower-word-to-bits accepts word-level cycles (e.g. a struct field
+computed from another field of the same struct, across modules): such
+cycles are not cycles of bits and disappear when the words are split into
+bits. Upstream, the pass rejects them ("there is a combinational cycle");
+before (until 2026-11-08), a separate pass comb-split-word-cycles split them
+at comb level and the bit-blasting came only after
+synth-remove-false-cycles. Bit-blasting and canonicalizing first makes the
+models 45% smaller (a_branch_taken_ex_flush: 99877 -> 55288 ANDs, 2886 ->
+2883 latches) and the remaining cycle of bits 132 bits instead of 403. The
+gain comes from canonicalizing at bit level: with comb-split-word-cycles kept
+and only a bit-level canonicalize added, it is 67342 ANDs. ABC (`miter`,
+`dprove`) proves the old and new a_branch_taken_ex_flush models sequentially
+equivalent. On the 40 assertions of the functional sample
+(results-core-functional-sample-bits.tsv), 39 results are unchanged,
+a_sleep_to_irq goes from SAT in 29 s to TO, and all obligations are UNSAT.
+The total solve time of the 36 assertions solved in both runs hardly changes
+(211 s -> 205 s): rIC3 does similar simplifications itself.
 
 One cycle of bits is left, wb_stage <-> controller_fsm: `instr_valid` in
 wb_stage uses `!halt_wb && !kill_wb`, `wb_valid` depends on it,
 `pending_single_step` depends on `wb_valid`, and the FSM branch it selects
 drives `halt_wb`/`kill_wb` (controller_fsm.sv:461, 665, 1064; the RTL notes
 that debug entries halt WB, which pulls `wb_valid` and the step request
-low). It is 403 bits after bit-blasting, with 5 cut bits, and stays with
+low). It was 403 bits after bit-blasting, with 5 cut bits (132 bits since
+bit-level canonicalization, see above), and stays with
 DBG_NUM_TRIGGERS = 0.
 
 `synth-remove-false-cycles` (Synth, after convert-comb-to-synth) handles it:
@@ -213,8 +231,8 @@ run 4, same setup (TL = 60 s); all obligations proved:
 ### Run 2 (results-core-odc-run2.tsv), with cut points (superseded)
 
 Same setup, but the remaining cycle was cut with free inputs (6 per model,
-in 763 of the 798 models), an option of comb-split-word-cycles that has
-since been removed because it changes the model: it over-approximates, so the
+in 763 of the 798 models), an option of comb-split-word-cycles (a pass that
+has since been removed as well) that was removed because it changes the model: it over-approximates, so the
 UNSAT results are valid, but SAT results are not (the two counterexamples
 checked, a_mul_valid/none and a_shift_result_hh/full, depend on the cut
 inputs). The environment (bus, interrupts, debug) is also unconstrained.

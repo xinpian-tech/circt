@@ -15,13 +15,15 @@ mkdir -p $OUT
 [ -s $OUT/core.mlir ] || $H/import_core.sh $OUT/core.mlir $DROP 2>$OUT/import.err
 [ -s $OUT/asserts.txt ] || $H/lower.sh $OUT/core.mlir --list \
   --pre-cache $OUT/pre.none > $OUT/asserts.txt 2>$OUT/list.err
-# Word-level cycles are split. The core still has a cycle of bits (wb_stage
+# The logic is bit-blasted before and after convert-comb-to-synth
+# (synth-lower-word-to-bits allows word-level cycles, which disappear by
+# that) and canonicalized at bit level. The core still has a cycle of bits (wb_stage
 # <-> controller_fsm) that is only well defined in reachable states:
 # synth-remove-false-cycles rebuilds it as its unique fixed point and adds an
 # output that is 1 where the fixed point is not unique. That output is split
 # off into its own model (aigsel.py); the model's result is only valid if
 # rIC3 proves the obligation (UNSAT), else it is reported as INVALID.
-EXPORT="hw.module(hw-cone-of-influence,canonicalize,hw-aggregate-to-comb,canonicalize,comb-split-word-cycles,canonicalize,convert-comb-to-synth,synth-remove-false-cycles{obligation fixpoint-obligation},synth-lower-variadic,synth-lower-word-to-bits,synth-structural-hash)"
+EXPORT="hw.module(hw-cone-of-influence,canonicalize,hw-aggregate-to-comb,canonicalize,synth-lower-word-to-bits,canonicalize,convert-comb-to-synth,synth-lower-word-to-bits,canonicalize,synth-remove-false-cycles{obligation fixpoint-obligation},synth-lower-variadic,synth-lower-word-to-bits,synth-structural-hash)"
 export H OUT RIC3 TL CIRCT_PY EXPORT
 
 lower() { a=$1 m=$2 f=$OUT/$1.$2
