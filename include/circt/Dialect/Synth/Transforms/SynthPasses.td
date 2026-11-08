@@ -385,7 +385,11 @@ def FunctionalReduction : Pass<"synth-functional-reduction", "hw::HWModuleOp"> {
     Option<"satSolver", "sat-solver", "std::string", "\"auto\"",
            "SAT solver backend to use: auto, z3, or cadical">,
     Option<"conflictLimit", "conflict-limit", "int64_t", "100",
-           "Per-SAT-call conflict budget. -1 disables the limit.">
+           "Per-SAT-call conflict budget. -1 disables the limit.">,
+    Option<"useChoices", "use-choices", "bool", "true",
+           "Keep equivalent nodes as alternatives of synth.choice ops. "
+           "Without choices, each node is replaced by its representative "
+           "(skipped where that would create a combinational cycle).">
   ];
   let statistics = [
     Statistic<"numEquivClasses", "num-equiv-classes",
