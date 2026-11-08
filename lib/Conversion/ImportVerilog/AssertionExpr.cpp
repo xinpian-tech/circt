@@ -241,6 +241,9 @@ struct AssertionExprVisitor {
     case BinaryAssertionOperator::OverlappedImplication:
       return ltl::ImplicationOp::create(builder, loc, operands);
     case BinaryAssertionOperator::NonOverlappedImplication: {
+      // `a |=> b` is `a ##1 1 |-> b`: the antecedent ends one cycle after
+      // `a`, i.e. concat(a, delay(1, 1, 0)), where concat overlaps the end
+      // of `a` with the start of the delayed `1`.
       auto constOne =
           hw::ConstantOp::create(builder, loc, builder.getI1Type(), 1);
       auto oneDelay = ltl::DelayOp::create(builder, loc, constOne,

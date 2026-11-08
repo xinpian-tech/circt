@@ -1003,6 +1003,11 @@ struct ModuleVisitor : public BaseVisitor {
   // expressions, which are lowered when the use site is imported.
   LogicalResult visit(const slang::ast::LetDeclSymbol &) { return success(); }
 
+  // Ignore covergroup declarations: they define types for functional coverage,
+  // which has no hardware or formal meaning. Covergroup instances are still
+  // rejected where they are declared.
+  LogicalResult visit(const slang::ast::CovergroupType &) { return success(); }
+
   // Handle functions and tasks.
   LogicalResult visit(const slang::ast::SubroutineSymbol &subroutine) {
     if (!context.declareFunction(subroutine))
