@@ -402,6 +402,28 @@ LogicalResult BitBlaster::run() {
   if (wiringCycle || failed(resolvePlaceholders()))
     return failure();
 
+  // Extracts of lowered words read the bits directly, so that they do not
+  // keep the words (which would close a word-level cycle again).
+  bool extractsReplaced = false;
+  topOp->walk([&](comb::ExtractOp ext) {
+    auto *def = ext.getInput().getDefiningOp();
+    if (!def || !shouldLowerOperation(def))
+      return;
+    auto it = loweredValues.find(ext.getInput());
+    if (it == loweredValues.end())
+      return;
+    auto bits = ArrayRef<Value>(it->second)
+                    .slice(ext.getLowBit(), hw::getBitWidth(ext.getType()));
+    Value replacement = bits.front();
+    if (bits.size() > 1) {
+      OpBuilder builder(ext);
+      SmallVector<Value> operands(llvm::reverse(bits));
+      replacement = comb::ConcatOp::create(builder, ext.getLoc(), operands);
+    }
+    ext.replaceAllUsesWith(replacement);
+    extractsReplaced = true;
+  });
+
   // Replace operations with concatenated results if needed
   for (auto &[value, results] :
        llvm::make_early_inc_range(llvm::reverse(loweredValues))) {
@@ -430,7 +452,7 @@ LogicalResult BitBlaster::run() {
 
   // Wiring that read bits of the lowered words is left without users; with
   // word-level cycles it would keep referring to the words.
-  if (!placeholders.empty()) {
+  if (!placeholders.empty() || extractsReplaced) {
     SmallVector<Operation *> worklist;
     topOp->walk([&](Operation *op) {
       if (isa<comb::ExtractOp, comb::ConcatOp, comb::ReplicateOp>(op))

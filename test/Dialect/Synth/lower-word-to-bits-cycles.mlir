@@ -58,3 +58,26 @@ hw.module @WiringCycle(in %a : i1, out x : i3) {
   %x = synth.aig.and_inv %w, %w : i3
   hw.output %x : i3
 }
+
+// -----
+
+// A single-bit op reading a bit of a word on the cycle reads the lowered bit,
+// not an extract of the word.
+// CHECK-LABEL: hw.module @SingleBitUser
+// CHECK-NOT:     comb.extract
+// CHECK-DAG:     %[[N0:.+]] = synth.aig.and_inv not %c, not %a : i1
+// CHECK-DAG:     %[[P0:.+]] = synth.aig.and_inv %c, %a : i1
+// CHECK-DAG:     %[[T0:.+]] = synth.aig.and_inv not %[[N0]], not %[[P0]] : i1
+// CHECK-DAG:     %[[S1:.+]] = synth.aig.and_inv %[[T0]], %b : i1
+// CHECK-DAG:     synth.aig.and_inv not %c, not %[[S1]] : i1
+// CHECK:         hw.output
+hw.module @SingleBitUser(in %c : i1, in %a : i1, in %b : i1, out y : i2) {
+  %cc = comb.replicate %c : (i1) -> i2
+  %0 = synth.aig.and_inv not %cc, not %s : i2
+  %1 = synth.aig.and_inv %cc, %s : i2
+  %t = synth.aig.and_inv not %0, not %1 : i2
+  %t0 = comb.extract %t from 0 : (i2) -> i1
+  %2 = synth.aig.and_inv %t0, %b : i1
+  %s = comb.concat %2, %a : i1, i1
+  hw.output %t : i2
+}
