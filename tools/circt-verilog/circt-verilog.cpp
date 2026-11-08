@@ -216,6 +216,14 @@ struct CLOptions {
       cl::desc("Maximum depth of nested include files allowed"),
       cl::value_desc("depth"), cl::cat(cat)};
 
+  cl::opt<bool> uvmStubs{
+      "uvm-stubs",
+      cl::desc("Provide an empty uvm_pkg and the UVM reporting macros "
+               "(`uvm_info, `uvm_warning, `uvm_error, `uvm_fatal) as "
+               "$info, $warning, $error, $fatal, for assertions written with "
+               "UVM reporting"),
+      cl::init(false), cl::cat(cat)};
+
   cl::opt<bool> librariesInheritMacros{
       "libraries-inherit-macros",
       cl::desc("If true, library files will inherit macro definitions from the "
@@ -374,6 +382,7 @@ static LogicalResult executeWithSources(MLIRContext *context,
   if (opts.maxIncludeDepth.getNumOccurrences() > 0)
     options.maxIncludeDepth = opts.maxIncludeDepth;
   options.librariesInheritMacros = opts.librariesInheritMacros;
+  options.uvmStubs = opts.uvmStubs;
 
   if (opts.timeScale.getNumOccurrences() > 0)
     options.timeScale = opts.timeScale;
