@@ -2931,69 +2931,22 @@ Value Context::materializeFixedSizeUnpackedArrayType(
   if (!type)
     return {};
 
-  // Handle string array constants.
-  if (astType.elementType.isString()) {
-    auto arrayType = dyn_cast<moore::UnpackedArrayType>(type);
-    if (!arrayType)
-      return {};
-
-    SmallVector<Value> elemVals;
-    for (const auto &elem : constant.elements()) {
-      if (!elem.isString())
-        return {};
-      auto value = materializeString(elem, astType.elementType, loc);
-      if (!value)
-        return {};
-      elemVals.push_back(value);
-    }
-    if (elemVals.size() != arrayType.getSize())
-      return {};
-    return moore::ArrayCreateOp::create(builder, loc, arrayType, elemVals);
-  }
-
-  // Check whether underlying type is an integer, if so, get bit width
-  unsigned bitWidth;
-  if (astType.elementType.isIntegral())
-    bitWidth = astType.elementType.getBitWidth();
-  else
+  auto arrayType = dyn_cast<moore::UnpackedArrayType>(type);
+  if (!arrayType || !constant.isUnpacked() ||
+      constant.elements().size() != arrayType.getSize())
     return {};
 
-  bool typeIsFourValued = false;
-
-  // Check whether the underlying type is four-valued
-  if (auto unpackedType = dyn_cast<moore::UnpackedType>(type))
-    typeIsFourValued = unpackedType.getDomain() == moore::Domain::FourValued;
-  else
-    return {};
-
-  auto domain =
-      typeIsFourValued ? moore::Domain::FourValued : moore::Domain::TwoValued;
-
-  // Construct the integer type this is an unpacked array of; if possible keep
-  // it two-valued, unless any entry is four-valued or the underlying type is
-  // four-valued
-  auto intType = moore::IntType::get(getContext(), bitWidth, domain);
-  // Construct the full array type from intType
-  auto arrType = moore::UnpackedArrayType::get(
-      getContext(), constant.elements().size(), intType);
-
-  llvm::SmallVector<mlir::Value> elemVals;
-  moore::ConstantOp constOp;
-
-  mlir::OpBuilder::InsertionGuard guard(builder);
-
-  // Add one ConstantOp for every element in the array
-  for (auto elem : constant.elements()) {
-    FVInt fvInt = convertSVIntToFVInt(elem.integer());
-    constOp = moore::ConstantOp::create(builder, loc, intType, fvInt);
-    elemVals.push_back(constOp.getResult());
+  // Materialize every element with the element type (integers, packed
+  // structs and arrays, strings, nested unpacked arrays), so the array is
+  // built with the element type of the declared array type.
+  SmallVector<Value> elemVals;
+  for (const auto &elem : constant.elements()) {
+    auto value = materializeConstant(elem, astType.elementType, loc);
+    if (!value || value.getType() != arrayType.getElementType())
+      return {};
+    elemVals.push_back(value);
   }
-
-  // Take the result of each ConstantOp and concatenate them into an array (of
-  // constant values).
-  auto arrayOp = moore::ArrayCreateOp::create(builder, loc, arrType, elemVals);
-
-  return arrayOp.getResult();
+  return moore::ArrayCreateOp::create(builder, loc, arrayType, elemVals);
 }
 
 Value Context::materializeConstant(const slang::ConstantValue &constant,
