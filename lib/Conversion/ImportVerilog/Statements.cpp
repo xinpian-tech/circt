@@ -19,6 +19,7 @@
 #include "slang/ast/expressions/MiscExpressions.h"
 #include "slang/ast/symbols/CompilationUnitSymbols.h"
 #include "slang/ast/symbols/InstanceSymbols.h"
+#include "slang/syntax/AllSyntax.h"
 #include "llvm/ADT/ScopeExit.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -133,6 +134,18 @@ getRuntimeSizeAtLevel(Context &context, Location loc,
 }
 
 // NOLINTBEGIN(misc-no-recursion)
+/// The label of a statement (`a_name: assert property (...)`), or null.
+static StringAttr getStatementLabel(OpBuilder &builder,
+                                    const slang::ast::Statement &stmt) {
+  if (!stmt.syntax ||
+      !slang::syntax::StatementSyntax::isKind(stmt.syntax->kind))
+    return {};
+  auto *label = stmt.syntax->as<slang::syntax::StatementSyntax>().label;
+  if (!label)
+    return {};
+  return builder.getStringAttr(label->name.valueText());
+}
+
 namespace {
 struct StmtVisitor {
   Context &context;
@@ -934,13 +947,16 @@ struct StmtVisitor {
 
       switch (stmt.assertionKind) {
       case slang::ast::AssertionKind::Assert:
-        moore::AssertOp::create(builder, loc, defer, cond, StringAttr{});
+        moore::AssertOp::create(builder, loc, defer, cond,
+                                getStatementLabel(builder, stmt));
         return success();
       case slang::ast::AssertionKind::Assume:
-        moore::AssumeOp::create(builder, loc, defer, cond, StringAttr{});
+        moore::AssumeOp::create(builder, loc, defer, cond,
+                                getStatementLabel(builder, stmt));
         return success();
       case slang::ast::AssertionKind::CoverProperty:
-        moore::CoverOp::create(builder, loc, defer, cond, StringAttr{});
+        moore::CoverOp::create(builder, loc, defer, cond,
+                               getStatementLabel(builder, stmt));
         return success();
       default:
         break;
@@ -1057,13 +1073,16 @@ struct StmtVisitor {
     if (!stmt.ifTrue || stmt.ifTrue->as_if<slang::ast::EmptyStatement>()) {
       switch (stmt.assertionKind) {
       case slang::ast::AssertionKind::Assert:
-        verif::AssertOp::create(builder, loc, property, enable, StringAttr{});
+        verif::AssertOp::create(builder, loc, property, enable,
+                                getStatementLabel(builder, stmt));
         return success();
       case slang::ast::AssertionKind::Assume:
-        verif::AssumeOp::create(builder, loc, property, enable, StringAttr{});
+        verif::AssumeOp::create(builder, loc, property, enable,
+                                getStatementLabel(builder, stmt));
         return success();
       case slang::ast::AssertionKind::CoverProperty:
-        verif::CoverOp::create(builder, loc, property, enable, StringAttr{});
+        verif::CoverOp::create(builder, loc, property, enable,
+                               getStatementLabel(builder, stmt));
         return success();
       default:
         break;
