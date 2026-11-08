@@ -238,6 +238,11 @@ LogicalResult ImportDriver::prepareDriver(SourceMgr &sourceMgr) {
     driver.sourceLoader.addBuffer(slangBuffer);
   }
 
+  // An empty `uvm_pkg` for `import uvm_pkg::*;`.
+  if (options.uvmStubs)
+    driver.sourceLoader.addBuffer(driver.sourceManager.assignText(
+        "<uvm-stubs>", "package uvm_pkg;\nendpackage\n"));
+
   for (const auto &libDir : options.libDirs)
     driver.sourceLoader.addSearchDirectories(libDir);
 
@@ -266,7 +271,21 @@ LogicalResult ImportDriver::prepareDriver(SourceMgr &sourceMgr) {
   driver.options.ignoreDirectives = options.ignoreDirectives;
 
   driver.options.maxIncludeDepth = options.maxIncludeDepth;
-  driver.options.defines = options.defines;
+  driver.options.defines.clear();
+  if (options.uvmStubs) {
+    // Defined first so that user definitions take precedence. The UVM macros
+    // expand to statements, so they are written without a semicolon.
+    driver.options.defines.push_back(
+        "uvm_info(ID,MSG,VERBOSITY)=begin $info(\"%s\", MSG); end");
+    driver.options.defines.push_back(
+        "uvm_warning(ID,MSG)=begin $warning(\"%s\", MSG); end");
+    driver.options.defines.push_back(
+        "uvm_error(ID,MSG)=begin $error(\"%s\", MSG); end");
+    driver.options.defines.push_back(
+        "uvm_fatal(ID,MSG)=begin $fatal(1, \"%s\", MSG); end");
+  }
+  driver.options.defines.insert(driver.options.defines.end(),
+                                options.defines.begin(), options.defines.end());
   driver.options.undefines = options.undefines;
   driver.options.librariesInheritMacros = options.librariesInheritMacros;
 
