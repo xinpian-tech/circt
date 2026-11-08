@@ -241,13 +241,16 @@ struct AssertionExprVisitor {
     case BinaryAssertionOperator::OverlappedImplication:
       return ltl::ImplicationOp::create(builder, loc, operands);
     case BinaryAssertionOperator::NonOverlappedImplication: {
+      // `a |=> b` is `a ##1 1 |-> b`: the antecedent ends one cycle after
+      // `a`, i.e. concat(a, delay(1, 1, 0)), where concat overlaps the end
+      // of `a` with the start of the delayed `1`.
       auto constOne =
           hw::ConstantOp::create(builder, loc, builder.getI1Type(), 1);
-      auto lhsDelay =
-          ltl::DelayOp::create(builder, loc, lhs, builder.getI64IntegerAttr(1),
-                               builder.getI64IntegerAttr(0));
+      auto oneDelay = ltl::DelayOp::create(builder, loc, constOne,
+                                           builder.getI64IntegerAttr(1),
+                                           builder.getI64IntegerAttr(0));
       auto antecedent = ltl::ConcatOp::create(
-          builder, loc, SmallVector<Value, 2>{lhsDelay, constOne});
+          builder, loc, SmallVector<Value, 2>{lhs, oneDelay});
       return ltl::ImplicationOp::create(builder, loc,
                                         SmallVector<Value, 2>{antecedent, rhs});
     }
@@ -261,11 +264,11 @@ struct AssertionExprVisitor {
       auto constOne =
           hw::ConstantOp::create(builder, loc, builder.getI1Type(), 1);
       auto notRhs = ltl::NotOp::create(builder, loc, rhs);
-      auto lhsDelay =
-          ltl::DelayOp::create(builder, loc, lhs, builder.getI64IntegerAttr(1),
-                               builder.getI64IntegerAttr(0));
+      auto oneDelay = ltl::DelayOp::create(builder, loc, constOne,
+                                           builder.getI64IntegerAttr(1),
+                                           builder.getI64IntegerAttr(0));
       auto antecedent = ltl::ConcatOp::create(
-          builder, loc, SmallVector<Value, 2>{lhsDelay, constOne});
+          builder, loc, SmallVector<Value, 2>{lhs, oneDelay});
       auto implication = ltl::ImplicationOp::create(
           builder, loc, SmallVector<Value, 2>{antecedent, notRhs});
       return ltl::NotOp::create(builder, loc, implication);
