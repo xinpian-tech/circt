@@ -97,6 +97,27 @@ def ExternalizeClockGate: Pass<"externalize-clock-gate", "mlir::ModuleOp"> {
   ];
 }
 
+def ClockGateToEnable : Pass<"seq-clock-gate-to-enable", "hw::HWModuleOp"> {
+  let summary = "Clock registers behind seq.clock_gate with the ungated clock";
+  let description = [{
+    A register clocked by `seq.clock_gate %clk, %en` only takes a value at a
+    rising edge of `%clk` where `%en` (or the test enable) is 1. It is clocked
+    with `%clk` instead and keeps its value in the other cycles:
+    `next := mux(en, next, current)`; a synchronous reset only applies when
+    `en` is 1, an asynchronous reset is unchanged. Chains of clock gates are
+    combined. This gives one clock domain for backends with a single implicit
+    clock (e.g. AIGER), with the same behavior at every edge of `%clk`.
+
+    Applies to `seq.firreg`, `seq.compreg` and `seq.compreg.ce` in the same
+    module as the gate; other users of the gated clock keep it.
+  }];
+  let statistics = [
+    Statistic<"numRegisters", "num-registers",
+              "Registers moved from a gated clock to a clock enable">,
+  ];
+  let dependentDialects = ["circt::comb::CombDialect"];
+}
+
 def HWMemSimImpl : Pass<"hw-memory-sim", "ModuleOp"> {
   let summary = "Implement FIRRTMMem memories nodes with simulation model";
   let description = [{
