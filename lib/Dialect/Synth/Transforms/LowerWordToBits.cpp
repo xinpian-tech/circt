@@ -321,27 +321,30 @@ ArrayRef<Value> BitBlaster::lowerValueToBits(Value value) {
   }
 
   ++depth;
-  auto bits = TypeSwitch<Operation *, ArrayRef<Value>>(op)
-      .Case<ChoiceOp>([&](ChoiceOp op) {
-        auto createOp = [&](OpBuilder &builder, ValueRange operands) {
-          return builder.createOrFold<ChoiceOp>(
-              op.getLoc(), operands[0].getType(), operands);
-        };
-        return lowerOp(op, createOp);
-      })
-      .Case<BooleanLogicOpInterface>(
-          [&](auto op) { return lowerBooleanLogicOperation(op); })
-      .Case<comb::AndOp, comb::OrOp, comb::XorOp>(
-          [&](auto op) { return lowerCombLogicOperations(op); })
-      .Case<comb::MuxOp>([&](comb::MuxOp op) { return lowerCombMux(op); })
-      .Default([&](auto op) {
-        OpBuilder builder(value.getContext());
-        builder.setInsertionPoint(op);
-        SmallVector<Value> results;
-        comb::extractBits(builder, value, results);
+  auto bits =
+      TypeSwitch<Operation *, ArrayRef<Value>>(op)
+          .Case<ChoiceOp>([&](ChoiceOp op) {
+            auto createOp = [&](OpBuilder &builder, ValueRange operands) {
+              return builder.createOrFold<ChoiceOp>(
+                  op.getLoc(), operands[0].getType(), operands);
+            };
+            return lowerOp(op, createOp);
+          })
+          .Case<BooleanLogicOpInterface>(
+              [&](auto op) { return lowerBooleanLogicOperation(op); })
+          .Case<comb::AndOp, comb::OrOp, comb::XorOp>(
+              [&](auto op) { return lowerCombLogicOperations(op); })
+          .Case<comb::MuxOp>([&](comb::MuxOp op) { return lowerCombMux(op); })
+          .Default([&](auto op) {
+            // After the op: in a region with SSA dominance, the extracts must
+            // come after the value they read.
+            OpBuilder builder(value.getContext());
+            builder.setInsertionPointAfter(op);
+            SmallVector<Value> results;
+            comb::extractBits(builder, value, results);
 
-        return insertBits(value, std::move(results));
-      });
+            return insertBits(value, std::move(results));
+          });
   --depth;
   inProgress.erase(value);
   return bits;

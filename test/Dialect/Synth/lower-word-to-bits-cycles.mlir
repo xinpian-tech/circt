@@ -81,3 +81,21 @@ hw.module @SingleBitUser(in %c : i1, in %a : i1, in %b : i1, out y : i2) {
   %s = comb.concat %2, %a : i1, i1
   hw.output %t : i2
 }
+
+// -----
+
+// In a region with SSA dominance, the bits of a word that is not lowered are
+// extracted after the word.
+// CHECK-LABEL: hw.module @Dominance
+// CHECK:         llhd.combinational
+// CHECK-NEXT:      %[[SUM:.+]] = comb.add %a, %b : i2
+// CHECK-NEXT:      comb.extract %[[SUM]] from 0
+// CHECK-NEXT:      comb.extract %[[SUM]] from 1
+hw.module @Dominance(in %a : i2, in %b : i2, out x : i2) {
+  %0 = llhd.combinational -> i2 {
+    %sum = comb.add %a, %b : i2
+    %x = synth.aig.and_inv %sum, %a : i2
+    llhd.yield %x : i2
+  }
+  hw.output %0 : i2
+}
