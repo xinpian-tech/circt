@@ -76,6 +76,22 @@ hw.module @register(in %clk: !seq.clock, in %input: i1, out output: i1) {
 
 // -----
 
+// Test initial values of latches (AIGER 1.9): bits that start at 1 get an
+// initial value of 1.
+// CHECK-LABEL: aag 2 0 2 0 0
+// CHECK-NEXT: 2 2 1
+// CHECK-NEXT: 4 4
+hw.module @register_initial(in %clk: !seq.clock) {
+  %init = seq.initial() {
+    %c1 = hw.constant 1 : i2
+    seq.yield %c1 : i2
+  } : () -> !seq.immutable<i2>
+  %reg = seq.compreg %reg, %clk initial %init : i2
+  hw.output
+}
+
+// -----
+
 // Test multiple AND gates in sequence
 // CHECK-LABEL: aag 5 3 0 1 2
 // CHECK-NEXT: 2
