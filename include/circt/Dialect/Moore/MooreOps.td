@@ -447,6 +447,38 @@ def NetOp : MooreOp<"net", [
   let hasCanonicalizeMethod = true;
 }
 
+def XMROp : MooreOp<"xmr", [Pure]> {
+  let summary = "A cross-module reference to a variable or net";
+  let description = [{
+    The `moore.xmr` operation refers to a variable or net of another module
+    instance, as written with a hierarchical name in SystemVerilog (for
+    example `u_core.state` or `top.u_core.state`). See IEEE 1800-2017 § 23.6
+    "Hierarchical names".
+
+    The referenced storage is found relative to each instance of the module
+    containing this op: go up `levels` instances, then down through the
+    instances named in `path`, and take the variable or net named `target`
+    there. `moore-resolve-xmr` replaces the op with a reference passed through
+    ports of the modules in between.
+
+    Example:
+
+    ```mlir
+    // `top.u_core.state`, used in `ctrl`, which is instantiated in `top`.
+    %0 = moore.xmr up 1 path ["u_core"] target "state" : <l1>
+    ```
+  }];
+  let arguments = (ins
+    ConfinedAttr<I32Attr, [IntNonNegative]>:$levels,
+    StrArrayAttr:$path,
+    StrAttr:$target
+  );
+  let results = (outs RefType:$result);
+  let assemblyFormat = [{
+    `up` $levels `path` $path `target` $target attr-dict `:` type($result)
+  }];
+}
+
 def AssignedVariableOp : MooreOp<"assigned_variable", [
   DeclareOpInterfaceMethods<OpAsmOpInterface, ["getAsmResultNames"]>,
   SameOperandsAndResultType
