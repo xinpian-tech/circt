@@ -35,6 +35,7 @@ add_circt_dialect_library(CIRCTSynthTransforms
   CIRCTHW
   CIRCTComb
   CIRCTSV
+  CIRCTSeq
   CIRCTSynthAnalysis
   CIRCTCombToSynth
   CIRCTCombToDatapath
