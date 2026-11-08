@@ -152,49 +152,25 @@ struct LoopFrame {
   Block *breakBlock;
 };
 
-/// Hierarchical path information.
-/// The "hierName" means a different hierarchical name at different module
-/// levels.
-/// The "idx" means where the current hierarchical name is on the portlists.
-/// The "direction" means hierarchical names whether downward(In) or
-/// upward(Out).
-struct HierPathInfo {
-  mlir::StringAttr hierName;
-  std::optional<unsigned int> idx;
-  slang::ast::ArgumentDirection direction;
-
-  /// The symbols this path resolves to, each paired with the elaborated
-  /// instance body it was observed in. Sibling instances elaborate the same
-  /// logical variable to distinct symbol objects. The pairing lets instance
-  /// wiring bind each one to the right instance.
-  llvm::SmallVector<std::pair<const slang::ast::ValueSymbol *,
-                              const slang::ast::InstanceBodySymbol *>,
-                    2>
-      valueSyms;
+/// A cross-module reference as a `moore.xmr` op represents it: go up
+/// `levels` instances from the referencing module, then down through the
+/// instances named in `path`, to the variable or net named `target`. See
+/// `Context::getXmrSpec`.
+///
+/// Hierarchical names are converted in two steps: ImportVerilog creates a
+/// `moore.xmr` for each reference to another instance (`Expressions.cpp`), and
+/// `moore-resolve-xmr` replaces them with ports. Before the conversion,
+/// `checkHierarchicalNames` reports references that would resolve to
+/// different targets in different instances of one module.
+struct XmrSpec {
+  unsigned levels = 0;
+  SmallVector<std::string> path;
+  std::string target;
+  bool operator==(const XmrSpec &other) const {
+    return levels == other.levels && path == other.path &&
+           target == other.target;
+  }
 };
-
-/// ImportVerilog Elaboration Phases for Hierarchical Names
-///
-/// Hierarchical name resolution is performed in four distinct phases:
-///
-/// 1. Collection: The `traverseInstanceBody` pass walks the Slang AST to
-///    identify all hierarchical references (e.g., `Top.sub.var`). It records
-///    these in `hierPaths` mapped by module body.
-///
-/// 2. Port Generation: In `convertModuleHeader`, we inspect `hierPaths` for
-///    the module and add corresponding input/output ports to the generated
-///    `moore.module` to allow cross-module communication.
-///
-/// 3. Wiring: In `Structure.cpp` during instance creation, we look up the
-///    canonical module body's `hierPaths` to determine which hierarchical
-///    values need to be passed as inputs or captured as outputs from the
-///    instance.
-///
-/// 4. Resolution: In `Expressions.cpp`, visitors for rvalues and lvalues
-///    resolve hierarchical names by first checking function captures (inside
-///    a function body the capture argument must be used to respect region
-///    isolation), then the instance-aware `hierValueSymbols` map, and finally
-///    standard scoped lookups.
 
 // A slang::SourceLocation for deterministic comparisons. Comparisons use the
 // buffer's sortKey rather than bufferId.
@@ -338,14 +314,19 @@ struct Context {
       const slang::ast::CallExpression &expr,
       const slang::ast::CallExpression::SystemCallInfo &info, Location loc);
 
-  // Traverse the whole AST to collect hierarchical names.
-  void traverseInstanceBody(const slang::ast::InstanceSymbol &symbol);
+  /// Check that the hierarchical names of every instance of a module resolve
+  /// like those of the instance that is converted (the canonical one).
+  LogicalResult checkHierarchicalNames();
 
-  /// Build a composite key for hierValueSymbols from a hierarchical value
-  /// expression. Returns {firstInstanceSymbol, dottedHierName} or std::nullopt
-  /// if the expression has no instance path.
-  std::optional<std::pair<const slang::ast::InstanceSymbol *, mlir::StringAttr>>
-  buildHierValueKey(const slang::ast::HierarchicalValueExpression &expr);
+  /// The cross-module reference from module body `from` to `symbol`, or an
+  /// error if it cannot be expressed as a `moore.xmr`.
+  FailureOr<XmrSpec> getXmrSpec(const slang::ast::InstanceBodySymbol &from,
+                                const slang::ast::ValueSymbol &symbol,
+                                Location loc);
+
+  /// Create a `moore.xmr` referring to `symbol` from the module currently
+  /// being converted, or return null after reporting an error.
+  Value materializeXmr(const slang::ast::ValueSymbol &symbol, Location loc);
 
   /// If `sym` is captured by the function currently being converted, return the
   /// value it is bound to (the capture block argument); otherwise return null.
@@ -596,20 +577,6 @@ struct Context {
   /// non-global variables it captures (directly or transitively).
   CaptureMap functionCaptures;
 
-  /// Collect all hierarchical names used for the per module/instance.
-  /// The keys are the slang canonical instance bodies (or the real instance
-  /// if slang's getCanonicalBody() returned null).
-  DenseMap<const slang::ast::InstanceBodySymbol *, SmallVector<HierPathInfo>>
-      hierPaths;
-
-  /// Persistent map for hierarchical value lookups. Keyed by a composite
-  /// of the instance symbol (the specific instance being wired, e.g., p1 or
-  /// p2) and the hierarchical path name (e.g., "child.child_val"). This
-  /// ensures instance-specific resolution even when Slang shares or doesn't
-  /// share instance bodies across multiple instances of the same module.
-  DenseMap<std::pair<const slang::ast::InstanceSymbol *, mlir::StringAttr>,
-           Value>
-      hierValueSymbols;
 
   /// A stack of assignment left-hand side values. Each assignment will push its
   /// lowered left-hand side onto this stack before lowering its right-hand
@@ -659,6 +626,8 @@ struct Context {
   /// The definition symbol of the module body currently being converted.
   /// Used to resolve the `%l`/`%L` library binding format specifier.
   const slang::ast::DefinitionSymbol *currentDefinition = nullptr;
+  /// The module body currently being converted.
+  const slang::ast::InstanceBodySymbol *currentBody = nullptr;
 
   /// Ensure that the global variables for `$monitor` state exist. This creates
   /// the `__monitor_active_id` and `__monitor_enabled` globals on first call.
