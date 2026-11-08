@@ -7,6 +7,7 @@ add_circt_dialect_library(CIRCTLLHDTransforms
   LowerProcesses.cpp
   Mem2Reg.cpp
   ProjectionUtils.cpp
+  RaiseClockGates.cpp
   RemoveControlFlow.cpp
   Sig2Reg.cpp
   UnrollLoops.cpp

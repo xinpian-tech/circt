@@ -52,6 +52,32 @@ def Sig2RegPass : Pass<"llhd-sig2reg", "hw::HWModuleOp"> {
   ];
 }
 
+def RaiseClockGatesPass : Pass<"llhd-raise-clock-gates", "hw::HWModuleOp"> {
+  let summary = "Replace latch-based clock gates with seq.clock_gate";
+  let description = [{
+    Recognizes the usual model of a clock gate cell, a latch that is
+    transparent while the clock is low followed by an AND with the clock:
+
+    ```verilog
+    always_latch if (!clk) en_q = en;
+    assign gclk = clk & en_q;
+    ```
+
+    which the import turns into a signal driven only while the clock is low,
+    `llhd.drv %en_q, %en after ... if !clk`, probed in `comb.and %clk, %p`.
+    The AND is replaced with `seq.clock_gate %clk, %e` (through
+    `seq.from_clock` where it is used as a value, e.g. as the clock of an
+    assertion), where `%e` is the driven value with the clock set to 0: the
+    value the latch holds at the rising edge of the clock, which is when
+    `seq.clock_gate` samples its enable. The latch signal is left in place
+    for any other users; it is removed once unused.
+  }];
+  let dependentDialects = ["circt::seq::SeqDialect", "circt::hw::HWDialect"];
+  let statistics = [
+    Statistic<"numRaised", "raised", "Number of clock gates raised">,
+  ];
+}
+
 def Mem2RegPass : Pass<"llhd-mem2reg"> {
   let summary = "Promotes memory and signal slots into values.";
   let dependentDialects = [
