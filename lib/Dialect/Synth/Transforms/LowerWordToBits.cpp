@@ -10,6 +10,12 @@
 // It converts multi-bit operations (AIG, combinatorial) into equivalent
 // single-bit operations, enabling more efficient synthesis and optimization.
 //
+// Word-level combinational cycles are allowed: a word may depend on itself
+// although none of its bits does (e.g. one field of a struct computed from
+// another). When the bits of a word are needed while the word is being
+// lowered, placeholders stand in for them and are replaced once the word is
+// done. Cycles of bits are kept as they are.
+//
 //===----------------------------------------------------------------------===//
 
 #include "circt/Dialect/Comb/CombOps.h"
@@ -17,6 +23,7 @@
 #include "circt/Dialect/Synth/SynthOps.h"
 #include "circt/Dialect/Synth/Transforms/SynthPasses.h"
 #include "circt/Support/LLVM.h"
+#include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/Value.h"
 #include "mlir/Pass/Pass.h"
@@ -26,7 +33,10 @@
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/KnownBits.h"
 #include "llvm/Support/LogicalResult.h"
+#include "llvm/ADT/DenseSet.h"
+#include "llvm/ADT/SmallPtrSet.h"
 #include <array>
+#include <optional>
 
 #define DEBUG_TYPE "synth-lower-word-to-bits"
 
@@ -126,8 +136,26 @@ private:
     return it.first->second;
   }
 
+  /// Replace the placeholders by the bits they stand for.
+  LogicalResult resolvePlaceholders();
+
   /// Cache for lowered values (multi-bit -> vector of single-bit values)
   llvm::MapVector<Value, SmallVector<Value>> loweredValues;
+
+  /// Values being lowered (on the recursion stack), and the placeholder bits
+  /// handed out for them while they are.
+  DenseSet<Value> inProgress;
+  llvm::MapVector<Value, SmallVector<Value>> placeholderBits;
+  /// Placeholder -> (value, bit index) it stands for.
+  DenseMap<Value, std::pair<Value, unsigned>> placeholders;
+
+  /// (value, bit index) pairs being extracted through concat/extract/
+  /// replicate, with the lowering depth at which they were reached, to detect
+  /// cycles made only of wiring (a cycle through a lowered op ends at its
+  /// placeholders instead).
+  DenseMap<std::pair<Value, size_t>, unsigned> extracting;
+  unsigned depth = 0;
+  bool wiringCycle = false;
 
   /// Cache for computed known bits information
   llvm::MapVector<Value, llvm::KnownBits> knownBits;
@@ -158,6 +186,10 @@ const llvm::KnownBits &BitBlaster::computeKnownBits(Value value) {
   if (!op)
     return insertKnownBits(value, llvm::KnownBits(width));
 
+  // A value that depends on itself is taken as unknown while its known bits
+  // are computed, which can only lose known bits.
+  insertKnownBits(value, llvm::KnownBits(width));
+
   llvm::KnownBits result(width);
   if (auto logicOp = dyn_cast<BooleanLogicOpInterface>(op))
     result =
@@ -178,12 +210,21 @@ const llvm::KnownBits &BitBlaster::computeKnownBits(Value value) {
     result = comb::computeKnownBits(value);
   }
 
-  return insertKnownBits(value, std::move(result));
+  auto &entry = knownBits[value];
+  entry = std::move(result);
+  return entry;
 }
 
 Value BitBlaster::extractBit(Value value, size_t index) {
-  if (hw::getBitWidth(value.getType()) <= 1)
+  if (hw::getBitWidth(value.getType()) <= 1) {
+    // Look through single-bit extracts of lowered words, so that a bit read
+    // back from a word on a cycle does not keep the word itself.
+    if (auto ext = value.getDefiningOp<comb::ExtractOp>())
+      if (auto *def = ext.getInput().getDefiningOp();
+          def && shouldLowerOperation(def))
+        return extractBit(ext.getInput(), ext.getLowBit());
     return value;
+  }
 
   auto *op = value.getDefiningOp();
 
@@ -191,7 +232,25 @@ Value BitBlaster::extractBit(Value value, size_t index) {
   if (!op)
     return lowerValueToBits(value)[index];
 
-  return TypeSwitch<Operation *, Value>(op)
+  std::pair<Value, size_t> key{value, index};
+  std::optional<unsigned> outerDepth;
+  bool wiring = isa<comb::ConcatOp, comb::ExtractOp, comb::ReplicateOp>(op);
+  if (wiring) {
+    auto [it, inserted] = extracting.insert({key, depth});
+    if (!inserted) {
+      if (it->second == depth) {
+        // The bit is its own driver through wiring only.
+        if (!wiringCycle)
+          mlir::emitError(value.getLoc(), "bit ")
+              << index << " of this value is driven by itself";
+        wiringCycle = true;
+        return getBoolConstant(false, op->getBlock());
+      }
+      outerDepth = it->second;
+      it->second = depth;
+    }
+  }
+  auto bit = TypeSwitch<Operation *, Value>(op)
       .Case<comb::ConcatOp>([&](comb::ConcatOp op) {
         for (auto operand : llvm::reverse(op.getOperands())) {
           auto width = hw::getBitWidth(operand.getType());
@@ -216,6 +275,13 @@ Value BitBlaster::extractBit(Value value, size_t index) {
         return getBoolConstant(value[index], op->getBlock());
       })
       .Default([&](auto op) { return lowerValueToBits(value)[index]; });
+  if (wiring) {
+    if (outerDepth)
+      extracting[key] = *outerDepth;
+    else
+      extracting.erase(key);
+  }
+  return bit;
 }
 
 ArrayRef<Value> BitBlaster::lowerValueToBits(Value value) {
@@ -236,48 +302,129 @@ ArrayRef<Value> BitBlaster::lowerValueToBits(Value value) {
     return insertBits(value, std::move(results));
   }
 
-  return TypeSwitch<Operation *, ArrayRef<Value>>(op)
-      .Case<ChoiceOp>([&](ChoiceOp op) {
-        auto createOp = [&](OpBuilder &builder, ValueRange operands) {
-          return builder.createOrFold<ChoiceOp>(
-              op.getLoc(), operands[0].getType(), operands);
-        };
-        return lowerOp(op, createOp);
-      })
-      .Case<BooleanLogicOpInterface>(
-          [&](auto op) { return lowerBooleanLogicOperation(op); })
-      .Case<comb::AndOp, comb::OrOp, comb::XorOp>(
-          [&](auto op) { return lowerCombLogicOperations(op); })
-      .Case<comb::MuxOp>([&](comb::MuxOp op) { return lowerCombMux(op); })
-      .Default([&](auto op) {
-        OpBuilder builder(value.getContext());
-        builder.setInsertionPoint(op);
-        SmallVector<Value> results;
-        comb::extractBits(builder, value, results);
+  // The value depends on itself at word level: hand out placeholders for its
+  // bits, replaced by the bits once the value is lowered.
+  if (!inProgress.insert(value).second) {
+    auto &bits = placeholderBits[value];
+    if (bits.empty()) {
+      OpBuilder builder(op);
+      for (int64_t i = 0; i < width; ++i) {
+        auto bit = mlir::UnrealizedConversionCastOp::create(
+                       builder, value.getLoc(), builder.getI1Type(),
+                       ValueRange{})
+                       .getResult(0);
+        placeholders.insert({bit, {value, static_cast<unsigned>(i)}});
+        bits.push_back(bit);
+      }
+    }
+    return placeholderBits[value];
+  }
 
-        return insertBits(value, std::move(results));
-      });
+  ++depth;
+  auto bits =
+      TypeSwitch<Operation *, ArrayRef<Value>>(op)
+          .Case<ChoiceOp>([&](ChoiceOp op) {
+            auto createOp = [&](OpBuilder &builder, ValueRange operands) {
+              return builder.createOrFold<ChoiceOp>(
+                  op.getLoc(), operands[0].getType(), operands);
+            };
+            return lowerOp(op, createOp);
+          })
+          .Case<BooleanLogicOpInterface>(
+              [&](auto op) { return lowerBooleanLogicOperation(op); })
+          .Case<comb::AndOp, comb::OrOp, comb::XorOp>(
+              [&](auto op) { return lowerCombLogicOperations(op); })
+          .Case<comb::MuxOp>([&](comb::MuxOp op) { return lowerCombMux(op); })
+          .Default([&](auto op) {
+            // After the op: in a region with SSA dominance, the extracts must
+            // come after the value they read.
+            OpBuilder builder(value.getContext());
+            builder.setInsertionPointAfter(op);
+            SmallVector<Value> results;
+            comb::extractBits(builder, value, results);
+
+            return insertBits(value, std::move(results));
+          });
+  --depth;
+  inProgress.erase(value);
+  return bits;
+}
+
+LogicalResult BitBlaster::resolvePlaceholders() {
+  if (placeholders.empty())
+    return success();
+
+  // The bit a placeholder stands for may itself be a placeholder (a bit that
+  // is just another bit of a word on the cycle); follow such chains.
+  DenseMap<Value, Value> resolved;
+  for (auto &[placeholder, source] : placeholders) {
+    Value bit = placeholder;
+    SmallPtrSet<void *, 4> seen;
+    while (placeholders.count(bit)) {
+      if (auto it = resolved.find(bit); it != resolved.end()) {
+        bit = it->second;
+        break;
+      }
+      if (!seen.insert(bit.getAsOpaquePointer()).second)
+        return mlir::emitError(source.first.getLoc(), "bit ")
+               << source.second << " of this value is driven by itself";
+      auto [value, index] = placeholders.lookup(bit);
+      bit = loweredValues.find(value)->second[index];
+    }
+    resolved[placeholder] = bit;
+  }
+
+  for (auto &[value, bits] : loweredValues)
+    for (auto &bit : bits)
+      if (auto it = resolved.find(bit); it != resolved.end())
+        bit = it->second;
+  for (auto &[placeholder, bit] : resolved) {
+    placeholder.replaceAllUsesWith(bit);
+    placeholder.getDefiningOp()->erase();
+  }
+  return success();
 }
 
 LogicalResult BitBlaster::run() {
   // Topologically sort operations in graph regions so that walk visits them in
-  // the topological order.
-  if (failed(topologicallySortGraphRegionBlocks(
-          topOp, [](Value value, Operation *op) -> bool {
-            // Otherthan target ops, all other ops are always ready.
-            return !(shouldLowerOperation(op) ||
-                     isa<comb::ExtractOp, comb::ReplicateOp, comb::ConcatOp,
-                         comb::ReplicateOp>(op));
-          }))) {
-    // If we failed to topologically sort operations we cannot proceed.
-    return mlir::emitError(topOp->getLoc(), "there is a combinational cycle");
-  }
+  // the topological order, which keeps the recursion shallow. With word-level
+  // cycles the order is partial; the placeholders handle the rest.
+  (void)topologicallySortGraphRegionBlocks(
+      topOp, [](Value value, Operation *op) -> bool {
+        // Otherthan target ops, all other ops are always ready.
+        return !(shouldLowerOperation(op) ||
+                 isa<comb::ExtractOp, comb::ReplicateOp, comb::ConcatOp,
+                     comb::ReplicateOp>(op));
+      });
 
   // Lower target operations
   topOp->walk([&](Operation *op) {
-    // If the block is in a graph region, topologically sort it first.
     if (shouldLowerOperation(op))
       (void)lowerValueToBits(op->getResult(0));
+  });
+  if (wiringCycle || failed(resolvePlaceholders()))
+    return failure();
+
+  // Extracts of lowered words read the bits directly, so that they do not
+  // keep the words (which would close a word-level cycle again).
+  bool extractsReplaced = false;
+  topOp->walk([&](comb::ExtractOp ext) {
+    auto *def = ext.getInput().getDefiningOp();
+    if (!def || !shouldLowerOperation(def))
+      return;
+    auto it = loweredValues.find(ext.getInput());
+    if (it == loweredValues.end())
+      return;
+    auto bits = ArrayRef<Value>(it->second)
+                    .slice(ext.getLowBit(), hw::getBitWidth(ext.getType()));
+    Value replacement = bits.front();
+    if (bits.size() > 1) {
+      OpBuilder builder(ext);
+      SmallVector<Value> operands(llvm::reverse(bits));
+      replacement = comb::ConcatOp::create(builder, ext.getLoc(), operands);
+    }
+    ext.replaceAllUsesWith(replacement);
+    extractsReplaced = true;
   });
 
   // Replace operations with concatenated results if needed
@@ -302,6 +449,28 @@ LogicalResult BitBlaster::run() {
       std::reverse(results.begin(), results.end());
       auto concat = comb::ConcatOp::create(builder, value.getLoc(), results);
       value.replaceAllUsesWith(concat);
+      op->erase();
+    }
+  }
+
+  // Wiring that read bits of the lowered words is left without users; with
+  // word-level cycles it would keep referring to the words.
+  if (!placeholders.empty() || extractsReplaced) {
+    SmallVector<Operation *> worklist;
+    topOp->walk([&](Operation *op) {
+      if (isa<comb::ExtractOp, comb::ConcatOp, comb::ReplicateOp>(op))
+        worklist.push_back(op);
+    });
+    DenseSet<Operation *> erased;
+    while (!worklist.empty()) {
+      auto *op = worklist.pop_back_val();
+      if (erased.contains(op) || !op->use_empty())
+        continue;
+      erased.insert(op);
+      for (auto operand : op->getOperands())
+        if (auto *def = operand.getDefiningOp();
+            def && isa<comb::ExtractOp, comb::ConcatOp, comb::ReplicateOp>(def))
+          worklist.push_back(def);
       op->erase();
     }
   }
