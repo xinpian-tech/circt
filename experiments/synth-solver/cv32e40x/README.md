@@ -375,3 +375,73 @@ already folded by canonicalize. A sweep of the other modules found no more
 assertions to compare: most SVA files are written for binding in the core
 (ports of other modules) or use `disable iff` inside expressions, which
 circt-verilog does not support; only mult and div import on their own.
+
+## AIG simplification methods (results-core-aig-configs.tsv)
+
+Do CIRCT's AIG optimizations make the whole-core models faster to solve?
+`run_aig_configs.sh` exports each model once up to the AIG (the `run_core.sh`
+pipeline, functional mode, mode none), runs each configuration on that AIG,
+and solves the result with rIC3 (`ic3`, seeds 0, 1, 2, 60 s). 97 assertions:
+the 80 that took 5 s or more or timed out in the 338-assertion run, and 17
+easy ones. ABC configurations are external reference points, run on the
+exported base AIG.
+
+| config | passes |
+|---|---|
+| base | none |
+| canon | canonicalize, cse |
+| mac | synth-maximum-and-cover |
+| sop | synth-sop-balancing (cuts of 4 inputs, 4 cuts per root) |
+| fr | synth-functional-reduction{use-choices=false}, canonicalize |
+| opt | circt-synth's optimization pipeline: cse, structural-hash, canonicalize, mac, sop |
+| opt-nosop | opt without sop |
+| opt-fr | opt, then fr |
+| abc-dc2 / abc-fraig / abc-scorr | ABC `dc2`, `fraig`, `scorr; dc2` |
+
+Each is followed by synth-lower-variadic, synth-lower-word-to-bits,
+synth-structural-hash. PAR-2 counts an unsolved run as 120 s and does not
+include the pass time; "solved" is per seed (mean, min-max over the seeds),
+"any seed" counts assertions solved with at least one seed, and gained/lost
+compares that with base.
+
+| config | latches | ANDs | pass (s) | solved | any seed | PAR-2 (s) | gained / lost |
+|---|---|---|---|---|---|---|---|
+| base | 2891 | 56070 | 0 | 56.3 (54-58) | 61 | 55.6 (53.8-58.2) | |
+| canon | 2891 | 55041 | 0.7 | 56.7 (54-58) | 62 | 55.2 (53.5-58.0) | +1 / -0 |
+| mac | 2891 | 54853 | 0.9 | 54.3 (52-56) | 59 | 58.1 (56.7-60.3) | +1 / -3 |
+| sop | 2891 | 60765 | 1.4 | 56.7 (56-57) | 62 | 55.8 (55.0-56.9) | +3 / -2 |
+| fr | 2713 | 48447 | 180 | 56.0 (54-58) | 63 | 56.6 (55.4-58.8) | +4 / -2 |
+| opt | 2891 | 66967 | 1.9 | 53.3 (53-54) | 58 | 60.6 (60.1-60.8) | +0 / -3 |
+| opt-nosop | 2891 | 54008 | 1.1 | 56.3 (55-59) | 61 | 56.5 (54.5-57.7) | +2 / -2 |
+| opt-fr | 2713 | 57060 | 224 | 52.7 (51-54) | 57 | 60.3 (59.0-61.9) | +1 / -5 |
+| abc-dc2 | 2891 | 44257 | 1.0 | 53.7 (52-55) | 58 | 58.8 (57.8-60.6) | +0 / -3 |
+| abc-fraig | 2891 | 46774 | 4.2 | 55.0 (52-57) | 60 | 56.3 (54.3-59.4) | +3 / -4 |
+| abc-scorr | 2016 | 30758 | 51 | 58.3 (57-59) | 62 | 52.2 (50.9-53.7) | +5 / -4 |
+
+- No CIRCT configuration is faster than base by more than the seed noise
+  (base alone: PAR-2 53.8-58.2, 54-58 solved). The gained and lost
+  assertions differ from configuration to configuration and are mostly
+  assertions that base solves with some seeds only (a_wpt_wb_halt,
+  a_wb_ready_exception, a_csr_wr_in_wb_no_fetch).
+- Fewer ANDs do not mean faster solving: abc-dc2 has 21% fewer ANDs than
+  base and is slower; sop and opt add ANDs (balancing duplicates logic) and
+  opt is the slowest CIRCT configuration. rIC3 simplifies the
+  combinational logic itself before IC3.
+- fr removes 6% of the latches (registers whose inputs become equal) and
+  14% of the ANDs, but takes 3 minutes per model (simulation and one SAT
+  call per candidate pair), and does not solve faster.
+- Only sequential simplification helps somewhat: ABC's scorr (register
+  correspondence by induction) removes 30% of the latches and has the best
+  PAR-2 (52.2) and most solved, but it takes 51 s per model, more than it
+  saves here.
+- No configuration gives a result different from base (SAT vs UNSAT) for
+  any assertion and seed.
+
+Bugs found on the way: synth-sop-balancing asserted on cuts whose function is
+the constant 1 (fixed, 9f9d4bd85; the sop row was rerun after the fix), and
+synth-functional-reduction with choices creates a cycle on these models
+("Failed to topologically sort logic network"), so fr runs with
+`use-choices=false` (5940e2c4d).
+
+Next candidate: a CIRCT pass for sequential equivalence of registers (like
+scorr), since that is the only kind of reduction that changed solve times.

@@ -7,7 +7,7 @@
 set -u
 H=$(cd "$(dirname "$0")" && pwd)
 source $H/../env.sh
-RIC3=${RIC3:-/var/storage/workspaces/clo91eaf/yjh-workspace/rIC3-target-rebuild-20261106/release/ric3}
+RIC3=${RIC3:-/var/storage/workspaces/clo91eaf/yjh-workspace/rIC3-target-rebuild-20261106/release/ric3-bundled}
 OUT=${OUT:-$(mktemp -d)}; TL=${TL:-60}; P=${P:-14}
 MODES=${MODES:-"none antecedent full"}
 DROP=${DROP:-}
