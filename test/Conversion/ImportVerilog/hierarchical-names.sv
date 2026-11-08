@@ -1,4 +1,4 @@
-// RUN: circt-translate --import-verilog %s | FileCheck %s
+// RUN: circt-translate --import-verilog %s | circt-opt --moore-resolve-xmr | FileCheck %s
 // RUN: circt-verilog --ir-moore %s
 // REQUIRES: slang
 
@@ -115,4 +115,29 @@ endmodule
 // CHECK: moore.output [[VAR]] : !moore.ref<l8>
 module SubF;
   logic [7:0] x;
+endmodule
+
+// A reference into a sibling subtree (here from a bound checker) is exported
+// from the referenced instance up to the common ancestor and passed down from
+// there, also when the referencing instance comes first.
+// CHECK-LABEL: moore.module private @SiblingSrc
+// CHECK-SAME: out r : !moore.ref<l1>
+module SiblingSrc(input logic clk, input logic d);
+  logic r;
+  always_ff @(posedge clk) r <= d;
+endmodule
+// CHECK-LABEL: moore.module private @SiblingDst
+// CHECK-SAME: in %src.r : !moore.ref<l1>
+module SiblingDst(input logic clk);
+endmodule
+module SiblingChk(input logic x);
+endmodule
+// CHECK-LABEL: moore.module @SiblingTop
+// CHECK-NOT: in %src.r
+// CHECK: moore.instance "dst" @SiblingDst({{.*}}src.r: [[R:%.+]]: !moore.ref<l1>)
+// CHECK: %src.r = moore.instance "src" @SiblingSrc
+module SiblingTop(input logic clk, input logic d);
+  SiblingDst dst(.clk(clk));
+  SiblingSrc src(.clk(clk), .d(d));
+  bind SiblingDst SiblingChk chk(.x(src.r));
 endmodule
