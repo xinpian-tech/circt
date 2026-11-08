@@ -492,3 +492,15 @@ module Foo;
   // expected-error @below {{ref argument `p` expects '!moore.ref<struct<{x: i1, y: i1}>>' but call provides '!moore.ref<i2>'}}
   initial useRef(z);
 endmodule
+
+// -----
+
+module CrossTop1;
+  logic i;
+endmodule
+
+module CrossTop2;
+  logic x;
+  // expected-error @below {{unsupported hierarchical reference to `i`: refers to another top-level instance}}
+  assign x = CrossTop1.i;
+endmodule
