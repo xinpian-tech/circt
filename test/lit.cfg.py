@@ -97,6 +97,10 @@ if config.slang_frontend_enabled:
   tools.append('circt-verilog')
   tools.append('circt-verilog-lsp-server')
 
+# Passes that need a SAT solver (e.g. synth-remove-false-cycles).
+if config.cadical_enabled:
+  config.available_features.add('cadical')
+
 if config.libfst_enabled:
   config.available_features.add('libfst')
 

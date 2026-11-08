@@ -288,6 +288,76 @@ def SOPBalancing : CutRewriterPassBase<"synth-sop-balancing", "hw::HWModuleOp"> 
   let dependentDialects = ["synth::SynthDialect", "comb::CombDialect"];
 }
 
+def RemoveFalseCycles : Pass<"synth-remove-false-cycles", "hw::HWModuleOp"> {
+  let summary = "Remove combinational cycles that are functionally acyclic";
+  let description = [{
+    Removes combinational cycles of `synth.aig.and_inv`, `comb.extract`,
+    `comb.concat` and `comb.replicate` ops whose value is nevertheless well
+    defined, so that passes that need a topological order can run.
+
+    The ops of each cycle are rebuilt bit by bit; cycles that exist only at
+    word level disappear by that alone. For a cycle of bits, a set of cut
+    bits X is chosen so that the rest is acyclic, giving the cut bits as a
+    function X' = F(X, inputs). If F^k (F applied k times) does not depend
+    on X, which is checked with a SAT solver for k up to `max-unroll`, the
+    cycle has the unique fixed point X = F^k(0, inputs), and the cut bits
+    are replaced by k acyclic copies of the cycle logic computing it. This
+    is an exact transformation. Cycles that fail the check are left alone
+    with a warning.
+
+    A cycle may only be sensitized in states the design never reaches, which
+    a combinational check cannot see. With `obligation`, such cycles are
+    rebuilt with `obligation-unroll` applications, and the module gets
+    inputs Y1, Y2 per cycle and an output `false_cycle_obligation` that is 1
+    when F^k(Y1) != F^k(Y2). The result is equivalent to the original module
+    if this output is 0 in every reachable state of the result (by induction
+    over the steps of a run: in such a state the cycle has the unique fixed
+    point F^k(0)). This must be checked, e.g. by a model checker, before the
+    result is used.
+
+    With `fixpoint-obligation`, the cut bits are instead computed as the
+    fixed point among all 2^n values v of the n cut bits (F(v) == v,
+    enumerated, up to `max-fixpoint-cuts` bits), and the obligation output is
+    1 unless exactly one v is a fixed point. This needs a unique fixed point
+    rather than convergence of F, i.e. it takes the cycle to mean its unique
+    consistent assignment (a cycle that is not constructive in ternary
+    simulation, which a simulator may not settle, passes this check).
+  }];
+  let options = [
+    Option<"maxUnroll", "max-unroll", "unsigned", "4",
+           "Maximum number of applications of the cycle logic to try">,
+    Option<"maxConeBits", "max-cone-bits", "unsigned", "200000",
+           "Maximum number of bits of the fan-in logic encoded for the SAT "
+           "check (bits beyond are free, which may only fail the check)">,
+    Option<"satSolver", "sat-solver", "std::string", "\"auto\"",
+           "SAT solver backend to use: auto, z3, or cadical">,
+    Option<"conflictLimit", "conflict-limit", "int64_t", "100000",
+           "Per-SAT-call conflict budget. -1 disables the limit.">,
+    Option<"obligation", "obligation", "bool", "false",
+           "Rebuild cycles that fail the check as well, with an obligation "
+           "output that must be proved 0 in all reachable states">,
+    Option<"obligationUnroll", "obligation-unroll", "unsigned", "1",
+           "Number of applications of the cycle logic for obligations">,
+    Option<"fixpointObligation", "fixpoint-obligation", "bool", "false",
+           "With obligation: compute cut bits as the unique fixed point by "
+           "enumeration instead of iteration">,
+    Option<"maxFixpointCuts", "max-fixpoint-cuts", "unsigned", "8",
+           "Maximum number of cut bits of a cycle for fixpoint-obligation">
+  ];
+  let statistics = [
+    Statistic<"numObligations", "num-obligations",
+              "Number of cycles rebuilt under an obligation">,
+    Statistic<"numWordCycles", "num-word-cycles",
+              "Number of cycles of ops rebuilt bit by bit">,
+    Statistic<"numBitCycles", "num-bit-cycles",
+              "Number of cycles of bits proved functionally acyclic">,
+    Statistic<"numCuts", "num-cuts", "Number of cut bits">,
+    Statistic<"numFailed", "num-failed",
+              "Number of cycles of bits left (dependence or unknown)">
+  ];
+  let dependentDialects = ["comb::CombDialect", "hw::HWDialect"];
+}
+
 def FunctionalReduction : Pass<"synth-functional-reduction", "hw::HWModuleOp"> {
   let summary = "Functional reduction by simulation-guided candidate merging";
   let description = [{
