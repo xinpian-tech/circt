@@ -58,4 +58,21 @@ def CreateVTables : Pass<"moore-create-vtables", "mlir::ModuleOp"> {
 }
 
 
+def ResolveXMR : Pass<"moore-resolve-xmr", "mlir::ModuleOp"> {
+  let summary = "Replace cross-module references by ports";
+  let description = [{
+    Replaces each `moore.xmr` with a reference to its target passed through
+    ports: the target is exported with output ports from its module up to the
+    common ancestor (`levels` instances above the module of the reference),
+    and passed down from there with input ports to the module of the
+    reference. This is done for every instance of the modules involved, so a
+    module instantiated several times gets the target of each instance. Ports
+    are shared between references to the same target.
+
+    It is an error if the path does not exist for some instance (the
+    reference would resolve to different targets in different instances of a
+    module, which is not supported yet), or if the target name is not unique.
+  }];
+}
+
 #endif // CIRCT_DIALECT_MOORE_MOOREPASSES_TD
