@@ -94,6 +94,12 @@ struct ImportVerilogOptions {
   /// A list of macros that should be undefined in each compilation unit.
   std::vector<std::string> undefines;
 
+  /// Provide stand-ins for the parts of UVM that assertions commonly use: an
+  /// empty `uvm_pkg` and the reporting macros (`uvm_info`, `uvm_warning`,
+  /// `uvm_error`, `uvm_fatal`) as `$info`, `$warning`, `$error`, `$fatal`.
+  /// Macros given in `defines` take precedence.
+  bool uvmStubs = false;
+
   /// If true, library files will inherit macro definitions from primary source
   /// files.
   std::optional<bool> librariesInheritMacros;
