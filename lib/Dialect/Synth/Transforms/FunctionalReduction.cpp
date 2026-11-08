@@ -15,6 +15,7 @@
 
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/HW/HWOps.h"
+#include "circt/Dialect/Seq/SeqOps.h"
 #include "circt/Dialect/Synth/SynthOpInterfaces.h"
 #include "circt/Dialect/Synth/SynthOps.h"
 #include "circt/Dialect/Synth/Transforms/CutRewriter.h"
@@ -210,9 +211,10 @@ class FunctionalReductionSolver {
 public:
   FunctionalReductionSolver(hw::HWModuleOp module, unsigned numPatterns,
                             unsigned seed, bool testTransformation,
-                            std::unique_ptr<IncrementalSATSolver> satSolver)
+                            std::unique_ptr<IncrementalSATSolver> satSolver,
+                            bool useChoices = true)
       : module(module), numPatterns(numPatterns), seed(seed),
-        testTransformation(testTransformation),
+        testTransformation(testTransformation), useChoices(useChoices),
         satSolver(std::move(satSolver)) {}
 
   ~FunctionalReductionSolver() = default;
@@ -242,6 +244,7 @@ private:
 
   // Phase 4: Merge equivalent nodes
   void mergeEquivalentNodes();
+  void replaceEquivalentNodes();
 
   // Test transformation helpers.
   static Attribute getTestEquivClass(Value value);
@@ -255,6 +258,7 @@ private:
   unsigned numPatterns;
   unsigned seed;
   bool testTransformation;
+  bool useChoices;
 
   // Primary inputs (block arguments or results of unknown operations treated as
   // inputs)
@@ -683,6 +687,75 @@ void FunctionalReductionSolver::mergeEquivalentNodes() {
                           << stats.numMergedNodes << " nodes\n");
 }
 
+/// Replace each proven member by its representative (or the inverse of it),
+/// without choices. A replacement is skipped if the representative depends
+/// combinationally on the member in the current IR, which would create a
+/// cycle; registers break such paths.
+void FunctionalReductionSolver::replaceEquivalentNodes() {
+  if (provenEquivalences.empty())
+    return;
+
+  auto isRegister = [](Operation *op) {
+    return isa<seq::CompRegOp, seq::CompRegClockEnabledOp, seq::FirRegOp>(op);
+  };
+  // Whether `target` is reachable from the users of `from` through
+  // combinational ops.
+  DenseSet<Operation *> visited;
+  auto reaches = [&](Value from, Operation *target) {
+    visited.clear();
+    SmallVector<Operation *> stack(from.getUsers().begin(),
+                                   from.getUsers().end());
+    while (!stack.empty()) {
+      auto *op = stack.pop_back_val();
+      if (op == target)
+        return true;
+      if (isRegister(op) || !visited.insert(op).second)
+        continue;
+      for (auto result : op->getResults())
+        stack.append(result.getUsers().begin(), result.getUsers().end());
+    }
+    return false;
+  };
+
+  // Only values and uses in the body itself (not in nested regions such as
+  // seq.initial) are rewritten.
+  Block *body = module.getBodyBlock();
+  auto inBody = [&](Value value) { return value.getParentBlock() == body; };
+  OpBuilder builder(module.getContext());
+  for (auto &[representative, members] : provenEquivalences) {
+    if (!inBody(representative))
+      continue;
+    Value inverse;
+    for (auto [member, inverted] : members) {
+      auto *repOp = representative.getDefiningOp();
+      if (!inBody(member) || (repOp && reaches(member, repOp)))
+        continue;
+      Value replacement = representative;
+      if (inverted) {
+        if (!inverse) {
+          if (repOp)
+            builder.setInsertionPointAfter(repOp);
+          else
+            builder.setInsertionPointToStart(module.getBodyBlock());
+          inverse = aig::AndInverterOp::create(builder, member.getLoc(),
+                                               representative, true);
+        }
+        replacement = inverse;
+      }
+      member.replaceUsesWithIf(replacement, [&](OpOperand &use) {
+        return use.getOwner()->getBlock() == body;
+      });
+      ++stats.numMergedNodes;
+      if (auto *op = member.getDefiningOp();
+          op && op->use_empty() && isLogicNetworkOp(op))
+        op->erase();
+    }
+  }
+
+  LLVM_DEBUG(llvm::dbgs() << "FunctionalReduction: Replaced "
+                          << stats.numMergedNodes << " nodes\n");
+}
+
 //===----------------------------------------------------------------------===//
 // Main Functional Reduction algorithm
 //===----------------------------------------------------------------------===//
@@ -731,7 +804,10 @@ FunctionalReductionSolver::run() {
   verifyCandidates();
 
   // Phase 4: Merge equivalent nodes
-  mergeEquivalentNodes();
+  if (useChoices)
+    mergeEquivalentNodes();
+  else
+    replaceEquivalentNodes();
 
   // Re-sort after merging to restore topological order after choice insertion.
   if (failed(circt::synth::topologicallySortLogicNetwork(module))) {
@@ -796,8 +872,8 @@ struct FunctionalReductionPass
     }
 
     FunctionalReductionSolver fcSolver(module, numRandomPatterns, seed,
-                                       testTransformation,
-                                       std::move(satSolver));
+                                       testTransformation, std::move(satSolver),
+                                       useChoices);
     auto stats = fcSolver.run();
     if (failed(stats))
       return signalPassFailure();
