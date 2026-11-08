@@ -1290,6 +1290,96 @@ OpFoldResult OrOp::fold(FoldAdaptor adaptor) {
   return constFoldAssociativeOp(inputs, hw::PEO::Or);
 }
 
+/// A literal of a 1-bit conjunction: a value, or its negation `xor(x, 1)`.
+static std::pair<Value, bool> getOrTermLiteral(Value value) {
+  if (auto xorOp = value.getDefiningOp<XorOp>())
+    if (xorOp.getNumOperands() == 2 &&
+        matchPattern(xorOp.getInputs()[1], m_One()))
+      return {xorOp.getInputs()[0], true};
+  return {value, false};
+}
+
+/// or(..., and(x, c), ..., and(x, ~c), ...) -> or(..., and(x), ...) for 1-bit
+/// values, where `x` is any set of literals. Merging the two cases of a
+/// condition removes a structural dependency on it, which can otherwise form
+/// false combinational loops (e.g. in decisions derived from control flow).
+static LogicalResult mergeComplementaryTerms(OrOp op,
+                                             PatternRewriter &rewriter) {
+  if (!op.getType().isInteger(1))
+    return failure();
+  auto inputs = op.getInputs();
+  using Term = SmallVector<std::pair<Value, bool>, 4>;
+  // The literals of each term in operand order (for the result), and sorted
+  // (to compare terms).
+  SmallVector<Term> terms, sorted;
+  for (auto input : inputs) {
+    Term term;
+    if (auto andOp = input.getDefiningOp<AndOp>())
+      for (auto operand : andOp.getInputs())
+        term.push_back(getOrTermLiteral(operand));
+    else
+      term.push_back(getOrTermLiteral(input));
+    Term key = term;
+    llvm::sort(key, [](auto a, auto b) {
+      return a.first.getAsOpaquePointer() < b.first.getAsOpaquePointer() ||
+             (a.first == b.first && a.second < b.second);
+    });
+    terms.push_back(std::move(term));
+    sorted.push_back(std::move(key));
+  }
+  for (unsigned i = 0; i < terms.size(); ++i) {
+    for (unsigned j = i + 1; j < terms.size(); ++j) {
+      auto &a = sorted[i], &b = sorted[j];
+      if (a.size() != b.size())
+        continue;
+      std::optional<unsigned> pos;
+      bool adjacent = true;
+      for (unsigned k = 0; k < a.size() && adjacent; ++k) {
+        if (a[k] == b[k])
+          continue;
+        if (a[k].first != b[k].first || pos)
+          adjacent = false;
+        pos = k;
+      }
+      if (!adjacent || !pos)
+        continue;
+      // Build the merged term from the remaining literals, in the operand
+      // order of the first term (deterministic).
+      auto loc = op.getLoc();
+      SmallVector<Value> literals;
+      bool dropped = false;
+      for (auto literal : terms[i]) {
+        if (!dropped && literal == a[*pos]) {
+          dropped = true;
+          continue;
+        }
+        literals.push_back(literal.second
+                               ? createOrFoldNot(rewriter, loc, literal.first)
+                               : literal.first);
+      }
+      Value merged;
+      if (literals.empty())
+        merged = hw::ConstantOp::create(rewriter, loc, APInt(1, 1));
+      else if (literals.size() == 1)
+        merged = literals[0];
+      else
+        merged = AndOp::create(rewriter, loc, literals, false);
+      SmallVector<Value> operands;
+      for (unsigned k = 0; k < inputs.size(); ++k)
+        if (k != i && k != j)
+          operands.push_back(inputs[k]);
+      operands.push_back(merged);
+      if (operands.size() == 1)
+        replaceOpAndCopyNamehint(rewriter, op, operands[0]);
+      else
+        replaceOpWithNewOpAndCopyNamehint<OrOp>(rewriter, op, op.getType(),
+                                                operands, op.getTwoState());
+      return success();
+    }
+  }
+  return failure();
+}
+
 LogicalResult OrOp::canonicalize(OrOp op, PatternRewriter &rewriter) {
   if (isOpTriviallyRecursive(op))
     return failure();
@@ -1308,6 +1398,9 @@ LogicalResult OrOp::canonicalize(OrOp op, PatternRewriter &rewriter) {
     return success();
 
   assert(size > 1 && "expected 2 or more operands");
+
+  if (succeeded(mergeComplementaryTerms(op, rewriter)))
+    return success();
 
   // Patterns for and with a constant on RHS.
   APInt value;
