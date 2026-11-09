@@ -117,3 +117,30 @@ hw.module @Mutual(in %clk : !seq.clock, in %a : i1, out o : i1) {
   %0 = synth.aig.and_inv %r1, %r2 : i1
   hw.output %0 : i1
 }
+
+// RUN: circt-opt %s --pass-pipeline='builtin.module(hw.module(synth-register-correspondence{internal}))' | FileCheck %s --check-prefix=INT
+
+// With internal, an and-gate equal to a register in all reachable states is
+// replaced by the register: g = a & b is what r stores, one cycle late, but
+// d = (a & b) delayed and r are equal; and an and-gate that is constant in
+// reachable states (r & !r2 with r == r2) is a constant.
+// CHECK-LABEL: hw.module @Internal
+// INT-LABEL: hw.module @Internal
+// INT:         %[[G:.+]] = synth.aig.and_inv %a, %b
+// INT:         %[[R:.+]] = seq.compreg %[[G]], %clk initial
+// INT-NOT:     seq.compreg
+// INT:         hw.output %[[R]], %[[R]], %false
+hw.module @Internal(in %clk : !seq.clock, in %a : i1, in %b : i1,
+                    out x : i1, out y : i1, out z : i1) {
+  %init = seq.initial() {
+    %false = hw.constant false
+    seq.yield %false : i1
+  } : () -> !seq.immutable<i1>
+  %g = synth.aig.and_inv %a, %b : i1
+  %r = seq.compreg %g, %clk initial %init : i1
+  %r2 = seq.compreg %g, %clk initial %init : i1
+  // The same function as r, built from r2: equal to r in reachable states.
+  %h = synth.aig.and_inv %r2, %r2 : i1
+  %k = synth.aig.and_inv %r, not %r2 : i1
+  hw.output %r, %h, %k : i1, i1, i1
+}

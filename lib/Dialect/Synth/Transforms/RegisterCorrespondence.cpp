@@ -14,6 +14,9 @@
 // state; they are proved by induction: they hold in the initial state, and if
 // all of them hold in a state, they hold in the next one. Counterexamples to
 // the inductive step split the classes until the remaining ones are proved.
+// With `internal`, i1 and-gates are candidates too (signal correspondence):
+// the base case is then checked with SAT for all inputs of the initial
+// state, and the inductive step over two frames.
 //
 //===----------------------------------------------------------------------===//
 
@@ -22,6 +25,7 @@
 #include "circt/Dialect/Seq/SeqOps.h"
 #include "circt/Dialect/Synth/SynthOps.h"
 #include "circt/Dialect/Synth/Transforms/SynthPasses.h"
+#include "circt/Dialect/Verif/VerifOps.h"
 #include "circt/Support/SATSolver.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/Matchers.h"
@@ -29,6 +33,7 @@
 #include "llvm/ADT/MapVector.h"
 #include "llvm/ADT/SetVector.h"
 #include "llvm/Support/Debug.h"
+#include <functional>
 #include <map>
 #include <optional>
 #include <random>
@@ -38,6 +43,8 @@
 namespace circt {
 namespace synth {
 #define GEN_PASS_DEF_REGISTERCORRESPONDENCE
+#define GEN_PASS_DEF_TERNARYCONSTANTS
+#define GEN_PASS_DEF_CHECKCONSTRAINTS
 #include "circt/Dialect/Synth/Transforms/SynthPasses.h.inc"
 } // namespace synth
 } // namespace circt
@@ -82,12 +89,22 @@ struct RegBit {
   std::optional<bool> init;
 };
 
-/// A candidate class: members with their phase relative to the class value.
-/// A constant class has no representative register (its value is false);
+/// A candidate: a register bit (`reg` >= 0) or, with `internal`, an i1
+/// and-gate of the module (`value`); `node` is its node in the net.
+struct Cand {
+  unsigned node;
+  int reg = -1;
+  Value value;
+};
+
+/// A candidate class: members (candidate index, phase relative to the class
+/// value). A constant class has no representative (its value is false);
 /// otherwise the first member is the representative, with phase false.
+/// Members are kept in candidate order: registers first, then and-gates in
+/// topological order, so the representative never depends on a member.
 struct Class {
   bool constant = false;
-  SmallVector<std::pair<unsigned, bool>> members; // (register index, phase)
+  SmallVector<std::pair<unsigned, bool>> members;
 };
 
 struct Params {
@@ -97,6 +114,8 @@ struct Params {
   unsigned maxIterations;
   int conflictLimit;
   std::string satSolver;
+  bool internal;
+  unsigned cexFrames;
 };
 
 class Correspondence {
@@ -107,11 +126,28 @@ public:
   /// Builds the net. Fails (nothing to do) without modeled registers.
   bool build();
   void simulateCandidates();
-  void checkBase();
+  /// Proves that the classes hold in the initial state (for all inputs).
+  /// False if it gave up.
+  bool proveBase();
   /// Proves the classes by induction. False if it gave up.
-  bool prove();
-  /// Replaces the merged registers; returns the number of merged bits.
-  unsigned merge();
+  bool proveStep();
+  /// Finds the registers that are constant in every reachable state by
+  /// ternary simulation (inputs and unknown initial values are X) to a
+  /// fixpoint, and makes them the (only) class. Returns their number.
+  unsigned ternaryConstants();
+  /// Replaces the merged candidates; returns the number of merged
+  /// (register bits, and-gates).
+  std::pair<unsigned, unsigned> merge();
+
+  /// No trace from the initial state satisfies the constraints for `cycles`
+  /// cycles; `core` is a subset of the constraints that already conflict.
+  struct Conflict {
+    unsigned cycles;
+    SmallVector<verif::AssumeOp> core;
+  };
+  /// Checks the constraints (i1 `verif.assume`s of the body) for up to
+  /// `depth` cycles. `gaveUp` is set if a check hit the conflict limit.
+  std::optional<Conflict> checkConstraints(unsigned depth, bool &gaveUp);
 
   unsigned numIterations = 0, numSATCalls = 0, numUnknown = 0;
   unsigned numCandidates() const {
@@ -123,25 +159,174 @@ public:
 
 private:
   Lit lit(Value value, unsigned bit);
-  /// Evaluates the net on 64 patterns: `vals[node]`, with the leaves and the
-  /// state bits already set.
+  /// Evaluates the and-gates on 64 patterns: `vals[node]`, with the leaves
+  /// and the state bits already set.
   void eval(SmallVectorImpl<uint64_t> &vals) const;
   uint64_t value(ArrayRef<uint64_t> vals, Lit l) const {
     uint64_t v = vals[nodeOf(l)];
     return isNeg(l) ? ~v : v;
   }
-  /// Splits the classes by the next-state values in `vals` (for the
-  /// patterns in `mask`). Returns true if a class changed.
-  bool refine(ArrayRef<uint64_t> vals, uint64_t mask);
+  /// Splits the classes by the candidate values in `vals` (for the patterns
+  /// in `mask`).
+  void refine(ArrayRef<uint64_t> vals, uint64_t mask);
   void dropSingletons();
+  /// Removes candidates from their classes (checks that gave up).
+  void drop(const DenseSet<unsigned> &cands);
+  /// The speculative reduction of the current classes.
+  DenseMap<unsigned, struct Subst> reduction() const;
+  /// Simulates the speculatively reduced net: `own[node]` is the value of
+  /// each node's own function (the leaves already set), with the fanins
+  /// reduced as in `subst`.
+  void evalReduced(SmallVectorImpl<uint64_t> &own,
+                   const DenseMap<unsigned, struct Subst> &subst) const;
+  /// One round of checks of every member's own function (`memberVar`)
+  /// against its class value (`refVar`) in the checked frame;
+  /// counterexamples are recorded as leaf patterns (`record`), simulated
+  /// (`simulate`, to the own values of the checked frame) and split the
+  /// classes. Returns false if a check found a counterexample or gave up.
+  bool checkRound(
+      IncrementalSATSolver &solver,
+      llvm::function_ref<int(unsigned node)> memberVar,
+      llvm::function_ref<int(unsigned node)> refVar,
+      llvm::function_ref<void(SmallVectorImpl<uint64_t> &vals, uint64_t bit)>
+          record,
+      llvm::function_ref<void(SmallVectorImpl<uint64_t> &vals)> simulate);
 
   hw::HWModuleOp module;
   const Params &opts;
   std::mt19937_64 rng;
   Net net;
   SmallVector<RegBit> regs;
+  /// The register of each state node.
+  DenseMap<unsigned, unsigned> regOfNode;
+  SmallVector<Cand> cands;
   DenseMap<std::pair<Value, unsigned>, Lit> memo;
   SmallVector<Class> classes;
+  /// Later frames simulated from a counterexample of the inductive step,
+  /// which also split the classes (see proveStep).
+  SmallVector<SmallVector<uint64_t>> extraFrames;
+  /// Whether the net has free leaves that are results of ops in the body
+  /// (not inputs or registers): an and-gate may then depend on another one
+  /// through them, which the net does not show.
+  bool hiddenPaths = false;
+};
+
+/// Speculative reduction: a class member takes the value of its class (its
+/// representative, inverted by the phase, or the constant false inverted).
+struct Subst {
+  bool constant;
+  unsigned node;
+  bool phase;
+};
+
+/// SAT encoding of the nodes of one frame, on demand, speculatively reduced:
+/// `node` gives the value of a node as its fanins see it (the class value for
+/// a class member), `own` the value of its own function.
+class FrameEncoder {
+public:
+  FrameEncoder(IncrementalSATSolver &solver, const Net &net, int trueVar,
+               std::function<int(unsigned node)> leaf,
+               const DenseMap<unsigned, Subst> &subst)
+      : solver(solver), net(net), trueVar(trueVar), leaf(std::move(leaf)),
+        subst(subst) {}
+
+  int operator()(Lit l) {
+    int v = node(nodeOf(l));
+    return isNeg(l) ? -v : v;
+  }
+
+  int node(unsigned root) {
+    SmallVector<std::pair<unsigned, bool>> stack{{root, false}};
+    while (!stack.empty()) {
+      auto [n, expanded] = stack.pop_back_val();
+      if (var.count(n))
+        continue;
+      if (n == 0) {
+        var[n] = -trueVar;
+        continue;
+      }
+      if (auto it = subst.find(n); it != subst.end()) {
+        auto s = it->second;
+        if (s.constant) {
+          var[n] = s.phase ? trueVar : -trueVar;
+          continue;
+        }
+        if (!expanded) {
+          stack.push_back({n, true});
+          stack.push_back({s.node, false});
+          continue;
+        }
+        int r = var.at(s.node);
+        var[n] = s.phase ? -r : r;
+        continue;
+      }
+      if (net.kind[n] != Net::And) {
+        var[n] = leaf(n);
+        continue;
+      }
+      if (!expanded) {
+        stack.push_back({n, true});
+        for (Lit l : net.fanins[n])
+          stack.push_back({nodeOf(l), false});
+        continue;
+      }
+      var[n] = gate(n);
+    }
+    return var.at(root);
+  }
+
+  /// The value of the node's own function: its gate over the (reduced)
+  /// values of its fanins, or its leaf value.
+  int own(unsigned n) {
+    if (!subst.count(n))
+      return node(n);
+    if (auto it = ownVar.find(n); it != ownVar.end())
+      return it->second;
+    int v;
+    if (net.kind[n] == Net::And) {
+      for (Lit l : net.fanins[n])
+        node(nodeOf(l));
+      v = gate(n);
+    } else {
+      v = leaf(n);
+    }
+    ownVar[n] = v;
+    return v;
+  }
+
+  /// The SAT variable of a node if it was encoded.
+  std::optional<int> lookup(unsigned n) const {
+    auto it = var.find(n);
+    if (it == var.end())
+      return std::nullopt;
+    return it->second;
+  }
+
+  /// The SAT variable of a node's own function if it was encoded.
+  std::optional<int> lookupOwn(unsigned n) const {
+    auto it = ownVar.find(n);
+    if (it == ownVar.end())
+      return lookup(n);
+    return it->second;
+  }
+
+private:
+  /// A new variable for the and-gate n over its encoded fanins.
+  int gate(unsigned n) {
+    SmallVector<int> ins;
+    for (Lit l : net.fanins[n])
+      ins.push_back(isNeg(l) ? -var.at(nodeOf(l)) : var.at(nodeOf(l)));
+    int out = solver.newVar();
+    addAndClauses(out, ins, [&](ArrayRef<int> cl) { solver.addClause(cl); });
+    return out;
+  }
+
+  IncrementalSATSolver &solver;
+  const Net &net;
+  int trueVar;
+  std::function<int(unsigned node)> leaf;
+  const DenseMap<unsigned, Subst> &subst;
+  DenseMap<unsigned, int> var, ownVar;
 };
 } // namespace
 
@@ -286,6 +471,7 @@ bool Correspondence::build() {
       if (init)
         r.init = (*init)[i];
       memo[{op.getResult(), i}] = mkLit(r.node);
+      regOfNode[r.node] = regs.size();
       regs.push_back(r);
     }
   }
@@ -293,8 +479,36 @@ bool Correspondence::build() {
     return false;
   for (auto &r : regs)
     r.next = lit(r.op.getInput(), r.bit);
+  for (auto [i, r] : llvm::enumerate(regs))
+    cands.push_back({r.node, int(i), r.op.getResult()});
+  if (opts.internal) {
+    // The i1 and-gates of the module, in topological order.
+    DenseSet<unsigned> seen;
+    SmallVector<Cand> gates;
+    for (auto op : module.getBodyBlock()->getOps<aig::AndInverterOp>()) {
+      if (!op.getType().isInteger(1))
+        continue;
+      Lit l = lit(op.getResult(), 0);
+      unsigned n = nodeOf(l);
+      if (isNeg(l) || net.kind[n] != Net::And || !seen.insert(n).second)
+        continue;
+      gates.push_back({n, -1, op.getResult()});
+    }
+    llvm::sort(gates,
+               [](const Cand &a, const Cand &b) { return a.node < b.node; });
+    cands.append(gates.begin(), gates.end());
+  }
+  // Free leaves that are results of ops in the body (not inputs or
+  // registers) may hide paths between and-gates.
+  for (auto &[key, l] : memo) {
+    auto result = dyn_cast<OpResult>(key.first);
+    if (result && net.kind[nodeOf(l)] == Net::Free &&
+        !isa<seq::CompRegOp>(result.getOwner()))
+      hiddenPaths = true;
+  }
   LLVM_DEBUG(llvm::dbgs() << "register-correspondence: " << regs.size()
-                          << " register bits, " << net.size() << " nodes\n");
+                          << " register bits, " << cands.size()
+                          << " candidates, " << net.size() << " nodes\n");
   return true;
 }
 
@@ -312,8 +526,8 @@ void Correspondence::eval(SmallVectorImpl<uint64_t> &vals) const {
 void Correspondence::simulateCandidates() {
   unsigned words = std::max(1u, opts.numPatterns / 64);
   unsigned frames = std::max(1u, unsigned(opts.numFrames));
-  // Signature of each register bit: its values in every frame and pattern.
-  SmallVector<SmallVector<uint64_t>> sig(regs.size());
+  // Signature of each candidate: its values in every frame and pattern.
+  SmallVector<SmallVector<uint64_t>> sig(cands.size());
   SmallVector<uint64_t> vals(net.size());
   for (unsigned w = 0; w < words; ++w) {
     SmallVector<uint64_t> state(regs.size());
@@ -323,11 +537,11 @@ void Correspondence::simulateCandidates() {
       for (unsigned n = 1; n < net.size(); ++n)
         if (net.kind[n] == Net::Free)
           vals[n] = rng();
-      for (unsigned i = 0; i < regs.size(); ++i) {
+      for (unsigned i = 0; i < regs.size(); ++i)
         vals[regs[i].node] = state[i];
-        sig[i].push_back(state[i]);
-      }
       eval(vals);
+      for (unsigned c = 0; c < cands.size(); ++c)
+        sig[c].push_back(vals[cands[c].node]);
       for (unsigned i = 0; i < regs.size(); ++i)
         state[i] = value(vals, regs[i].next);
     }
@@ -337,9 +551,9 @@ void Correspondence::simulateCandidates() {
   std::map<SmallVector<uint64_t>, unsigned> byKey;
   Class constant;
   constant.constant = true;
-  for (unsigned i = 0; i < regs.size(); ++i) {
+  for (unsigned i = 0; i < cands.size(); ++i) {
     bool phase = sig[i][0] & 1;
-    SmallVector<uint64_t> key = sig[i];
+    SmallVector<uint64_t> key = std::move(sig[i]);
     if (phase)
       for (auto &x : key)
         x = ~x;
@@ -347,7 +561,7 @@ void Correspondence::simulateCandidates() {
       constant.members.push_back({i, phase});
       continue;
     }
-    auto [it, inserted] = byKey.try_emplace(key, classes.size());
+    auto [it, inserted] = byKey.try_emplace(std::move(key), classes.size());
     if (inserted)
       classes.push_back({});
     classes[it->second].members.push_back({i, phase});
@@ -369,56 +583,32 @@ void Correspondence::dropSingletons() {
   });
 }
 
-/// The initial state must satisfy every class. Members without a constant
-/// initial value are dropped; the others are grouped by their initial value
-/// relative to the class: those that match the class value (false for a
-/// constant class, the first member's otherwise) stay, the rest form a
-/// class of their own. (Simulation starts in the initial state, so the
-/// groups differ only for members with an unknown initial value.)
-void Correspondence::checkBase() {
-  SmallVector<Class> out;
+void Correspondence::drop(const DenseSet<unsigned> &gone) {
   for (auto &c : classes) {
-    SmallVector<std::pair<unsigned, bool>> known;
-    for (auto m : c.members)
-      if (regs[m.first].init)
-        known.push_back(m);
-    if (known.empty())
-      continue;
-    bool classInit =
-        c.constant ? false : (*regs[known[0].first].init ^ known[0].second);
-    Class kept, rest;
-    kept.constant = c.constant;
-    for (auto [i, p] : known) {
-      if ((*regs[i].init ^ p) == classInit)
-        kept.members.push_back({i, p});
-      else
-        rest.members.push_back({i, p});
+    if (!c.constant && !c.members.empty() &&
+        gone.contains(c.members[0].first)) {
+      // Without the representative, the rest is relative to the next one.
+      c.members.erase(c.members.begin());
+      if (!c.members.empty()) {
+        bool p0 = c.members[0].second;
+        for (auto &m : c.members)
+          m.second ^= p0;
+      }
     }
-    for (Class *k : {&kept, &rest}) {
-      if (k->members.empty() || k->constant)
-        continue;
-      bool p0 = k->members[0].second;
-      for (auto &m : k->members)
-        m.second ^= p0;
-    }
-    out.push_back(std::move(kept));
-    if (!rest.members.empty())
-      out.push_back(std::move(rest));
+    llvm::erase_if(c.members, [&](auto &m) { return gone.contains(m.first); });
   }
-  classes = std::move(out);
   dropSingletons();
 }
 
-bool Correspondence::refine(ArrayRef<uint64_t> vals, uint64_t mask) {
+void Correspondence::refine(ArrayRef<uint64_t> vals, uint64_t mask) {
   bool changed = false;
   SmallVector<Class> out;
   for (auto &c : classes) {
-    // Class value per pattern: the representative's next value, or false.
-    uint64_t ref = c.constant ? 0 : value(vals, regs[c.members[0].first].next);
+    uint64_t ref = c.constant ? 0 : vals[cands[c.members[0].first].node];
     Class same, other;
     same.constant = c.constant;
     for (auto [i, p] : c.members) {
-      uint64_t v = value(vals, regs[i].next);
+      uint64_t v = vals[cands[i].node];
       if (p)
         v = ~v;
       if (((v ^ ref) & mask) == 0)
@@ -430,23 +620,143 @@ bool Correspondence::refine(ArrayRef<uint64_t> vals, uint64_t mask) {
     if (other.members.empty())
       continue;
     changed = true;
-    // The others are refined again on the remaining patterns; with one
-    // pattern they all differ from the class value the same way.
     bool p0 = other.members[0].second;
     for (auto &m : other.members)
       m.second ^= p0;
     out.push_back(std::move(other));
   }
   classes = std::move(out);
-  // A split class may not be uniform on all patterns yet: repeat until no
-  // class changes (each round splits at least one class).
+  dropSingletons();
+  // A split-off class may not be uniform on all patterns yet.
   if (changed)
     refine(vals, mask);
-  dropSingletons();
-  return changed;
 }
 
-bool Correspondence::prove() {
+DenseMap<unsigned, Subst> Correspondence::reduction() const {
+  DenseMap<unsigned, Subst> subst;
+  for (auto &c : classes)
+    for (auto [i, p] : c.members) {
+      if (!c.constant && i == c.members[0].first)
+        continue;
+      subst[cands[i].node] = {c.constant, cands[c.members[0].first].node, p};
+    }
+  return subst;
+}
+
+void Correspondence::evalReduced(SmallVectorImpl<uint64_t> &own,
+                                 const DenseMap<unsigned, Subst> &subst) const {
+  // red[n]: the value fanins see; own[n]: the node's own function.
+  SmallVector<uint64_t> red(own.begin(), own.end());
+  for (unsigned n = 1, e = net.size(); n < e; ++n) {
+    if (net.kind[n] == Net::And) {
+      uint64_t v = ~uint64_t(0);
+      for (Lit l : net.fanins[n])
+        v &= value(red, l);
+      own[n] = v;
+    }
+    red[n] = own[n];
+    // Representatives come before their members (registers first, then
+    // gates in topological order), so red of the representative is final.
+    if (auto it = subst.find(n); it != subst.end()) {
+      auto s = it->second;
+      uint64_t r = s.constant ? 0 : red[s.node];
+      red[n] = s.phase ? ~r : r;
+    }
+  }
+}
+
+bool Correspondence::checkRound(
+    IncrementalSATSolver &solver,
+    llvm::function_ref<int(unsigned node)> memberVar,
+    llvm::function_ref<int(unsigned node)> refVar,
+    llvm::function_ref<void(SmallVectorImpl<uint64_t> &, uint64_t)> record,
+    llvm::function_ref<void(SmallVectorImpl<uint64_t> &)> simulate) {
+  SmallVector<uint64_t> leaves(2 * net.size());
+  SmallVector<uint64_t> out;
+  unsigned numCex = 0;
+  bool clean = true;
+  DenseSet<unsigned> giveUp;
+  // The class value of each candidate in `classes`: its representative, or
+  // -1 for the constant class (-2: in no class).
+  SmallVector<int> current(cands.size(), -2);
+  auto index = [&]() {
+    std::fill(current.begin(), current.end(), -2);
+    for (auto &c : classes)
+      for (auto [i, p] : c.members)
+        current[i] = c.constant ? -1 : int(c.members[0].first);
+  };
+  index();
+  auto flush = [&]() {
+    if (!numCex)
+      return;
+    out = leaves;
+    extraFrames.clear();
+    simulate(out);
+    uint64_t mask = numCex == 64 ? ~uint64_t(0) : (uint64_t(1) << numCex) - 1;
+    refine(out, mask);
+    for (auto &frame : extraFrames)
+      refine(frame, mask);
+    numCex = 0;
+    index();
+  };
+  // The classes at the start of the round (the encoding's hypotheses);
+  // counterexamples refine `classes`.
+  auto snapshot = classes;
+  for (auto &c : snapshot) {
+    int refCand = c.constant ? -1 : int(c.members[0].first);
+    int ref = refVar(c.constant ? 0 : cands[refCand].node);
+    for (auto [i, p] : c.members) {
+      if (int(i) == refCand)
+        continue;
+      // Already split from its class by a counterexample of this round.
+      if (current[i] != refCand)
+        continue;
+      int x = memberVar(cands[i].node);
+      if (p)
+        x = -x;
+      if (x == ref)
+        continue;
+      int diff = solver.newVar();
+      solver.addClause({-diff, x, ref});
+      solver.addClause({-diff, -x, -ref});
+      ++numSATCalls;
+      auto r = solver.solve({diff});
+      if (r == IncrementalSATSolver::kUNSAT) {
+        solver.addClause({-diff});
+        continue;
+      }
+      clean = false;
+      if (r != IncrementalSATSolver::kSAT) {
+        ++numUnknown;
+        giveUp.insert(i);
+        continue;
+      }
+      record(leaves, uint64_t(1) << numCex);
+      if (++numCex == 64)
+        flush();
+    }
+  }
+  flush();
+  if (!giveUp.empty())
+    drop(giveUp);
+  LLVM_DEBUG(llvm::dbgs() << "register-correspondence: round " << numIterations
+                          << ": " << snapshot.size() << " classes before, "
+                          << classes.size() << " after, " << numCandidates()
+                          << " candidates, " << numSATCalls << " SAT calls\n");
+  return clean;
+}
+
+/// The value of a SAT literal in the solver's model.
+static bool modelValue(IncrementalSATSolver &solver, int lit) {
+  bool v = solver.val(std::abs(lit)) > 0;
+  return lit > 0 ? v : !v;
+}
+
+static void setBit(uint64_t &word, uint64_t bit, bool v) {
+  word = v ? (word | bit) : (word & ~bit);
+}
+
+bool Correspondence::proveBase() {
   while (!classes.empty()) {
     if (numIterations++ >= opts.maxIterations)
       return false;
@@ -456,149 +766,289 @@ bool Correspondence::prove() {
     solver->setConflictLimit(opts.conflictLimit);
     int trueVar = solver->newVar();
     solver->addClause({trueVar});
-    // SAT variables of the nodes of frame 0, encoded on demand.
-    DenseMap<unsigned, int> var;
-    auto encode = [&](Lit root) -> int {
-      SmallVector<std::pair<unsigned, bool>> stack{{nodeOf(root), false}};
-      while (!stack.empty()) {
-        auto [n, expanded] = stack.pop_back_val();
-        if (var.count(n))
-          continue;
-        if (n == 0) {
-          var[n] = -trueVar;
-          continue;
-        }
-        if (net.kind[n] != Net::And) {
-          var[n] = solver->newVar();
-          continue;
-        }
-        if (!expanded) {
-          stack.push_back({n, true});
-          for (Lit l : net.fanins[n])
-            stack.push_back({nodeOf(l), false});
-          continue;
-        }
-        SmallVector<int> ins;
-        for (Lit l : net.fanins[n])
-          ins.push_back(isNeg(l) ? -var.at(nodeOf(l)) : var.at(nodeOf(l)));
-        int out = solver->newVar();
-        addAndClauses(out, ins,
-                      [&](ArrayRef<int> cl) { solver->addClause(cl); });
-        var[n] = out;
-      }
-      int v = var.at(nodeOf(root));
-      return isNeg(root) ? -v : v;
+    auto subst = reduction();
+    // Frame 0 in the initial state: registers with an initial value are
+    // constants, the others and the inputs are free.
+    auto leaf = [&](unsigned n) -> int {
+      if (net.kind[n] == Net::State)
+        if (auto init = regs[regOfNode.at(n)].init)
+          return *init ? trueVar : -trueVar;
+      return solver->newVar();
     };
-    // Hypotheses: every class holds in frame 0.
-    for (auto &c : classes) {
-      int ref =
-          c.constant ? -trueVar : encode(mkLit(regs[c.members[0].first].node));
-      for (auto [i, p] : c.members) {
-        int x = encode(mkLit(regs[i].node));
-        if (p)
-          x = -x;
-        if (x == ref)
-          continue;
-        solver->addClause({-x, ref});
-        solver->addClause({x, -ref});
-      }
-    }
-    // Each class member must equal the class value in frame 1. A
-    // counterexample is a state satisfying the hypotheses whose successor
-    // does not; it is simulated (with its free leaves) to split classes.
-    SmallVector<uint64_t> cexVals(net.size());
-    unsigned numCex = 0;
-    bool unknown = false;
-    SmallVector<unsigned> giveUp;
-    auto flush = [&]() {
-      if (!numCex)
-        return;
-      eval(cexVals);
-      uint64_t mask = numCex == 64 ? ~uint64_t(0) : (uint64_t(1) << numCex) - 1;
-      refine(cexVals, mask);
-      numCex = 0;
-    };
-    bool anyCex = false;
-    // Snapshot of the pairs to check: (register index, phase, class index).
-    SmallVector<std::tuple<unsigned, bool, unsigned>> todo;
-    for (auto [ci, c] : llvm::enumerate(classes))
-      for (auto [i, p] : c.members)
-        if (c.constant || i != c.members[0].first)
-          todo.push_back({i, p, unsigned(ci)});
-    auto classesAtStart = classes;
-    for (auto [i, p, ci] : todo) {
-      auto &c = classesAtStart[ci];
-      Lit refNext = c.constant ? kFalse : regs[c.members[0].first].next;
-      Lit mNext = regs[i].next ^ p;
-      int a = encode(mNext), b = encode(refNext);
-      if (a == b)
-        continue;
-      int diff = solver->newVar();
-      // diff -> a xor b
-      solver->addClause({-diff, a, b});
-      solver->addClause({-diff, -a, -b});
-      ++numSATCalls;
-      auto r = solver->solve({diff});
-      if (r == IncrementalSATSolver::kUNSAT) {
-        solver->addClause({-diff});
-        continue;
-      }
-      if (r != IncrementalSATSolver::kSAT) {
-        ++numUnknown;
-        unknown = true;
-        giveUp.push_back(i);
-        continue;
-      }
-      anyCex = true;
-      // Record the counterexample as pattern numCex of frame 0.
-      uint64_t bitMask = uint64_t(1) << numCex;
+    FrameEncoder enc(*solver, net, trueVar, leaf, subst);
+    auto record = [&](SmallVectorImpl<uint64_t> &leaves, uint64_t bit) {
       for (unsigned n = 1; n < net.size(); ++n) {
         if (net.kind[n] == Net::And)
           continue;
-        bool v = false;
-        if (auto it = var.find(n); it != var.end())
-          v = solver->val(std::abs(it->second)) > 0;
+        // The own value of a leaf (a register member's own initial value).
+        auto v = enc.lookupOwn(n);
         if (v)
-          cexVals[n] |= bitMask;
-        else
-          cexVals[n] &= ~bitMask;
+          setBit(leaves[n], bit, modelValue(*solver, *v));
       }
-      if (++numCex == 64)
-        flush();
-    }
-    flush();
-    // A member whose check gave up is removed from its class.
-    if (unknown) {
-      DenseSet<unsigned> drop(giveUp.begin(), giveUp.end());
-      for (auto &c : classes) {
-        if (!c.constant && drop.contains(c.members[0].first)) {
-          // Removing the representative: the rest still form a class
-          // relative to it, so keep the phases relative to the new first.
-          c.members.erase(c.members.begin());
-          if (!c.members.empty()) {
-            bool p0 = c.members[0].second;
-            for (auto &m : c.members)
-              m.second ^= p0;
-          }
-          continue;
-        }
-        llvm::erase_if(c.members,
-                       [&](auto &m) { return drop.contains(m.first); });
-      }
-      dropSingletons();
-    }
-    if (!anyCex && !unknown)
+    };
+    auto simulate = [&](SmallVectorImpl<uint64_t> &vals) {
+      vals.resize(net.size());
+      evalReduced(vals, subst);
+    };
+    if (checkRound(
+            *solver, [&](unsigned n) { return enc.own(n); },
+            [&](unsigned n) { return enc.node(n); }, record, simulate))
       return true;
   }
   return true;
 }
 
-unsigned Correspondence::merge() {
+bool Correspondence::proveStep() {
+  while (!classes.empty()) {
+    if (numIterations++ >= opts.maxIterations)
+      return false;
+    auto solver = createSATSolver(opts.satSolver);
+    if (!solver)
+      return false;
+    solver->setConflictLimit(opts.conflictLimit);
+    int trueVar = solver->newVar();
+    solver->addClause({trueVar});
+    auto subst = reduction();
+    // Frame 0: any state satisfying the classes (speculatively reduced);
+    // frame 1: its successor, with new inputs.
+    auto leaf0 = [&](unsigned) { return solver->newVar(); };
+    FrameEncoder enc0(*solver, net, trueVar, leaf0, subst);
+    auto leaf1 = [&](unsigned n) -> int {
+      if (net.kind[n] == Net::State)
+        return enc0(regs[regOfNode.at(n)].next);
+      return solver->newVar();
+    };
+    FrameEncoder enc1(*solver, net, trueVar, leaf1, subst);
+    // The leaves of frame 0 at [n], the free leaves of frame 1 at
+    // [size + n].
+    unsigned size = net.size();
+    auto record = [&](SmallVectorImpl<uint64_t> &leaves, uint64_t bit) {
+      for (unsigned n = 1; n < size; ++n) {
+        if (net.kind[n] == Net::And)
+          continue;
+        if (auto v = enc0.lookup(n))
+          setBit(leaves[n], bit, modelValue(*solver, *v));
+        if (net.kind[n] == Net::Free)
+          if (auto v = enc1.lookup(n))
+            setBit(leaves[size + n], bit, modelValue(*solver, *v));
+      }
+    };
+    auto simulate = [&](SmallVectorImpl<uint64_t> &vals) {
+      // Frame 0, reduced: a register member has its class's value.
+      SmallVector<uint64_t> v0(vals.begin(), vals.begin() + size);
+      for (unsigned n = 1; n < size; ++n)
+        if (auto it = subst.find(n);
+            it != subst.end() && net.kind[n] == Net::State) {
+          auto s = it->second;
+          uint64_t r = s.constant ? 0 : v0[s.node];
+          v0[n] = s.phase ? ~r : r;
+        }
+      evalReduced(v0, subst);
+      // The reduced values of frame 0 feed the next states.
+      SmallVector<uint64_t> red0(v0);
+      for (unsigned n = 1; n < size; ++n)
+        if (auto it = subst.find(n); it != subst.end()) {
+          auto s = it->second;
+          uint64_t r = s.constant ? 0 : red0[s.node];
+          red0[n] = s.phase ? ~r : r;
+        }
+      SmallVector<uint64_t> v1(vals.begin() + size, vals.end());
+      for (auto &r : regs)
+        v1[r.node] = value(red0, r.next);
+      evalReduced(v1, subst);
+      vals.assign(v1.begin(), v1.end());
+      // A few more frames from the successor, with random inputs. The
+      // counterexample state satisfies the current classes, which contain
+      // the ones that will be proved (classes only split); those are
+      // inductive, so they also hold in these frames, and splitting by them
+      // only removes candidates that would not be proved.
+      SmallVector<uint64_t> cur(v1);
+      for (unsigned f = 0; f < opts.cexFrames; ++f) {
+        SmallVector<uint64_t> red(cur);
+        for (unsigned n = 1; n < size; ++n)
+          if (auto it = subst.find(n); it != subst.end()) {
+            auto s = it->second;
+            uint64_t r = s.constant ? 0 : red[s.node];
+            red[n] = s.phase ? ~r : r;
+          }
+        SmallVector<uint64_t> next(size);
+        for (unsigned n = 1; n < size; ++n)
+          if (net.kind[n] == Net::Free)
+            next[n] = rng();
+        for (auto &r : regs)
+          next[r.node] = value(red, r.next);
+        evalReduced(next, subst);
+        extraFrames.push_back(next);
+        cur = std::move(next);
+      }
+    };
+    if (checkRound(
+            *solver, [&](unsigned n) { return enc1.own(n); },
+            [&](unsigned n) { return enc1.node(n); }, record, simulate))
+      return true;
+  }
+  return true;
+}
+
+unsigned Correspondence::ternaryConstants() {
+  // A ternary value as (may be 0, may be 1).
+  enum : uint8_t { Zero = 1, One = 2, X = 3 };
+  auto neg = [](uint8_t v) -> uint8_t {
+    return uint8_t(((v & Zero) ? One : 0) | ((v & One) ? Zero : 0));
+  };
+  // The abstract state: each register's possible values in the states seen
+  // so far. Joining with the successor until it no longer changes gives an
+  // over-approximation of the reachable states.
+  SmallVector<uint8_t> state(regs.size());
+  for (auto [i, r] : llvm::enumerate(regs))
+    state[i] = r.init ? (*r.init ? One : Zero) : X;
+  SmallVector<uint8_t> vals(net.size());
+  auto litVal = [&](Lit l) {
+    uint8_t v = vals[nodeOf(l)];
+    return isNeg(l) ? neg(v) : v;
+  };
+  for (bool changed = true; changed;) {
+    changed = false;
+    vals[0] = Zero;
+    for (unsigned n = 1; n < net.size(); ++n) {
+      switch (net.kind[n]) {
+      case Net::Const:
+        vals[n] = Zero;
+        break;
+      case Net::Free:
+        vals[n] = X;
+        break;
+      case Net::State:
+        vals[n] = state[regOfNode.at(n)];
+        break;
+      case Net::And: {
+        bool zero = false, one = true;
+        for (Lit l : net.fanins[n]) {
+          uint8_t v = litVal(l);
+          zero |= v == Zero;
+          one &= v == One;
+        }
+        vals[n] = zero ? Zero : one ? One : X;
+        break;
+      }
+      }
+    }
+    for (auto [i, r] : llvm::enumerate(regs)) {
+      uint8_t joined = state[i] | litVal(r.next);
+      if (joined != state[i]) {
+        state[i] = joined;
+        changed = true;
+      }
+    }
+  }
+  Class constant;
+  constant.constant = true;
+  for (auto [i, r] : llvm::enumerate(regs))
+    if (state[i] != X)
+      constant.members.push_back({unsigned(i), state[i] == One});
+  classes.clear();
+  unsigned n = constant.members.size();
+  if (n)
+    classes.push_back(std::move(constant));
+  return n;
+}
+
+std::optional<Correspondence::Conflict>
+Correspondence::checkConstraints(unsigned depth, bool &gaveUp) {
+  gaveUp = false;
+  // The constraints and their literals: `enable -> property`.
+  SmallVector<verif::AssumeOp> assumes;
+  SmallVector<Lit> lits;
+  for (auto op : module.getBodyBlock()->getOps<verif::AssumeOp>()) {
+    if (!op.getProperty().getType().isInteger(1))
+      continue;
+    Lit l = lit(op.getProperty(), 0);
+    if (auto en = op.getEnable()) {
+      Lit e = lit(en, 0);
+      if (e == kFalse)
+        continue;
+      if (e != (kFalse ^ 1))
+        l = mkLit(net.add(Net::And, {e, l ^ 1})) ^ 1;
+    }
+    if (l == (kFalse ^ 1))
+      continue;
+    assumes.push_back(op);
+    lits.push_back(l);
+  }
+  if (assumes.empty())
+    return std::nullopt;
+
+  auto solver = createSATSolver(opts.satSolver);
+  if (!solver) {
+    gaveUp = true;
+    return std::nullopt;
+  }
+  solver->setConflictLimit(opts.conflictLimit);
+  int trueVar = solver->newVar();
+  solver->addClause({trueVar});
+  // One selector per constraint, shared by all frames.
+  SmallVector<int> sel;
+  for (size_t i = 0; i < assumes.size(); ++i)
+    sel.push_back(solver->newVar());
+
+  // Frames from the initial state: registers with an initial value start
+  // there, the other leaves are free in every frame. A free leaf only adds
+  // behaviors, so a conflict found here is one of the module.
+  static const DenseMap<unsigned, Subst> noSubst;
+  SmallVector<std::unique_ptr<FrameEncoder>> frames;
+  for (unsigned f = 0; f < depth; ++f) {
+    auto leaf = [&, f](unsigned n) -> int {
+      if (net.kind[n] == Net::State) {
+        auto &r = regs[regOfNode.at(n)];
+        if (f > 0)
+          return (*frames[f - 1])(r.next);
+        if (r.init)
+          return *r.init ? trueVar : -trueVar;
+      }
+      return solver->newVar();
+    };
+    frames.push_back(
+        std::make_unique<FrameEncoder>(*solver, net, trueVar, leaf, noSubst));
+    for (auto [s, l] : llvm::zip(sel, lits))
+      solver->addClause({-s, (*frames[f])(l)});
+    ++numSATCalls;
+    auto result = solver->solve(sel);
+    if (result == IncrementalSATSolver::kSAT)
+      continue;
+    if (result != IncrementalSATSolver::kUNSAT) {
+      ++numUnknown;
+      gaveUp = true;
+      return std::nullopt;
+    }
+    // A conflict within f + 1 cycles. Shrink the constraints to a core by
+    // deletion: drop each one whose removal keeps the conflict.
+    SmallVector<bool> inCore(assumes.size(), true);
+    for (size_t i = 0; i < assumes.size(); ++i) {
+      SmallVector<int> active;
+      for (size_t j = 0; j < assumes.size(); ++j)
+        if (j != i && inCore[j])
+          active.push_back(sel[j]);
+      ++numSATCalls;
+      if (solver->solve(active) == IncrementalSATSolver::kUNSAT)
+        inCore[i] = false;
+    }
+    Conflict c;
+    c.cycles = f + 1;
+    for (size_t i = 0; i < assumes.size(); ++i)
+      if (inCore[i])
+        c.core.push_back(assumes[i]);
+    return c;
+  }
+  return std::nullopt;
+}
+
+std::pair<unsigned, unsigned> Correspondence::merge() {
   // Split the registers involved into one register per bit.
   llvm::SetVector<Operation *> involved;
   for (auto &c : classes)
     for (auto [i, p] : c.members)
-      involved.insert(regs[i].op);
+      if (cands[i].reg >= 0)
+        involved.insert(regs[cands[i].reg].op);
   DenseMap<std::pair<Operation *, unsigned>, Value> bitValue;
   DenseMap<IntegerAttr, Value> initials;
   for (auto *opPtr : involved) {
@@ -649,37 +1099,76 @@ unsigned Correspondence::merge() {
     op.replaceAllUsesWith(whole);
     op.erase();
   }
+  // The value of a candidate after the split.
+  auto candValue = [&](unsigned i) -> Value {
+    if (cands[i].reg >= 0) {
+      auto &r = regs[cands[i].reg];
+      return bitValue.at({r.op, r.bit});
+    }
+    return cands[i].value;
+  };
+  // Does the combinational cone of `root` in the IR contain `target`?
+  auto reaches = [&](Value root, Value target) {
+    SmallVector<Value> stack{root};
+    DenseSet<Value> seen;
+    while (!stack.empty()) {
+      Value v = stack.pop_back_val();
+      if (v == target)
+        return true;
+      if (!seen.insert(v).second)
+        continue;
+      Operation *op = v.getDefiningOp();
+      if (!op || isa<seq::CompRegOp, seq::InitialOp>(op))
+        continue;
+      for (auto operand : op->getOperands())
+        stack.push_back(operand);
+    }
+    return false;
+  };
   // Replace the members by the class value.
-  unsigned merged = 0;
+  unsigned mergedRegs = 0, mergedGates = 0;
   OpBuilder builder(module.getContext());
+  builder.setInsertionPoint(module.getBodyBlock()->getTerminator());
   for (auto &c : classes) {
     Value ref;
     if (!c.constant)
-      ref = bitValue.at(
-          {regs[c.members[0].first].op, regs[c.members[0].first].bit});
+      ref = candValue(c.members[0].first);
+    Value inverse, constant[2];
     for (auto [i, p] : c.members) {
-      Value v = bitValue.at({regs[i].op, regs[i].bit});
+      Value v = candValue(i);
       if (v == ref)
         continue;
-      auto reg = v.getDefiningOp<seq::CompRegOp>();
-      builder.setInsertionPointAfter(reg);
+      auto loc = v.getLoc();
       Value repl;
-      if (c.constant)
-        repl = hw::ConstantOp::create(
-            builder, reg.getLoc(),
-            builder.getIntegerAttr(builder.getI1Type(), p));
-      else if (p) {
-        builder.setInsertionPointToEnd(module.getBodyBlock());
-        builder.setInsertionPoint(module.getBodyBlock()->getTerminator());
-        repl = aig::AndInverterOp::create(builder, reg.getLoc(), ref, true);
-      } else
+      if (c.constant) {
+        if (!constant[p])
+          constant[p] = hw::ConstantOp::create(
+              builder, loc, builder.getIntegerAttr(builder.getI1Type(), p));
+        repl = constant[p];
+      } else if (p) {
+        if (!inverse)
+          inverse = aig::AndInverterOp::create(builder, loc, ref, true);
+        repl = inverse;
+      } else {
         repl = ref;
-      reg.getResult().replaceAllUsesWith(repl);
-      reg.erase();
-      ++merged;
+      }
+      if (cands[i].reg >= 0) {
+        auto reg = v.getDefiningOp<seq::CompRegOp>();
+        reg.getResult().replaceAllUsesWith(repl);
+        reg.erase();
+        ++mergedRegs;
+        continue;
+      }
+      // An and-gate: its representative comes earlier in the net, so it does
+      // not depend on it there; an op outside the net could still make it
+      // depend on it in the module.
+      if (hiddenPaths && ref && reaches(ref, v))
+        continue;
+      v.replaceAllUsesWith(repl);
+      ++mergedGates;
     }
   }
-  return merged;
+  return {mergedRegs, mergedGates};
 }
 
 namespace {
@@ -690,15 +1179,14 @@ struct RegisterCorrespondencePass
 
   void runOnOperation() override {
     auto module = getOperation();
-    Params opts{numPatterns,   numFrames,          seed,
-                maxIterations, int(conflictLimit), satSolver};
+    Params opts{numPatterns,        numFrames, seed,     maxIterations,
+                int(conflictLimit), satSolver, internal, cexFrames};
     Correspondence c(module, opts);
     if (!c.build())
       return markAllAnalysesPreserved();
     c.simulateCandidates();
-    c.checkBase();
     numCandidatesStat += c.numCandidates();
-    bool proved = c.prove();
+    bool proved = c.proveBase() && c.proveStep();
     numIterationsStat += c.numIterations;
     numSATCallsStat += c.numSATCalls;
     numUnknownStat += c.numUnknown;
@@ -707,7 +1195,57 @@ struct RegisterCorrespondencePass
           << c.numIterations << " iterations; nothing merged";
       return markAllAnalysesPreserved();
     }
-    numMergedStat += c.merge();
+    auto [regs, gates] = c.merge();
+    numMergedStat += regs;
+    numMergedGatesStat += gates;
+  }
+};
+} // namespace
+
+namespace {
+struct TernaryConstantsPass
+    : public circt::synth::impl::TernaryConstantsBase<TernaryConstantsPass> {
+  void runOnOperation() override {
+    Params opts{64, 1, 0, 0, -1, "auto", false, 0};
+    Correspondence c(getOperation(), opts);
+    if (!c.build() || !c.ternaryConstants())
+      return markAllAnalysesPreserved();
+    numConstantStat += c.merge().first;
+  }
+};
+} // namespace
+
+namespace {
+struct CheckConstraintsPass
+    : public circt::synth::impl::CheckConstraintsBase<CheckConstraintsPass> {
+  using CheckConstraintsBase::CheckConstraintsBase;
+
+  void runOnOperation() override {
+    auto module = getOperation();
+    markAllAnalysesPreserved();
+    Params opts{64, 1, 0, 0, int(conflictLimit), satSolver, false, 0};
+    Correspondence c(module, opts);
+    c.build();
+    bool gaveUp;
+    auto conflict = c.checkConstraints(depth, gaveUp);
+    numSATCallsStat += c.numSATCalls;
+    if (gaveUp)
+      module.emitWarning("constraint check gave up (conflict limit)");
+    if (!conflict)
+      return;
+    ++numConflictsStat;
+    auto diag = failOnConflict ? module.emitError() : module.emitWarning();
+    if (conflict->cycles == 1)
+      diag << "constraints conflict in the initial state; every property "
+              "holds vacuously";
+    else
+      diag << "constraints conflict within " << conflict->cycles
+           << " cycles; no trace is longer than " << conflict->cycles - 1
+           << " cycles";
+    for (auto op : conflict->core)
+      diag.attachNote(op.getLoc()) << "constraint in the conflict";
+    if (failOnConflict)
+      signalPassFailure();
   }
 };
 } // namespace

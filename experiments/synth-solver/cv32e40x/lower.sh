@@ -3,7 +3,7 @@
 # passes only:
 #
 #   lower.sh IN.mlir OUT.mlir [--assert L1,L2] [--assume L3,L4]
-#            [--odc full|antecedent] [--pre-cache PREFIX]
+#            [--odc full|antecedent] [--pre-cache PREFIX] [--constraints]
 #   lower.sh IN.mlir --list [--odc full|antecedent] [--pre-cache PREFIX]
 #
 # PRE (independent of the assertion, cached with --pre-cache): flatten,
@@ -17,7 +17,9 @@
 # on the gated clock count in its cycles; their registers also get the clock
 # enable), seq.firreg
 # becomes seq.compreg with an initial value (registers with reset start in
-# reset; others with any value), symbolic values become inputs.
+# reset; others with any value), symbolic values become inputs. With
+# --constraints, the assumptions stay as verif.assume (AIGER constraints)
+# instead of being folded into `bad`.
 #
 # Assertions proved by verif-simplify-odc are removed by it: for those,
 # "LABEL: proved by verif-simplify-odc" is printed and no model is written.
@@ -27,7 +29,7 @@ set -euo pipefail
 in=$1; shift
 out=
 if [ $# -gt 0 ] && [ "${1#--}" = "$1" ]; then out=$1; shift; fi
-asserts= assumes= odc= cache= list=
+asserts= assumes= odc= cache= list= constraints=
 while [ $# -gt 0 ]; do
   case $1 in
     --assert) asserts=$2; shift 2 ;;
@@ -35,6 +37,7 @@ while [ $# -gt 0 ]; do
     --odc) odc=$2; shift 2 ;;
     --pre-cache) cache=$2; shift 2 ;;
     --list) list=1; shift ;;
+    --constraints) constraints=1; shift ;;
     *) echo "unknown option $1" >&2; exit 2 ;;
   esac
 done
@@ -82,6 +85,7 @@ if [ -n "$asserts" ] && [ -z "$left" ]; then exit 0; fi
 opts=
 [ -n "$left" ] && opts="asserts=$left"
 [ -n "$assumes" ] && opts="$opts${opts:+ }assumes=$assumes"
+[ -n "$constraints" ] && opts="$opts${opts:+ }constraints"
 MODEL="builtin.module(verif-assertions-to-output{$opts},hw.module(seq-clock-gate-to-enable,seq-lower-firreg-to-compreg),verif-lower-symbolic-values{mode=hw-input},canonicalize,cse,hw-convert-bitcasts,canonicalize,hw-convert-bitcasts,canonicalize,cse)"
 circt-opt $pre.mlir --pass-pipeline="$MODEL" -o $out
 if grep -qE '\bllhd\.' $out; then

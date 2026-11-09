@@ -311,6 +311,14 @@ def RegisterCorrespondence
     not converge within `max-iterations`, nothing is merged. A register with
     a merged bit is split into one register per bit.
 
+    With `internal`, i1 and-gates are candidates as well (signal
+    correspondence, as ABC's `scorr`): a gate may be merged with a register,
+    another gate, or a constant when they are equal in every reachable state
+    for every input. The base case is then checked with SAT for all inputs of
+    the initial state, and the inductive step over two cycles. A class's
+    representative is a register if it has one, otherwise its first gate in
+    topological order, so merging never creates a combinational cycle.
+
     The module keeps its outputs in every reachable state from the initial
     state; it is meant for models that are checked from that state (e.g. by
     a model checker after ExportAIGER).
@@ -327,7 +335,12 @@ def RegisterCorrespondence
            "Per-SAT-call conflict budget (-1: none); a register whose check "
            "exceeds it is not merged">,
     Option<"satSolver", "sat-solver", "std::string", "\"auto\"",
-           "SAT solver backend: auto, z3 or cadical">
+           "SAT solver backend: auto, z3 or cadical">,
+    Option<"internal", "internal", "bool", "false",
+           "Also merge i1 and-gates (signal correspondence)">,
+    Option<"cexFrames", "cex-frames", "unsigned", "8",
+           "Cycles simulated after a counterexample of the inductive step "
+           "to split more classes">
   ];
   let statistics = [
     Statistic<"numCandidatesStat", "num-candidates",
@@ -336,7 +349,9 @@ def RegisterCorrespondence
     Statistic<"numSATCallsStat", "num-sat-calls", "SAT calls">,
     Statistic<"numUnknownStat", "num-unknown",
               "SAT calls that exceeded the conflict budget">,
-    Statistic<"numMergedStat", "num-merged", "Register bits merged">
+    Statistic<"numMergedStat", "num-merged", "Register bits merged">,
+    Statistic<"numMergedGatesStat", "num-merged-gates",
+              "And-gates merged (with internal)">
   ];
   let dependentDialects = ["comb::CombDialect", "hw::HWDialect",
                            "seq::SeqDialect", "synth::SynthDialect"];
@@ -489,6 +504,59 @@ def ExactSynthesis : Pass<"synth-exact-synthesis"> {
               "Number of truth tables left unchanged">
   ];
   let dependentDialects = ["hw::HWDialect", "synth::SynthDialect"];
+}
+
+def TernaryConstants : Pass<"synth-ternary-constants", "hw::HWModuleOp"> {
+  let summary = "Replace registers that are constant in all reachable states";
+  let description = [{
+    Ternary simulation from the initial state: inputs, unknown initial values
+    and bits the pass does not model are X (as in
+    `synth-register-correspondence`), and each register's set of possible
+    values is joined with its next-state value until nothing changes. The
+    result over-approximates the reachable states, so a register bit that
+    is still 0 or 1 is that constant in every reachable state and is
+    replaced by it (a register with such a bit is split into one register
+    per bit). No SAT solver is used; `synth-register-correspondence` proves
+    more (equivalences, and constants that need induction), at a higher
+    cost.
+  }];
+  let statistics = [
+    Statistic<"numConstantStat", "num-constant",
+              "Register bits replaced by a constant">
+  ];
+  let dependentDialects = ["comb::CombDialect", "hw::HWDialect",
+                           "seq::SeqDialect", "synth::SynthDialect"];
+}
+
+def CheckConstraints : Pass<"synth-check-constraints", "hw::HWModuleOp"> {
+  let summary = "Check that the constraints can hold";
+  let description = [{
+    Checks that the constraints of the module (`verif.assume` of an i1
+    value, with an optional enable) can hold together from the initial
+    state: for each cycle up to `depth`, some trace satisfies all of them in
+    every cycle so far. If none does, the properties hold vacuously from that
+    cycle on, which usually is a bug in the constraints (`:noConflict` of
+    formal tools). The pass reports the cycle and a subset of the
+    constraints that already conflict, as a warning (or an error with
+    `fail-on-conflict`). It does not change the IR.
+
+    Registers on the main clock with a constant (or no) initial value are
+    modeled; other values are treated as free, which only adds traces, so a
+    reported conflict is one of the module.
+  }];
+  let options = [
+    Option<"depth", "depth", "unsigned", "20", "Number of cycles to check">,
+    Option<"conflictLimit", "conflict-limit", "int", "100000",
+           "Conflict limit per SAT call (-1: none)">,
+    Option<"satSolver", "sat-solver", "std::string", "\"auto\"",
+           "SAT solver backend">,
+    Option<"failOnConflict", "fail-on-conflict", "bool", "false",
+           "Report a conflict as an error">
+  ];
+  let statistics = [
+    Statistic<"numConflictsStat", "num-conflicts", "Modules with a conflict">,
+    Statistic<"numSATCallsStat", "num-sat-calls", "SAT calls">
+  ];
 }
 
 #endif // CIRCT_DIALECT_SYNTH_TRANSFORMS_PASSES_TD
