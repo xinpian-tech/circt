@@ -38,6 +38,9 @@ pipeline() {
     # not registered in circt-opt), without and with functional reduction.
     opt) echo "hw.module(cse,synth-structural-hash,canonicalize,synth-maximum-and-cover,$BITS,synth-sop-balancing{max-cut-input-size=4 max-cuts-per-root=4},$BITS)" ;;
     opt-fr) echo "hw.module(cse,synth-structural-hash,canonicalize,synth-maximum-and-cover,$BITS,synth-sop-balancing{max-cut-input-size=4 max-cuts-per-root=4},$BITS,synth-functional-reduction{use-choices=false},canonicalize,$BITS)" ;;
+    # Register correspondence (sequential: registers equal, complementary or
+    # constant in all reachable states are merged).
+    rc) echo "hw.module(synth-register-correspondence,canonicalize,$BITS)" ;;
     # Without sop balancing.
     opt-nosop) echo "hw.module(cse,synth-structural-hash,canonicalize,synth-maximum-and-cover,$BITS)" ;;
   esac

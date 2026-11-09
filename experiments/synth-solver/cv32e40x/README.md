@@ -487,3 +487,34 @@ abc-scorr 51 s per model).
   shorter one), all 483 witnesses pass `aigsim -c`, and no counterexample
   is on an assertion that rIC3 proved on the same model (in 192 runs rBMC
   finds a counterexample where IC3 timed out at 60 s).
+
+## Register correspondence (synth-register-correspondence, results-core-rbmc-rc.tsv)
+
+`synth-register-correspondence` merges register bits that are equal,
+complementary or constant in every reachable state, proved by induction
+(the register part of ABC's scorr). Configuration `rc` of
+`run_aig_configs.sh`: the pass, canonicalize, and the bit-level cleanup.
+
+| config | latches | ANDs | pass (s) |
+|---|---|---|---|
+| base | 2891 | 56070 | |
+| rc | 2389 | 49162 | 16 (max 25) |
+| abc-scorr | 2016 | 30758 | 51 |
+
+Equivalence of rc with base: ABC `miter; dprove` proves 90 of the 97
+models equivalent and times out (15 min) on 7; on those 7 miters rBMC
+finds no difference (up to bound 30 on six, bound 4 on a_shift_result_ll).
+
+rBMC, bound 20, 150 s, the three configurations in one batch (82
+assertions finished by all):
+
+| config | SAT | K | TO | PAR-2 (s) | common (s) | ratio |
+|---|---|---|---|---|---|---|
+| base | 44 | 38 | 15 | 70.7 | 2358 | 1.00 |
+| rc | 44 | 39 | 14 | 67.4 | 2205 | 0.89 |
+| abc-scorr | 44 | 40 | 13 | 58.7 | 1572 | 0.34 |
+
+Register correspondence alone gives 11%; scorr gets 3x. scorr also merges
+internal signals (signal correspondence, not only registers) and runs dc2
+afterwards, so its models have 13% fewer latches and 37% fewer AND gates
+than rc. No soundness problems across the three configurations.
