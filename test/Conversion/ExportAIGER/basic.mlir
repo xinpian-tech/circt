@@ -270,3 +270,20 @@ hw.module @multibit_constants(out low: i1, out high: i1, out zero: i1) {
 // CHECK-NEXT: module: comment
 hw.module @comment() {
 }
+
+// -----
+
+// Assumptions of an i1 are constraints (AIGER 1.9: M I L O A B C), after the
+// outputs.
+// CHECK-LABEL: aag 3 2 0 1 1 0 1
+// CHECK-NEXT: 2
+// CHECK-NEXT: 4
+// CHECK-NEXT: 6
+// CHECK-NEXT: 3
+// CHECK-NEXT: 6 2 4
+hw.module @constraint(in %a : i1, in %b : i1, out bad : i1) {
+  %0 = synth.aig.and_inv %a, %b : i1
+  %na = synth.aig.and_inv not %a : i1
+  verif.assume %na : i1
+  hw.output %0 : i1
+}

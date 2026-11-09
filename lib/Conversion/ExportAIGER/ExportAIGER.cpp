@@ -19,6 +19,7 @@
 #include "circt/Dialect/Seq/SeqOpInterfaces.h"
 #include "circt/Dialect/Seq/SeqOps.h"
 #include "circt/Dialect/Synth/SynthOps.h"
+#include "circt/Dialect/Verif/VerifOps.h"
 #include "circt/Support/Namespace.h"
 #include "circt/Support/Version.h"
 #include "mlir/Analysis/TopologicalSortUtils.h"
@@ -102,6 +103,8 @@ private:
   /// Initial values of the latches (AIGER 1.9), parallel to `latches`.
   SmallVector<bool> latchInits;
   SmallVector<std::pair<Object, StringAttr>> outputs;
+  /// AIGER 1.9 constraints (`verif.assume` of an i1 without enable).
+  SmallVector<Object> constraints;
   SmallVector<std::tuple<Object, Object, Object>> andGates; // lhs, rhs0, rhs1
 
   std::optional<Value> clock;
@@ -163,6 +166,7 @@ private:
   LogicalResult visit(comb::ConcatOp op);
   LogicalResult visit(comb::ExtractOp op);
   LogicalResult visit(comb::ReplicateOp op);
+  LogicalResult visit(verif::AssumeOp op);
 
   /// Get or assign a literal for a value
   unsigned getLiteral(Object obj, bool inverted = false);
@@ -223,10 +227,13 @@ LogicalResult AIGERExporter::writeHeader() {
   else
     os << "aag";
 
-  // Write M I L O A
+  // Write M I L O A (and B C, no bad states, for constraints)
   os << " " << getNumInputs() + getNumLatches() + getNumAnds() << " "
      << getNumInputs() << " " << getNumLatches() << " " << getNumOutputs()
-     << " " << getNumAnds() << "\n";
+     << " " << getNumAnds();
+  if (!constraints.empty())
+    os << " 0 " << constraints.size();
+  os << "\n";
 
   return success();
 }
@@ -277,6 +284,10 @@ LogicalResult AIGERExporter::writeOutputs() {
   // Write output literals
   for (auto [output, _] : outputs)
     os << getLiteral(output) << "\n";
+  // Constraints follow the outputs (and the bad states, of which there are
+  // none).
+  for (auto constraint : constraints)
+    os << getLiteral(constraint) << "\n";
 
   return success();
 }
@@ -531,6 +542,7 @@ LogicalResult AIGERExporter::visit(Operation *op) {
       .Case<comb::ConcatOp>([&](auto op) { return visit(op); })
       .Case<comb::ExtractOp>([&](auto op) { return visit(op); })
       .Case<comb::ReplicateOp>([&](auto op) { return visit(op); })
+      .Case<verif::AssumeOp>([&](auto op) { return visit(op); })
       .Case<hw::HWModuleOp, hw::ConstantOp, hw::OutputOp, seq::InitialOp>(
           [](auto) { return success(); })
       .Default([&](Operation *op) -> LogicalResult {
@@ -617,6 +629,15 @@ LogicalResult AIGERExporter::visit(seq::CompRegOp op) {
   LLVM_DEBUG(llvm::dbgs() << "  Found latch: " << op << "\n");
   if (handler)
     handler->notifyEmitted(op);
+  return success();
+}
+
+LogicalResult AIGERExporter::visit(verif::AssumeOp op) {
+  auto type = dyn_cast<IntegerType>(op.getProperty().getType());
+  if (op.getEnable() || !type || type.getWidth() != 1)
+    return op.emitError("only an assumption of an i1 without enable can be "
+                        "exported to AIGER (as a constraint)");
+  constraints.push_back({op.getProperty(), 0});
   return success();
 }
 
@@ -747,6 +768,6 @@ void circt::aiger::registerExportAIGERTranslation() {
       },
       [](DialectRegistry &registry) {
         registry.insert<synth::SynthDialect, hw::HWDialect, seq::SeqDialect,
-                        comb::CombDialect>();
+                        verif::VerifDialect, comb::CombDialect>();
       });
 }
