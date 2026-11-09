@@ -383,7 +383,13 @@ LogicalResult AssertionsToOutputPass::lower(hw::HWModuleOp module,
   numAssumes += assumptions.size();
 
   Value bad = lowering.orOf(violations, loc);
-  if (!assumptions.empty()) {
+  if (constraints) {
+    // Each assumption holds in every cycle (the trace ends where one would
+    // be violated, as an AIGER constraint).
+    for (auto violated : assumptions)
+      verif::AssumeOp::create(builder, loc, lowering.notOf(violated), Value(),
+                              StringAttr());
+  } else if (!assumptions.empty()) {
     // An assumption was violated now or before: the run no longer counts.
     auto failedBefore = lowering.reg(lowering.orOf({}, loc), loc);
     SmallVector<Value> now(assumptions);
