@@ -19,6 +19,7 @@ add_circt_dialect_library(CIRCTSynthTransforms
   SOPBalancing.cpp
   StructuralHash.cpp
   SynthesisPipeline.cpp
+  RegisterCorrespondence.cpp
   TechMapper.cpp
   TestPriorityCuts.cpp
 

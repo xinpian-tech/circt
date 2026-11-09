@@ -437,4 +437,58 @@ def ExactSynthesis : Pass<"synth-exact-synthesis"> {
   let dependentDialects = ["hw::HWDialect", "synth::SynthDialect"];
 }
 
+def RegisterCorrespondence
+    : Pass<"synth-register-correspondence", "hw::HWModuleOp"> {
+  let summary = "Merge registers that are equivalent in all reachable states";
+  let description = [{
+    Register correspondence: register bits that are equal, complementary or
+    constant in every reachable state are merged (one register per class;
+    the others are replaced by it, its inverse or the constant). This is the
+    register part of ABC's `scorr` (C. A. J. van Eijk, "Sequential
+    Equivalence Checking Based on Structural Similarities", IEEE TCAD 19(7),
+    2000).
+
+    Candidate classes come from random simulation from the initial state.
+    They are proved by induction: they hold in the initial state, and if all
+    of them hold in a state, they hold in the next one (checked with a SAT
+    solver); a counterexample to the inductive step splits the classes, and
+    the check is repeated until no class changes. Only registers on the
+    module's most common clock, without reset or inner symbol and with a
+    constant (or no) initial value are candidates. Bits that are not and-gates
+    of `synth.aig.and_inv`, wiring or constants, or are such registers, are
+    free inputs of the check, which can only make it fail. If the check does
+    not converge within `max-iterations`, nothing is merged. A register with
+    a merged bit is split into one register per bit.
+
+    The module keeps its outputs in every reachable state from the initial
+    state; it is meant for models that are checked from that state (e.g. by
+    a model checker after ExportAIGER).
+  }];
+  let options = [
+    Option<"numPatterns", "num-patterns", "unsigned", "256",
+           "Simulation patterns (a multiple of 64)">,
+    Option<"numFrames", "num-frames", "unsigned", "32",
+           "Simulated cycles from the initial state">,
+    Option<"seed", "seed", "uint64_t", "0", "Seed of the simulation">,
+    Option<"maxIterations", "max-iterations", "unsigned", "1000",
+           "Induction rounds before giving up (then nothing is merged)">,
+    Option<"conflictLimit", "conflict-limit", "int64_t", "10000",
+           "Per-SAT-call conflict budget (-1: none); a register whose check "
+           "exceeds it is not merged">,
+    Option<"satSolver", "sat-solver", "std::string", "\"auto\"",
+           "SAT solver backend: auto, z3 or cadical">
+  ];
+  let statistics = [
+    Statistic<"numCandidatesStat", "num-candidates",
+              "Register bits in candidate classes after simulation">,
+    Statistic<"numIterationsStat", "num-iterations", "Induction rounds">,
+    Statistic<"numSATCallsStat", "num-sat-calls", "SAT calls">,
+    Statistic<"numUnknownStat", "num-unknown",
+              "SAT calls that exceeded the conflict budget">,
+    Statistic<"numMergedStat", "num-merged", "Register bits merged">
+  ];
+  let dependentDialects = ["comb::CombDialect", "hw::HWDialect",
+                           "seq::SeqDialect", "synth::SynthDialect"];
+}
+
 #endif // CIRCT_DIALECT_SYNTH_TRANSFORMS_PASSES_TD
