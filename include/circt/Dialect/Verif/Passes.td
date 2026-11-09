@@ -167,6 +167,47 @@ def SimplifyAssumeEqPass : Pass<"simplify-assume-eq", "hw::HWModuleOp"> {
   }];
 }
 
+def SplitAssumesPass : Pass<"verif-split-assumes", "hw::HWModuleOp"> {
+  let summary = "Split assumed conjunctions into one assumption per operand";
+  let description = [{
+    A `verif.assume` of an i1 conjunction (`comb.and`, or a
+    `synth.aig.and_inv` of several operands) without enable becomes one
+    assumption per operand (an inverted operand of `and_inv` gets an
+    inverter); an assumption of the constant true is removed. Later passes
+    then see the individual facts (e.g. `verif-substitute-assumed-inputs`).
+  }];
+  let statistics = [
+    Statistic<"numSplit", "num-split", "Assumptions split">
+  ];
+  let dependentDialects = ["synth::SynthDialect"];
+}
+
+def SubstituteAssumedInputsPass
+    : Pass<"verif-substitute-assumed-inputs", "hw::HWModuleOp"> {
+  let summary = "Replace input bits that the assumptions determine";
+  let description = [{
+    Uses the assumptions of the module (`verif.assume` of an i1 without
+    enable, which hold in every cycle) to eliminate inputs: an input bit x
+    (an i1 input or a 1-bit extract of an input) that an assumption makes
+    constant (`assume x`, `assume !x`) or equal to another value h (both
+    `!(x & !h)` and `!(!x & h)` assumed, as `verif-split-assumes` leaves an
+    assumed XNOR, or `x == h` / `x != h`), with h not depending on x
+    combinationally, is replaced by its value everywhere except in the
+    assumptions that determine it.
+
+    Those assumptions keep reading the input, so the result has the same
+    traces as the module: the input still has the value the assumptions
+    give it, and a counterexample of the result is one of the module without
+    mapping. Unlike `simplify-assume-eq`, which replaces symbolic values,
+    this handles inputs that take a new value in every cycle.
+  }];
+  let statistics = [
+    Statistic<"numConstant", "num-constant", "Input bits made constant">,
+    Statistic<"numEqual", "num-equal", "Input bits replaced by a value">
+  ];
+  let dependentDialects = ["hw::HWDialect", "synth::SynthDialect"];
+}
+
 def AssertionsToOutputPass : Pass<"verif-assertions-to-output",
                                   "mlir::ModuleOp"> {
   let summary = "Turn clocked assertions and assumptions into a safety output";
