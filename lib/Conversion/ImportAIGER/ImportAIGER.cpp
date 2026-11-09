@@ -37,6 +37,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include <cctype>
 #include <limits>
+#include <optional>
 #include <string>
 
 using namespace mlir;
@@ -234,6 +235,18 @@ private:
 
   /// Parse latches section
   ParseResult parseLatches();
+  /// AIGER 1.9 initial value of a latch: 0 (also when omitted), 1, or the
+  /// latch's own literal for an unknown initial value (`std::nullopt`).
+  SmallVector<std::optional<bool>> latchInits;
+  LogicalResult addLatchInit(unsigned current, unsigned init, SMLoc loc) {
+    if (init == current)
+      latchInits.push_back(std::nullopt);
+    else if (init == 0 || init == 1)
+      latchInits.push_back(init == 1);
+    else
+      return emitError(loc, "invalid latch initial value");
+    return success();
+  }
 
   /// Parse outputs section
   ParseResult parseOutputs();
@@ -595,6 +608,8 @@ ParseResult AIGERParser::parseLatches() {
         return emitError("failed to parse latch initial value");
 
       latchDefs.push_back({2 * (i + 1 + numInputs), literal, loc});
+      if (failed(addLatchInit(2 * (i + 1 + numInputs), init, loc)))
+        return failure();
 
       // Expect newline after each latch next state
       if (parseNewLine())
@@ -627,6 +642,8 @@ ParseResult AIGERParser::parseLatches() {
       return emitError(loc, "invalid latch current state literal");
 
     latchDefs.push_back({currentState, nextState, loc});
+    if (failed(addLatchInit(currentState, init, loc)))
+      return failure();
   }
 
   return success();
@@ -1018,14 +1035,30 @@ ParseResult AIGERParser::createModule() {
   }
 
   // Create latches (registers) with backedges for next state
+  Value initialValues[2];
   for (auto [i, latchDef] : llvm::enumerate(latchDefs)) {
     auto [currentState, nextState, loc] = latchDef;
     // Get the backedge for the next state value
     auto nextBackedge = bb.get(builder.getI1Type());
 
-    // Create the register with the backedge as input
+    // Create the register with the backedge as input, and its initial value
+    // (none if it is unknown).
+    auto location = lexer.translateLocation(loc);
+    Value initial;
+    if (auto init = latchInits[i]) {
+      auto &v = initialValues[*init];
+      if (!v) {
+        OpBuilder::InsertionGuard guard(builder);
+        builder.setInsertionPointToStart(hwModule.getBodyBlock());
+        v = seq::createConstantInitialValue(
+            builder, location,
+            builder.getIntegerAttr(builder.getI1Type(), *init));
+      }
+      initial = v;
+    }
     auto regValue = seq::CompRegOp::create(
-        builder, lexer.translateLocation(loc), (Value)nextBackedge, clockValue);
+        builder, location, (Value)nextBackedge, clockValue, Value(), Value(),
+        StringAttr(), hw::InnerSymAttr(), initial);
     if (auto name = symbolTable.lookup({SymbolKind::Latch, i}))
       regValue.setNameAttr(name);
 

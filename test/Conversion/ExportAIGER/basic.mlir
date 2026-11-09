@@ -62,10 +62,11 @@ hw.module @constants(out false_out: i1, out true_out: i1) {
 
 // -----
 
-// Test register (latch)
+// Test register (latch). Without an initial value, it may start with any
+// value: its initial value is its own literal (AIGER 1.9).
 // CHECK-LABEL: aag 3 1 1 1 1
 // CHECK-NEXT: 2
-// CHECK-NEXT: 4 6
+// CHECK-NEXT: 4 6 4
 // CHECK-NEXT: 4
 // CHECK-NEXT: 6 4 2
 hw.module @register(in %clk: !seq.clock, in %input: i1, out output: i1) {

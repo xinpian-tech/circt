@@ -100,9 +100,14 @@ private:
   SmallVector<std::pair<Object, StringAttr>> inputs;
   SmallVector<std::tuple<Object, StringAttr, Object>>
       latches; // current, name, next
-  /// Initial values of the latches (AIGER 1.9), parallel to `latches`.
-  SmallVector<bool> latchInits;
+  /// Initial values of the latches (AIGER 1.9), parallel to `latches`;
+  /// `std::nullopt` for a register without initial value, which may start
+  /// with any value.
+  SmallVector<std::optional<bool>> latchInits;
   SmallVector<std::pair<Object, StringAttr>> outputs;
+  /// AIGER 1.9 bad states: the negations of `verif.assert` of an i1
+  /// without enable.
+  SmallVector<Object> bads;
   /// AIGER 1.9 constraints (`verif.assume` of an i1 without enable).
   SmallVector<Object> constraints;
   SmallVector<std::tuple<Object, Object, Object>> andGates; // lhs, rhs0, rhs1
@@ -129,7 +134,7 @@ private:
 
   /// Add a latch to the AIGER file
   void addLatch(Object current, Object next, StringAttr name = {},
-                bool init = false) {
+                std::optional<bool> init = false) {
     latches.push_back({current, getIndexName(current, name), next});
     latchInits.push_back(init);
   }
@@ -166,6 +171,7 @@ private:
   LogicalResult visit(comb::ConcatOp op);
   LogicalResult visit(comb::ExtractOp op);
   LogicalResult visit(comb::ReplicateOp op);
+  LogicalResult visit(verif::AssertOp op);
   LogicalResult visit(verif::AssumeOp op);
 
   /// Get or assign a literal for a value
@@ -231,8 +237,8 @@ LogicalResult AIGERExporter::writeHeader() {
   os << " " << getNumInputs() + getNumLatches() + getNumAnds() << " "
      << getNumInputs() << " " << getNumLatches() << " " << getNumOutputs()
      << " " << getNumAnds();
-  if (!constraints.empty())
-    os << " 0 " << constraints.size();
+  if (!bads.empty() || !constraints.empty())
+    os << " " << bads.size() << " " << constraints.size();
   os << "\n";
 
   return success();
@@ -269,8 +275,11 @@ LogicalResult AIGERExporter::writeLatches() {
     } else {
       os << getLiteral(current) << " " << nextLiteral;
     }
-    // AIGER 1.9 initial value; 0 is the default.
-    if (init)
+    // AIGER 1.9 initial value; 0 is the default, the latch's own literal
+    // means unknown.
+    if (!init)
+      os << " " << getLiteral(current);
+    else if (*init)
       os << " 1";
     os << "\n";
   }
@@ -284,8 +293,9 @@ LogicalResult AIGERExporter::writeOutputs() {
   // Write output literals
   for (auto [output, _] : outputs)
     os << getLiteral(output) << "\n";
-  // Constraints follow the outputs (and the bad states, of which there are
-  // none).
+  // Bad states and constraints follow the outputs.
+  for (auto bad : bads)
+    os << (getLiteral(bad) ^ 1) << "\n";
   for (auto constraint : constraints)
     os << getLiteral(constraint) << "\n";
 
@@ -542,7 +552,8 @@ LogicalResult AIGERExporter::visit(Operation *op) {
       .Case<comb::ConcatOp>([&](auto op) { return visit(op); })
       .Case<comb::ExtractOp>([&](auto op) { return visit(op); })
       .Case<comb::ReplicateOp>([&](auto op) { return visit(op); })
-      .Case<verif::AssumeOp>([&](auto op) { return visit(op); })
+      .Case<verif::AssertOp, verif::AssumeOp>(
+          [&](auto op) { return visit(op); })
       .Case<hw::HWModuleOp, hw::ConstantOp, hw::OutputOp, seq::InitialOp>(
           [](auto) { return success(); })
       .Default([&](Operation *op) -> LogicalResult {
@@ -606,8 +617,9 @@ LogicalResult AIGERExporter::visit(seq::CompRegOp op) {
     return op.emitError("register with a reset cannot be exported to AIGER; "
                         "lower the reset first");
   // A constant initial value becomes the latches' initial values. Without
-  // one, latches start at 0.
-  APInt init(getBitWidth(op), 0);
+  // one, the register may start with any value: the latches' initial values
+  // are unknown.
+  std::optional<APInt> init;
   if (auto initial = op.getInitialValue()) {
     auto result = dyn_cast<OpResult>(initial);
     auto initialOp =
@@ -624,11 +636,20 @@ LogicalResult AIGERExporter::visit(seq::CompRegOp op) {
   // Handle registers (latches in AIGER)
   for (int64_t i = 0; i < getBitWidth(op); ++i)
     addLatch({op.getResult(), i}, {op.getInput(), i}, op.getNameAttr(),
-             init[i]);
+             init ? std::optional<bool>((*init)[i]) : std::nullopt);
 
   LLVM_DEBUG(llvm::dbgs() << "  Found latch: " << op << "\n");
   if (handler)
     handler->notifyEmitted(op);
+  return success();
+}
+
+LogicalResult AIGERExporter::visit(verif::AssertOp op) {
+  auto type = dyn_cast<IntegerType>(op.getProperty().getType());
+  if (op.getEnable() || !type || type.getWidth() != 1)
+    return op.emitError("only an assertion of an i1 without enable can be "
+                        "exported to AIGER (as a bad state)");
+  bads.push_back({op.getProperty(), 0});
   return success();
 }
 
