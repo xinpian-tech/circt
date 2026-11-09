@@ -12,7 +12,11 @@
 //    hw.output %and1, %and2, %reg : i1, i1
 // }
 // CHECK-LABEL: @aiger_top
-// CHECK-NEXT:  %[[REG:.+]] = seq.compreg %[[VAL1:.+]], %clock : i1
+// CHECK-NEXT:  %[[INIT:.+]] = seq.initial() {
+// CHECK-NEXT:      %[[F:.+]] = hw.constant false
+// CHECK-NEXT:      seq.yield %[[F]] : i1
+// CHECK-NEXT:    } : () -> !seq.immutable<i1>
+// CHECK-NEXT:  %[[REG:.+]] = seq.compreg %[[VAL1:.+]], %clock initial %[[INIT]] : i1
 // CHECK-NEXT:  %[[VAL0:.+]] = synth.aig.and_inv not %input_5678, %input_1234 : i1 
 // CHECK-NEXT:  %[[VAL1]] = synth.aig.and_inv %input_8193, not %input_3 : i1
 // CHECK-NEXT:  hw.output %[[VAL0]], %[[REG]] : i1, i1
