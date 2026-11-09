@@ -5,6 +5,7 @@ add_circt_dialect_library(CIRCTVerifTransforms
   LowerContracts.cpp
   LowerSymbolicValues.cpp
   LowerTests.cpp
+  AssumeInputs.cpp
   PrepareForFormal.cpp
   SimplifyAssumeEq.cpp
   StripContracts.cpp
@@ -22,6 +23,7 @@ add_circt_dialect_library(CIRCTVerifTransforms
   CIRCTSupport
   CIRCTSV
   CIRCTVerif
+  CIRCTSynth
   MLIRIR
   MLIRPass
   MLIRTransforms
