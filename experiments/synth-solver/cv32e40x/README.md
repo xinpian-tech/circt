@@ -445,3 +445,45 @@ synth-functional-reduction with choices creates a cycle on these models
 
 Next candidate: a CIRCT pass for sequential equivalence of registers (like
 scorr), since that is the only kind of reduction that changed solve times.
+
+## The same configurations measured by BMC (results-core-rbmc.tsv)
+
+`run_rbmc.sh` checks the AIGs of the previous section with rBMC
+(https://github.com/Clo91eaf/rBMC: AIG to CNF by Tseitin only, no
+preprocessing, incremental CaDiCaL with stabilize=0) up to bound 20, 150 s,
+and `summarize_rbmc.py` compares the configurations. rBMC has no
+simplification of its own, so the front end is measured directly. A run is
+SAT (counterexample; its witness checked with `aigsim -c`), K (no
+counterexample up to bound 20) or TO (time limit; the bound reached is
+recorded). PAR-2 counts a TO as 300 s; "common" is the time on the 77
+assertions that every configuration finishes, "ratio" the geometric mean of
+the time ratio to base on them. Pass times are not included (fr about 180 s,
+abc-scorr 51 s per model).
+
+| config | SAT | K | TO | PAR-2 (s) | common (s) | ratio |
+|---|---|---|---|---|---|---|
+| base | 44 | 37 | 16 | 73.6 | 1862 | 1.00 |
+| canon | 44 | 39 | 14 | 70.3 | 1857 | 1.00 |
+| mac | 44 | 37 | 16 | 74.7 | 1965 | 1.01 |
+| sop | 44 | 36 | 17 | 80.0 | 2307 | 1.18 |
+| fr | 44 | 38 | 15 | 69.0 | 1638 | 0.66 |
+| opt | 43 | 35 | 19 | 87.9 | 2680 | 1.39 |
+| opt-nosop | 44 | 39 | 14 | 70.1 | 1873 | 0.98 |
+| opt-fr | 44 | 34 | 19 | 85.8 | 2488 | 0.91 |
+| abc-dc2 | 44 | 40 | 13 | 65.3 | 1645 | 0.90 |
+| abc-fraig | 44 | 40 | 13 | 64.4 | 1590 | 0.82 |
+| abc-scorr | 44 | 40 | 13 | 58.7 | 1190 | 0.34 |
+
+- Unlike rIC3's IC3, BMC tells the configurations apart: functional
+  reduction (fr) makes BMC 34% faster on the common assertions (geometric
+  mean), fraig 18%, dc2 10%, and scorr (sequential: register
+  correspondence) almost 3x. rIC3 simplifies the model itself before IC3,
+  which hides these differences.
+- sop balancing and the opt pipeline built on it make BMC slower (1.18,
+  1.39): they duplicate logic (sop adds 8%, opt 19% AND gates). opt-nosop
+  is the same as base; mac and canon change little.
+- Soundness: no configuration contradicts another (same counterexample
+  length everywhere, no bound 20 without counterexample where another has a
+  shorter one), all 483 witnesses pass `aigsim -c`, and no counterexample
+  is on an assertion that rIC3 proved on the same model (in 192 runs rBMC
+  finds a counterexample where IC3 timed out at 60 s).
