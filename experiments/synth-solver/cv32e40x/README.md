@@ -518,3 +518,26 @@ Register correspondence alone gives 11%; scorr gets 3x. scorr also merges
 internal signals (signal correspondence, not only registers) and runs dc2
 afterwards, so its models have 13% fewer latches and 37% fewer AND gates
 than rc. No soundness problems across the three configurations.
+
+## Signal correspondence, forward retiming
+
+`synth-register-correspondence{internal}` also merges i1 and-gates. With
+one incremental solver and chunked queries (`chunk=256`, the default),
+a_gate_clk_i takes 409 s (the per-pair speculative rounds, `chunk=0`, had
+not converged after 40 min):
+
+| model      | latches | ands  |
+|------------|---------|-------|
+| base       | 2879    | 55278 |
+| rc         | 2375    | 48376 |
+| internal   | 2373    | 40548 |
+| abc-scorr  | 2373    | 35555 |
+
+ABC dprove: equivalent to base. On 40 HWMCC safety models (every fourth
+of the small ones): 26 equivalent by dprove, none different; two of the
+others had their property proved by the pass itself (bad merged to 0,
+confirmed by ABC pdr).
+
+`synth-forward-retime` finds nothing to move on CV32E40X (no and-gate reads
+only registers); its register split alone drops unread bits: 2879 -> 2684
+latches, 55278 -> 53313 ands (dprove: equivalent).

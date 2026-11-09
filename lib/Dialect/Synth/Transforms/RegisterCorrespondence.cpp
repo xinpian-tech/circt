@@ -116,6 +116,7 @@ struct Params {
   std::string satSolver;
   bool internal;
   unsigned cexFrames;
+  unsigned chunk;
 };
 
 class Correspondence {
@@ -131,6 +132,10 @@ public:
   bool proveBase();
   /// Proves the classes by induction. False if it gave up.
   bool proveStep();
+  /// The base case (`step` false) or the inductive step, with one
+  /// incremental solver: candidate pairs are checked a chunk at a time by
+  /// one query whether any of them differs (see the definition).
+  bool proveIncremental(bool step);
   /// Finds the registers that are constant in every reachable state by
   /// ternary simulation (inputs and unknown initial values are X) to a
   /// fixpoint, and makes them the (only) class. Returns their number.
@@ -890,6 +895,219 @@ bool Correspondence::proveStep() {
   return true;
 }
 
+/// Without speculative reduction, the frames are plain unrollings and one
+/// solver serves the whole proof. Each pair (member, class value) has a
+/// difference variable in the checked frame and, for the step, a hypothesis
+/// selector for its equality in frame 0. A query assumes the hypotheses of
+/// the current classes and asks whether some pair of a chunk differs. A
+/// counterexample is simulated on 64 patterns (the model, and for the other
+/// patterns the same frame-0 state with random inputs in the checked frame:
+/// they satisfy the hypotheses too) and splits the classes; the chunk is
+/// then queried again. A pass over all chunks without a counterexample
+/// proves the classes.
+bool Correspondence::proveIncremental(bool step) {
+  if (classes.empty())
+    return true;
+  auto solver = createSATSolver(opts.satSolver);
+  if (!solver)
+    return false;
+  solver->setConflictLimit(opts.conflictLimit);
+  int trueVar = solver->newVar();
+  solver->addClause({trueVar});
+  static const DenseMap<unsigned, Subst> noSubst;
+  auto leaf0 = [&](unsigned n) -> int {
+    if (!step && net.kind[n] == Net::State)
+      if (auto init = regs[regOfNode.at(n)].init)
+        return *init ? trueVar : -trueVar;
+    return solver->newVar();
+  };
+  FrameEncoder enc0(*solver, net, trueVar, leaf0, noSubst);
+  auto leaf1 = [&](unsigned n) -> int {
+    if (net.kind[n] == Net::State)
+      return enc0(regs[regOfNode.at(n)].next);
+    return solver->newVar();
+  };
+  FrameEncoder enc1(*solver, net, trueVar, leaf1, noSubst);
+  FrameEncoder &checked = step ? enc1 : enc0;
+
+  // A pair: member candidate, representative candidate (-1: constant
+  // false), phase.
+  using Pair = std::tuple<unsigned, int, bool>;
+  struct Vars {
+    int hyp = 0, diff = 0;
+  };
+  std::map<Pair, Vars> vars;
+  // The literal of `x == target`-style relations for a pair in a frame.
+  auto target = [&](FrameEncoder &enc, int ref, bool phase) {
+    int t = ref < 0 ? -trueVar : enc.node(cands[ref].node);
+    return phase ? -t : t;
+  };
+  auto diffVar = [&](const Pair &pr) {
+    auto &v = vars[pr];
+    if (!v.diff) {
+      auto [m, ref, phase] = pr;
+      int x = checked.node(cands[m].node), t = target(checked, ref, phase);
+      v.diff = solver->newVar();
+      solver->addClause({-v.diff, x, t});
+      solver->addClause({-v.diff, -x, -t});
+    }
+    return v.diff;
+  };
+  auto hypVar = [&](const Pair &pr) {
+    auto &v = vars[pr];
+    if (!v.hyp) {
+      auto [m, ref, phase] = pr;
+      int x = enc0.node(cands[m].node), t = target(enc0, ref, phase);
+      v.hyp = solver->newVar();
+      solver->addClause({-v.hyp, -x, t});
+      solver->addClause({-v.hyp, x, -t});
+    }
+    return v.hyp;
+  };
+  // The current pair of each candidate (if in a class, not representative).
+  SmallVector<std::optional<Pair>> pairOf(cands.size());
+  auto index = [&]() {
+    std::fill(pairOf.begin(), pairOf.end(), std::nullopt);
+    for (auto &c : classes) {
+      int ref = c.constant ? -1 : int(c.members[0].first);
+      for (auto [i, p] : c.members)
+        if (int(i) != ref)
+          pairOf[i] = Pair{i, ref, p};
+    }
+  };
+  // The activation literal of the last query, retired (made false) before
+  // the next one; not earlier, as that would discard the model.
+  int lastAct = 0;
+  auto query = [&](ArrayRef<unsigned> members) {
+    if (lastAct)
+      solver->addClause({-lastAct});
+    SmallVector<int> assumptions;
+    if (step)
+      for (auto &pr : pairOf)
+        if (pr)
+          assumptions.push_back(hypVar(*pr));
+    SmallVector<int> clause;
+    int act = solver->newVar();
+    clause.push_back(-act);
+    for (unsigned m : members)
+      clause.push_back(diffVar(*pairOf[m]));
+    solver->addClause(clause);
+    assumptions.push_back(act);
+    ++numSATCalls;
+    lastAct = act;
+    return solver->solve(assumptions);
+  };
+  // Simulates the model on 64 patterns and splits the classes.
+  auto refineByModel = [&]() {
+    unsigned size = net.size();
+    auto modelWord = [&](std::optional<int> v) -> uint64_t {
+      return v && modelValue(*solver, *v) ? ~uint64_t(0) : 0;
+    };
+    SmallVector<uint64_t> v0(size), cur;
+    for (unsigned n = 1; n < size; ++n) {
+      if (net.kind[n] == Net::And)
+        continue;
+      auto v = enc0.lookup(n);
+      if (step) {
+        v0[n] = v ? modelWord(v) : rng();
+        continue;
+      }
+      // The base case: the model in pattern 0, any initial state and
+      // inputs in the others.
+      bool fixed = net.kind[n] == Net::State && regs[regOfNode.at(n)].init;
+      uint64_t r =
+          fixed ? (*regs[regOfNode.at(n)].init ? ~uint64_t(0) : 0) : rng();
+      v0[n] = (r & ~uint64_t(1)) | (modelWord(v) & 1);
+      if (fixed)
+        v0[n] = r;
+    }
+    eval(v0);
+    if (step) {
+      SmallVector<uint64_t> v1(size);
+      for (unsigned n = 1; n < size; ++n)
+        if (net.kind[n] == Net::Free)
+          v1[n] = (rng() & ~uint64_t(1)) | (modelWord(enc1.lookup(n)) & 1);
+      for (auto &r : regs)
+        v1[r.node] = value(v0, r.next);
+      eval(v1);
+      cur = std::move(v1);
+    } else {
+      cur = std::move(v0);
+    }
+    refine(cur, ~uint64_t(0));
+    // Successors with random inputs (see proveStep for why this is sound in
+    // the step; in the base case they are reachable states).
+    for (unsigned f = 0; f < opts.cexFrames && !classes.empty(); ++f) {
+      SmallVector<uint64_t> next(size);
+      for (unsigned n = 1; n < size; ++n)
+        if (net.kind[n] == Net::Free)
+          next[n] = rng();
+      for (auto &r : regs)
+        next[r.node] = value(cur, r.next);
+      eval(next);
+      refine(next, ~uint64_t(0));
+      cur = std::move(next);
+    }
+    index();
+  };
+
+  index();
+  while (!classes.empty()) {
+    if (numIterations++ >= opts.maxIterations)
+      return false;
+    bool clean = true;
+    SmallVector<unsigned> order;
+    for (unsigned i = 0; i < cands.size(); ++i)
+      if (pairOf[i])
+        order.push_back(i);
+    DenseSet<unsigned> giveUp;
+    for (size_t start = 0; start < order.size(); start += opts.chunk) {
+      ArrayRef<unsigned> chunk(order);
+      chunk = chunk.slice(start,
+                          std::min<size_t>(opts.chunk, order.size() - start));
+      while (true) {
+        SmallVector<unsigned> members;
+        for (unsigned m : chunk)
+          if (pairOf[m] && !giveUp.contains(m))
+            members.push_back(m);
+        if (members.empty())
+          break;
+        auto r = query(members);
+        if (r == IncrementalSATSolver::kUNSAT)
+          break;
+        clean = false;
+        if (r == IncrementalSATSolver::kSAT) {
+          refineByModel();
+          continue;
+        }
+        // Gave up on the chunk: check its pairs one by one.
+        ++numUnknown;
+        for (unsigned m : members) {
+          if (!pairOf[m])
+            continue;
+          auto r1 = query({m});
+          if (r1 == IncrementalSATSolver::kSAT)
+            refineByModel();
+          else if (r1 != IncrementalSATSolver::kUNSAT)
+            giveUp.insert(m);
+        }
+      }
+    }
+    if (!giveUp.empty()) {
+      drop(giveUp);
+      index();
+    }
+    LLVM_DEBUG(llvm::dbgs()
+               << "register-correspondence: " << (step ? "step" : "base")
+               << " pass " << numIterations << ": " << classes.size()
+               << " classes, " << numCandidates() << " candidates, "
+               << numSATCalls << " SAT calls\n");
+    if (clean)
+      return true;
+  }
+  return true;
+}
+
 unsigned Correspondence::ternaryConstants() {
   // A ternary value as (may be 0, may be 1).
   enum : uint8_t { Zero = 1, One = 2, X = 3 };
@@ -1179,14 +1397,16 @@ struct RegisterCorrespondencePass
 
   void runOnOperation() override {
     auto module = getOperation();
-    Params opts{numPatterns,        numFrames, seed,     maxIterations,
-                int(conflictLimit), satSolver, internal, cexFrames};
+    Params opts{numPatterns,   numFrames,          seed,
+                maxIterations, int(conflictLimit), satSolver,
+                internal,      cexFrames,          chunk};
     Correspondence c(module, opts);
     if (!c.build())
       return markAllAnalysesPreserved();
     c.simulateCandidates();
     numCandidatesStat += c.numCandidates();
-    bool proved = c.proveBase() && c.proveStep();
+    bool proved = chunk ? c.proveIncremental(false) && c.proveIncremental(true)
+                        : c.proveBase() && c.proveStep();
     numIterationsStat += c.numIterations;
     numSATCallsStat += c.numSATCalls;
     numUnknownStat += c.numUnknown;
@@ -1206,7 +1426,7 @@ namespace {
 struct TernaryConstantsPass
     : public circt::synth::impl::TernaryConstantsBase<TernaryConstantsPass> {
   void runOnOperation() override {
-    Params opts{64, 1, 0, 0, -1, "auto", false, 0};
+    Params opts{64, 1, 0, 0, -1, "auto", false, 0, 0};
     Correspondence c(getOperation(), opts);
     if (!c.build() || !c.ternaryConstants())
       return markAllAnalysesPreserved();
@@ -1223,7 +1443,7 @@ struct CheckConstraintsPass
   void runOnOperation() override {
     auto module = getOperation();
     markAllAnalysesPreserved();
-    Params opts{64, 1, 0, 0, int(conflictLimit), satSolver, false, 0};
+    Params opts{64, 1, 0, 0, int(conflictLimit), satSolver, false, 0, 0};
     Correspondence c(module, opts);
     c.build();
     bool gaveUp;

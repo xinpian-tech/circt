@@ -340,7 +340,10 @@ def RegisterCorrespondence
            "Also merge i1 and-gates (signal correspondence)">,
     Option<"cexFrames", "cex-frames", "unsigned", "8",
            "Cycles simulated after a counterexample of the inductive step "
-           "to split more classes">
+           "to split more classes">,
+    Option<"chunk", "chunk", "unsigned", "256",
+           "Pairs checked by one SAT query, with one incremental solver "
+           "(0: one query per pair, speculatively reduced)">
   ];
   let statistics = [
     Statistic<"numCandidatesStat", "num-candidates",
