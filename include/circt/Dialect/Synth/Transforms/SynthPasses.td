@@ -531,4 +531,35 @@ def TernaryConstants : Pass<"synth-ternary-constants", "hw::HWModuleOp"> {
                            "seq::SeqDialect", "synth::SynthDialect"];
 }
 
+def CheckConstraints : Pass<"synth-check-constraints", "hw::HWModuleOp"> {
+  let summary = "Check that the constraints can hold";
+  let description = [{
+    Checks that the constraints of the module (`verif.assume` of an i1
+    value, with an optional enable) can hold together from the initial
+    state: for each cycle up to `depth`, some trace satisfies all of them in
+    every cycle so far. If none does, the properties hold vacuously from that
+    cycle on, which usually is a bug in the constraints (`:noConflict` of
+    formal tools). The pass reports the cycle and a subset of the
+    constraints that already conflict, as a warning (or an error with
+    `fail-on-conflict`). It does not change the IR.
+
+    Registers on the main clock with a constant (or no) initial value are
+    modeled; other values are treated as free, which only adds traces, so a
+    reported conflict is one of the module.
+  }];
+  let options = [
+    Option<"depth", "depth", "unsigned", "20", "Number of cycles to check">,
+    Option<"conflictLimit", "conflict-limit", "int", "100000",
+           "Conflict limit per SAT call (-1: none)">,
+    Option<"satSolver", "sat-solver", "std::string", "\"auto\"",
+           "SAT solver backend">,
+    Option<"failOnConflict", "fail-on-conflict", "bool", "false",
+           "Report a conflict as an error">
+  ];
+  let statistics = [
+    Statistic<"numConflictsStat", "num-conflicts", "Modules with a conflict">,
+    Statistic<"numSATCallsStat", "num-sat-calls", "SAT calls">
+  ];
+}
+
 #endif // CIRCT_DIALECT_SYNTH_TRANSFORMS_PASSES_TD

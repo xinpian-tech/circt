@@ -47,6 +47,7 @@ add_circt_dialect_library(CIRCTSynthTransforms
   CIRCTImportAIGER
   CIRCTHWTransforms
   CIRCTSupport
+  CIRCTVerif
   CIRCTTransforms
   MLIRIR
   MLIRPass

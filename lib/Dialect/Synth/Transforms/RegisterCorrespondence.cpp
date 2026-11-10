@@ -25,6 +25,7 @@
 #include "circt/Dialect/Seq/SeqOps.h"
 #include "circt/Dialect/Synth/SynthOps.h"
 #include "circt/Dialect/Synth/Transforms/SynthPasses.h"
+#include "circt/Dialect/Verif/VerifOps.h"
 #include "circt/Support/SATSolver.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/Matchers.h"
@@ -43,6 +44,7 @@ namespace circt {
 namespace synth {
 #define GEN_PASS_DEF_REGISTERCORRESPONDENCE
 #define GEN_PASS_DEF_TERNARYCONSTANTS
+#define GEN_PASS_DEF_CHECKCONSTRAINTS
 #include "circt/Dialect/Synth/Transforms/SynthPasses.h.inc"
 } // namespace synth
 } // namespace circt
@@ -156,6 +158,16 @@ public:
   /// Replaces the merged candidates; returns the number of merged
   /// (register bits, and-gates).
   std::pair<unsigned, unsigned> merge();
+
+  /// No trace from the initial state satisfies the constraints for `cycles`
+  /// cycles; `core` is a subset of the constraints that already conflict.
+  struct Conflict {
+    unsigned cycles;
+    SmallVector<verif::AssumeOp> core;
+  };
+  /// Checks the constraints (i1 `verif.assume`s of the body) for up to
+  /// `depth` cycles. `gaveUp` is set if a check hit the conflict limit.
+  std::optional<Conflict> checkConstraints(unsigned depth, bool &gaveUp);
 
   unsigned numIterations = 0, numSATCalls = 0, numUnknown = 0;
   unsigned numCandidates() const {
@@ -1194,6 +1206,95 @@ unsigned Correspondence::ternaryConstants() {
   return n;
 }
 
+std::optional<Correspondence::Conflict>
+Correspondence::checkConstraints(unsigned depth, bool &gaveUp) {
+  gaveUp = false;
+  // The constraints and their literals: `enable -> property`.
+  SmallVector<verif::AssumeOp> assumes;
+  SmallVector<Lit> lits;
+  for (auto op : module.getBodyBlock()->getOps<verif::AssumeOp>()) {
+    if (!op.getProperty().getType().isInteger(1))
+      continue;
+    Lit l = lit(op.getProperty(), 0);
+    if (auto en = op.getEnable()) {
+      Lit e = lit(en, 0);
+      if (e == kFalse)
+        continue;
+      if (e != (kFalse ^ 1))
+        l = mkLit(net.add(Net::And, {e, l ^ 1})) ^ 1;
+    }
+    if (l == (kFalse ^ 1))
+      continue;
+    assumes.push_back(op);
+    lits.push_back(l);
+  }
+  if (assumes.empty())
+    return std::nullopt;
+
+  auto solver = createSATSolver(opts.satSolver);
+  if (!solver) {
+    gaveUp = true;
+    return std::nullopt;
+  }
+  solver->setConflictLimit(opts.conflictLimit);
+  int trueVar = solver->newVar();
+  solver->addClause({trueVar});
+  // One selector per constraint, shared by all frames.
+  SmallVector<int> sel;
+  for (size_t i = 0; i < assumes.size(); ++i)
+    sel.push_back(solver->newVar());
+
+  // Frames from the initial state: registers with an initial value start
+  // there, the other leaves are free in every frame. A free leaf only adds
+  // behaviors, so a conflict found here is one of the module.
+  static const DenseMap<unsigned, Subst> noSubst;
+  SmallVector<std::unique_ptr<FrameEncoder>> frames;
+  for (unsigned f = 0; f < depth; ++f) {
+    auto leaf = [&, f](unsigned n) -> int {
+      if (net.kind[n] == Net::State) {
+        auto &r = regs[regOfNode.at(n)];
+        if (f > 0)
+          return (*frames[f - 1])(r.next);
+        if (r.init)
+          return *r.init ? trueVar : -trueVar;
+      }
+      return solver->newVar();
+    };
+    frames.push_back(
+        std::make_unique<FrameEncoder>(*solver, net, trueVar, leaf, noSubst));
+    for (auto [s, l] : llvm::zip(sel, lits))
+      solver->addClause({-s, (*frames[f])(l)});
+    ++numSATCalls;
+    auto result = solver->solve(sel);
+    if (result == IncrementalSATSolver::kSAT)
+      continue;
+    if (result != IncrementalSATSolver::kUNSAT) {
+      ++numUnknown;
+      gaveUp = true;
+      return std::nullopt;
+    }
+    // A conflict within f + 1 cycles. Shrink the constraints to a core by
+    // deletion: drop each one whose removal keeps the conflict.
+    SmallVector<bool> inCore(assumes.size(), true);
+    for (size_t i = 0; i < assumes.size(); ++i) {
+      SmallVector<int> active;
+      for (size_t j = 0; j < assumes.size(); ++j)
+        if (j != i && inCore[j])
+          active.push_back(sel[j]);
+      ++numSATCalls;
+      if (solver->solve(active) == IncrementalSATSolver::kUNSAT)
+        inCore[i] = false;
+    }
+    Conflict c;
+    c.cycles = f + 1;
+    for (size_t i = 0; i < assumes.size(); ++i)
+      if (inCore[i])
+        c.core.push_back(assumes[i]);
+    return c;
+  }
+  return std::nullopt;
+}
+
 std::pair<unsigned, unsigned> Correspondence::merge() {
   // Split the registers involved into one register per bit.
   llvm::SetVector<Operation *> involved;
@@ -1358,6 +1459,41 @@ struct TernaryConstantsPass
     if (!c.build() || !c.ternaryConstants())
       return markAllAnalysesPreserved();
     numConstantStat += c.merge().first;
+  }
+};
+} // namespace
+
+namespace {
+struct CheckConstraintsPass
+    : public circt::synth::impl::CheckConstraintsBase<CheckConstraintsPass> {
+  using CheckConstraintsBase::CheckConstraintsBase;
+
+  void runOnOperation() override {
+    auto module = getOperation();
+    markAllAnalysesPreserved();
+    Params opts{64, 1, 0, 0, int(conflictLimit), satSolver, false, 0, 0};
+    Correspondence c(module, opts);
+    c.build();
+    bool gaveUp;
+    auto conflict = c.checkConstraints(depth, gaveUp);
+    numSATCallsStat += c.numSATCalls;
+    if (gaveUp)
+      module.emitWarning("constraint check gave up (conflict limit)");
+    if (!conflict)
+      return;
+    ++numConflictsStat;
+    auto diag = failOnConflict ? module.emitError() : module.emitWarning();
+    if (conflict->cycles == 1)
+      diag << "constraints conflict in the initial state; every property "
+              "holds vacuously";
+    else
+      diag << "constraints conflict within " << conflict->cycles
+           << " cycles; no trace is longer than " << conflict->cycles - 1
+           << " cycles";
+    for (auto op : conflict->core)
+      diag.attachNote(op.getLoc()) << "constraint in the conflict";
+    if (failOnConflict)
+      signalPassFailure();
   }
 };
 } // namespace
