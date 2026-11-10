@@ -509,4 +509,26 @@ def ExactSynthesis : Pass<"synth-exact-synthesis"> {
   let dependentDialects = ["hw::HWDialect", "synth::SynthDialect"];
 }
 
+def TernaryConstants : Pass<"synth-ternary-constants", "hw::HWModuleOp"> {
+  let summary = "Replace registers that are constant in all reachable states";
+  let description = [{
+    Ternary simulation from the initial state: inputs, unknown initial values
+    and bits the pass does not model are X (as in
+    `synth-register-correspondence`), and each register's set of possible
+    values is joined with its next-state value until nothing changes. The
+    result over-approximates the reachable states, so a register bit that
+    is still 0 or 1 is that constant in every reachable state and is
+    replaced by it (a register with such a bit is split into one register
+    per bit). No SAT solver is used; `synth-register-correspondence` proves
+    more (equivalences, and constants that need induction), at a higher
+    cost.
+  }];
+  let statistics = [
+    Statistic<"numConstantStat", "num-constant",
+              "Register bits replaced by a constant">
+  ];
+  let dependentDialects = ["comb::CombDialect", "hw::HWDialect",
+                           "seq::SeqDialect", "synth::SynthDialect"];
+}
+
 #endif // CIRCT_DIALECT_SYNTH_TRANSFORMS_PASSES_TD

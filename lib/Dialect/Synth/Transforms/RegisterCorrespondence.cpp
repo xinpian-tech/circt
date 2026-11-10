@@ -42,6 +42,7 @@
 namespace circt {
 namespace synth {
 #define GEN_PASS_DEF_REGISTERCORRESPONDENCE
+#define GEN_PASS_DEF_TERNARYCONSTANTS
 #include "circt/Dialect/Synth/Transforms/SynthPasses.h.inc"
 } // namespace synth
 } // namespace circt
@@ -148,6 +149,10 @@ public:
   /// incremental solver: candidate pairs are checked a chunk at a time by
   /// one query whether any of them differs (see the definition).
   bool proveIncremental(bool step);
+  /// Finds the registers that are constant in every reachable state by
+  /// ternary simulation (inputs and unknown initial values are X) to a
+  /// fixpoint, and makes them the (only) class. Returns their number.
+  unsigned ternaryConstants();
   /// Replaces the merged candidates; returns the number of merged
   /// (register bits, and-gates).
   std::pair<unsigned, unsigned> merge();
@@ -208,6 +213,13 @@ private:
   /// Later frames simulated from a counterexample of the inductive step,
   /// which also split the classes (see proveStep).
   SmallVector<SmallVector<uint64_t>> extraFrames;
+  /// Ternary values of all nodes for a ternary state (one value per
+  /// register); inputs are X.
+  void ternaryEval(ArrayRef<uint8_t> state,
+                   SmallVectorImpl<uint8_t> &vals) const;
+  /// The ternary state after the cycle evaluated in `vals`.
+  SmallVector<uint8_t> ternaryNext(ArrayRef<uint8_t> vals) const;
+
   /// Whether the net has free leaves that are results of ops in the body
   /// (not inputs or registers): an and-gate may then depend on another one
   /// through them, which the net does not show.
@@ -1104,6 +1116,84 @@ bool Correspondence::proveIncremental(bool step) {
   return true;
 }
 
+/// A ternary value as (may be 0, may be 1).
+enum : uint8_t { TZero = 1, TOne = 2, TX = 3 };
+static uint8_t ternaryNot(uint8_t v) {
+  return uint8_t(((v & TZero) ? TOne : 0) | ((v & TOne) ? TZero : 0));
+}
+
+void Correspondence::ternaryEval(ArrayRef<uint8_t> state,
+                                 SmallVectorImpl<uint8_t> &vals) const {
+  vals.assign(net.size(), TX);
+  vals[0] = TZero;
+  for (unsigned n = 1; n < net.size(); ++n) {
+    switch (net.kind[n]) {
+    case Net::Const:
+      vals[n] = TZero;
+      break;
+    case Net::Free:
+      vals[n] = TX;
+      break;
+    case Net::State:
+      vals[n] = state[regOfNode.at(n)];
+      break;
+    case Net::And: {
+      bool zero = false, one = true;
+      for (Lit l : net.fanins[n]) {
+        uint8_t v = vals[nodeOf(l)];
+        if (isNeg(l))
+          v = ternaryNot(v);
+        zero |= v == TZero;
+        one &= v == TOne;
+      }
+      vals[n] = zero ? TZero : one ? TOne : TX;
+      break;
+    }
+    }
+  }
+}
+
+SmallVector<uint8_t> Correspondence::ternaryNext(ArrayRef<uint8_t> vals) const {
+  SmallVector<uint8_t> next(regs.size());
+  for (auto [i, r] : llvm::enumerate(regs)) {
+    uint8_t v = vals[nodeOf(r.next)];
+    next[i] = isNeg(r.next) ? ternaryNot(v) : v;
+  }
+  return next;
+}
+
+unsigned Correspondence::ternaryConstants() {
+  // The abstract state: each register's possible values in the states seen
+  // so far. Joining with the successor until it no longer changes gives an
+  // over-approximation of the reachable states.
+  SmallVector<uint8_t> state(regs.size());
+  for (auto [i, r] : llvm::enumerate(regs))
+    state[i] = r.init ? (*r.init ? TOne : TZero) : TX;
+  SmallVector<uint8_t> vals;
+  for (bool changed = true; changed;) {
+    changed = false;
+    ternaryEval(state, vals);
+    auto next = ternaryNext(vals);
+    for (unsigned i = 0; i < regs.size(); ++i) {
+      uint8_t joined = state[i] | next[i];
+      if (joined != state[i]) {
+        state[i] = joined;
+        changed = true;
+      }
+    }
+  }
+  Class constant;
+  constant.constant = true;
+  for (auto [i, r] : llvm::enumerate(regs))
+    if (state[i] != TX)
+      constant.members.push_back({unsigned(i), state[i] == TOne});
+  classes.clear();
+  unsigned n = constant.members.size();
+  if (n)
+    classes.push_back(std::move(constant));
+  return n;
+}
+
 std::pair<unsigned, unsigned> Correspondence::merge() {
   // Split the registers involved into one register per bit.
   llvm::SetVector<Operation *> involved;
@@ -1255,6 +1345,19 @@ struct RegisterCorrespondencePass
     auto [regs, gates] = c.merge();
     numMergedStat += regs;
     numMergedGatesStat += gates;
+  }
+};
+} // namespace
+
+namespace {
+struct TernaryConstantsPass
+    : public circt::synth::impl::TernaryConstantsBase<TernaryConstantsPass> {
+  void runOnOperation() override {
+    Params opts{64, 1, 0, 0, -1, "auto", false, 0, 0};
+    Correspondence c(getOperation(), opts);
+    if (!c.build() || !c.ternaryConstants())
+      return markAllAnalysesPreserved();
+    numConstantStat += c.merge().first;
   }
 };
 } // namespace
