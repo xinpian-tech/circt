@@ -100,6 +100,11 @@ struct CadicalSATSolverOptions {
     Unsat,   // Target unsatisfiable instances.
   };
   CadicalSolverConfig config = CadicalSolverConfig::Default;
+  /// CaDiCaL's lucky phases: before each search, try a few fixed
+  /// assignments (all false, all true, ...), each a propagation over the
+  /// whole formula. Worth it for single calls; for many small incremental
+  /// queries on a large formula it can dominate the run time.
+  bool luckyPhases = true;
 };
 /// Construct a CaDiCaL-backed incremental IPASIR-style SAT solver.
 std::unique_ptr<IncrementalSATSolver>
@@ -108,9 +113,11 @@ createCadicalSATSolver(const CadicalSATSolverOptions &options = {});
 bool hasIncrementalSATSolverBackend();
 
 /// Construct an incremental SAT solver using the requested backend. The
-/// `auto` backend prefers CaDiCaL and falls back to Z3.
+/// `auto` backend prefers CaDiCaL and falls back to Z3. `cadicalOptions`
+/// apply if the backend is CaDiCaL.
 std::unique_ptr<IncrementalSATSolver>
-createSATSolver(llvm::StringRef backend = "auto");
+createSATSolver(llvm::StringRef backend = "auto",
+                const CadicalSATSolverOptions &cadicalOptions = {});
 
 } // namespace circt
 

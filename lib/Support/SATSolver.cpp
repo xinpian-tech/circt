@@ -58,6 +58,8 @@ public:
       assert(configured && "invalid CaDiCaL configuration");
       (void)configured;
     }
+    if (!options.luckyPhases)
+      solver.set("lucky", 0);
   }
   void add(int lit) override { solver.add(lit); }
   void assume(int lit) override {
@@ -379,14 +381,16 @@ createCadicalSATSolver(const CadicalSATSolverOptions &options) {
 #endif
 }
 
-std::unique_ptr<IncrementalSATSolver> createSATSolver(llvm::StringRef backend) {
+std::unique_ptr<IncrementalSATSolver>
+createSATSolver(llvm::StringRef backend,
+                const CadicalSATSolverOptions &cadicalOptions) {
   if (backend == "auto") {
-    if (auto solver = createCadicalSATSolver())
+    if (auto solver = createCadicalSATSolver(cadicalOptions))
       return solver;
     return createZ3SATSolver();
   }
   if (backend == "cadical")
-    return createCadicalSATSolver();
+    return createCadicalSATSolver(cadicalOptions);
   if (backend == "z3")
     return createZ3SATSolver();
   return {};

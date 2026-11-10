@@ -125,3 +125,20 @@ TEST(SatSolverTest, CadicalConflictLimitCanBeConfigured) {
   solver->setConflictLimit(-1);
   EXPECT_EQ(IncrementalSATSolver::kUNSAT, solver->solve());
 }
+
+TEST(SatSolverTest, CadicalWithoutLuckyPhases) {
+  CadicalSATSolverOptions options;
+  options.luckyPhases = false;
+  auto solver = createSATSolver("cadical", options);
+  if (!solver)
+    GTEST_SKIP() << "CaDiCaL is not available in this build.";
+
+  // x1 & (x1 -> x2), queried incrementally.
+  solver->reserveVars(2);
+  solver->addClause({1});
+  solver->addClause({-1, 2});
+  EXPECT_EQ(IncrementalSATSolver::kSAT, solver->solve({2}));
+  EXPECT_GT(solver->val(2), 0);
+  EXPECT_EQ(IncrementalSATSolver::kUNSAT, solver->solve({-2}));
+  EXPECT_EQ(IncrementalSATSolver::kSAT, solver->solve());
+}

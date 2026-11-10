@@ -635,3 +635,19 @@ the default 256 is. The results are the same; the default stays 256.
 | 8 | 37 | 1604 | > 21 min (stopped) | |
 | 32 | 32 | 1415 | 749 | 8760 |
 | 256 | 125 | 1495 | 637 | 3751 |
+
+Where the time goes (perf, sc on a_gate_clk_i): 89% in CaDiCaL, about
+45% of it in its lucky phases (before every query it tries fixed
+assignments, each a propagation over the whole two-frame formula) and
+about 20% in setting the ~11000 hypothesis assumptions; the search itself
+is small. The pass now creates its solvers without lucky phases
+(`CadicalSATSolverOptions::luckyPhases`), with the same results:
+
+| a_gate_clk_i, idle machine | before | without lucky phases |
+|---|---|---|
+| rc | 125 s | 12 s |
+| sc | 637 s | 138 s (abc-scorr: 49 s) |
+
+Checking the pairs of a speculatively reduced round in chunks (as ABC
+does, no hypothesis assumptions) did not help: sc had not finished after
+540 s (one solver per round, many rounds); rc 13-17 s.

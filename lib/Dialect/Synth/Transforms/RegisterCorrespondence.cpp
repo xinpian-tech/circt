@@ -262,6 +262,16 @@ private:
   bool hiddenPaths = false;
 };
 
+/// A solver for the many small queries of the proofs. CaDiCaL's lucky
+/// phases propagate the whole formula before every query; without them the
+/// proofs are several times faster (a_gate_clk_i of CV32E40X: 672 s -> 178 s
+/// with `internal`, 125 s -> 16 s without).
+static std::unique_ptr<IncrementalSATSolver> newSolver(StringRef backend) {
+  CadicalSATSolverOptions options;
+  options.luckyPhases = false;
+  return createSATSolver(backend, options);
+}
+
 /// Speculative reduction: a class member takes the value of its class (its
 /// representative, inverted by the phase, or the constant false inverted).
 struct Subst {
@@ -807,7 +817,7 @@ bool Correspondence::proveBase() {
   while (!classes.empty()) {
     if (numIterations++ >= opts.maxIterations)
       return false;
-    auto solver = createSATSolver(opts.satSolver);
+    auto solver = newSolver(opts.satSolver);
     if (!solver)
       return false;
     solver->setConflictLimit(opts.conflictLimit);
@@ -853,7 +863,7 @@ bool Correspondence::proveStep() {
   while (!classes.empty()) {
     if (numIterations++ >= opts.maxIterations)
       return false;
-    auto solver = createSATSolver(opts.satSolver);
+    auto solver = newSolver(opts.satSolver);
     if (!solver)
       return false;
     solver->setConflictLimit(opts.conflictLimit);
@@ -954,7 +964,7 @@ bool Correspondence::proveStep() {
 bool Correspondence::proveIncremental(bool step) {
   if (classes.empty())
     return true;
-  auto solver = createSATSolver(opts.satSolver);
+  auto solver = newSolver(opts.satSolver);
   if (!solver)
     return false;
   solver->setConflictLimit(opts.conflictLimit);
@@ -1804,7 +1814,7 @@ Correspondence::checkConstraints(unsigned depth, bool &gaveUp) {
   if (assumes.empty())
     return std::nullopt;
 
-  auto solver = createSATSolver(opts.satSolver);
+  auto solver = newSolver(opts.satSolver);
   if (!solver) {
     gaveUp = true;
     return std::nullopt;
