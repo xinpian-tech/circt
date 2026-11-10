@@ -582,4 +582,60 @@ def ForwardRetime : Pass<"synth-forward-retime", "hw::HWModuleOp"> {
   ];
 }
 
+def TemporalDecomposition
+    : Pass<"synth-temporal-decomposition", "hw::HWModuleOp"> {
+  let summary = "Skip the first cycles to make transient registers constant";
+  let description = [{
+    Temporal decomposition. Ternary simulation from the initial state finds
+    register bits that are constant from some cycle k on (transient
+    signals, such as the stages of a reset sequence). The module is rebuilt
+    to start at cycle k: they become constants, and the other register bits start
+    with their value of cycle k, which is the known constant or, where it
+    depends on the inputs of the first k cycles, the unrolled logic of these
+    cycles over new inputs `NAME_preT`, selected in the first cycle by a new
+    register `prefix_first`.
+
+    Assertions and constraints (`verif.assert`/`verif.assume` of i1) of the
+    first k cycles are kept in the first cycle of the new module (unless
+    `check-prefix` is false: the first k cycles then have to be checked on
+    the module before), so a counterexample of depth d is one of depth at
+    most d + k of the module before, and a bounded proof to depth d covers
+    d + k. The total shift is recorded in the `verif.target_shift`
+    attribute. With `bad-outputs`, i1 outputs are bad-state outputs and
+    treated like assertions; without it a module with outputs is left alone.
+
+    The logic of the skipped cycles can be larger than what the constants
+    remove. k (up to `max-prefix`) is the cycle for which the module shrinks
+    most, counting constant register bits and and-gates against the gates of
+    the prefix; it is 0 (only the bits that are constant from the start are
+    replaced) if no cycle helps. With `force`, k is the first cycle with the
+    most constant bits.
+
+    The module must be and-inverter logic over the inputs and registers on
+    one clock without reset, with constant or no initial values; otherwise
+    nothing is done.
+  }];
+  let dependentDialects = ["comb::CombDialect", "seq::SeqDialect",
+                           "verif::VerifDialect"];
+  let options = [
+    Option<"maxPrefix", "max-prefix", "unsigned", "8",
+           "Maximum number of cycles to skip">,
+    Option<"checkPrefix", "check-prefix", "bool", "true",
+           "Keep the properties of the skipped cycles">,
+    Option<"badOutputs", "bad-outputs", "bool", "false",
+           "Treat i1 outputs as bad-state outputs">,
+    Option<"force", "force", "bool", "false",
+           "Skip the cycles even if the module grows">
+  ];
+  let statistics = [
+    Statistic<"prefixStat", "prefix", "Cycles skipped">,
+    Statistic<"numConstantStat", "num-constant",
+              "Register bits constant from the start">,
+    Statistic<"numTransientStat", "num-transient",
+              "Register bits constant after the prefix">,
+    Statistic<"numInputsStat", "num-prefix-inputs",
+              "Inputs added for the prefix">
+  ];
+}
+
 #endif // CIRCT_DIALECT_SYNTH_TRANSFORMS_PASSES_TD
