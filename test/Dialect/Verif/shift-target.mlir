@@ -54,3 +54,14 @@ hw.module @Reset(in %clk : !seq.clock, in %rst : i1, in %a : i1) {
   %r = seq.compreg %a, %clk reset %rst, %false : i1
   verif.assert %r : i1
 }
+
+// -----
+
+// Without assertions nothing is shifted.
+// CHECK-LABEL: hw.module @NoAssert
+// CHECK-NOT:     verif.target_shift
+// CHECK:         hw.output
+hw.module @NoAssert(in %clk : !seq.clock, in %a : i1, out o : i1) {
+  %r = seq.compreg %a, %clk : i1
+  hw.output %r : i1
+}

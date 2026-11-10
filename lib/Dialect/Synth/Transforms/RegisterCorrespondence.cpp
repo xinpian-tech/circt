@@ -20,12 +20,15 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "circt/Dialect/Comb/CombDialect.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/Seq/SeqOps.h"
+#include "circt/Dialect/Synth/SynthDialect.h"
 #include "circt/Dialect/Synth/SynthOps.h"
 #include "circt/Dialect/Synth/Transforms/SynthPasses.h"
 #include "circt/Dialect/Verif/VerifOps.h"
+#include "circt/Support/Namespace.h"
 #include "circt/Support/SATSolver.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/Matchers.h"
@@ -45,6 +48,7 @@ namespace synth {
 #define GEN_PASS_DEF_REGISTERCORRESPONDENCE
 #define GEN_PASS_DEF_TERNARYCONSTANTS
 #define GEN_PASS_DEF_CHECKCONSTRAINTS
+#define GEN_PASS_DEF_TEMPORALDECOMPOSITION
 #include "circt/Dialect/Synth/Transforms/SynthPasses.h.inc"
 } // namespace synth
 } // namespace circt
@@ -154,6 +158,20 @@ public:
   /// `depth` cycles. `gaveUp` is set if a check hit the conflict limit.
   std::optional<Conflict> checkConstraints(unsigned depth, bool &gaveUp);
 
+  struct Decomposition {
+    /// Cycles removed from the start (0: nothing shifted).
+    unsigned prefix = 0;
+    /// Register bits that are constant from the start, and those that are
+    /// constant only after the prefix.
+    unsigned constant = 0, transient = 0;
+    /// Inputs added for the cycles of the prefix.
+    unsigned inputs = 0;
+    bool changed = false;
+  };
+  /// Temporal decomposition (see the definition).
+  Decomposition decompose(unsigned maxPrefix, bool checkPrefix, bool badOutputs,
+                          bool force);
+
   unsigned numIterations = 0, numSATCalls = 0, numUnknown = 0;
   unsigned numCandidates() const {
     unsigned n = 0;
@@ -210,6 +228,19 @@ private:
   /// Later frames simulated from a counterexample of the inductive step,
   /// which also split the classes (see proveStep).
   SmallVector<SmallVector<uint64_t>> extraFrames;
+  /// Ternary values of all nodes for a ternary state (one value per
+  /// register); inputs are X.
+  void ternaryEval(ArrayRef<uint8_t> state,
+                   SmallVectorImpl<uint8_t> &vals) const;
+  /// The ternary state after the cycle evaluated in `vals`.
+  SmallVector<uint8_t> ternaryNext(ArrayRef<uint8_t> vals) const;
+
+  /// The value and bit that each free leaf stands for (leaves made up to
+  /// break cycles have none).
+  DenseMap<unsigned, std::pair<Value, unsigned>> leafOrigin;
+  /// Whether a free leaf was made up (to break a cycle): the net then has
+  /// more behaviors than the module.
+  bool approximate = false;
   /// Whether the net has free leaves that are results of ops in the body
   /// (not inputs or registers): an and-gate may then depend on another one
   /// through them, which the net does not show.
@@ -360,6 +391,7 @@ Lit Correspondence::lit(Value value, unsigned bit) {
       }
       if (expanded || inProgress.contains(srcKey)) {
         // A cycle of wiring: free.
+        approximate = true;
         memo[key] = mkLit(net.add(Net::Free));
         return true;
       }
@@ -399,6 +431,7 @@ Lit Correspondence::lit(Value value, unsigned bit) {
       if (!expanded) {
         if (inProgress.contains(key)) {
           // A combinational cycle: free.
+          approximate = true;
           memo[key] = mkLit(net.add(Net::Free));
           continue;
         }
@@ -412,6 +445,8 @@ Lit Correspondence::lit(Value value, unsigned bit) {
       bool zero = false;
       for (auto [in, inv] : llvm::zip(andOp.getInputs(), andOp.getInverted())) {
         auto it = memo.find({in, b});
+        if (it == memo.end())
+          approximate = true;
         Lit l = it == memo.end() ? mkLit(net.add(Net::Free)) : it->second;
         l ^= inv;
         if (l == kFalse)
@@ -430,7 +465,9 @@ Lit Correspondence::lit(Value value, unsigned bit) {
       continue;
     }
     // Leaves: state bits are created up front; anything else is free.
-    memo[key] = mkLit(net.add(Net::Free));
+    unsigned leaf = net.add(Net::Free);
+    leafOrigin[leaf] = key;
+    memo[key] = mkLit(leaf);
   }
   return memo.at({value, bit});
 }
@@ -1108,51 +1145,66 @@ bool Correspondence::proveIncremental(bool step) {
   return true;
 }
 
+/// A ternary value as (may be 0, may be 1).
+enum : uint8_t { TZero = 1, TOne = 2, TX = 3 };
+static uint8_t ternaryNot(uint8_t v) {
+  return uint8_t(((v & TZero) ? TOne : 0) | ((v & TOne) ? TZero : 0));
+}
+
+void Correspondence::ternaryEval(ArrayRef<uint8_t> state,
+                                 SmallVectorImpl<uint8_t> &vals) const {
+  vals.assign(net.size(), TX);
+  vals[0] = TZero;
+  for (unsigned n = 1; n < net.size(); ++n) {
+    switch (net.kind[n]) {
+    case Net::Const:
+      vals[n] = TZero;
+      break;
+    case Net::Free:
+      vals[n] = TX;
+      break;
+    case Net::State:
+      vals[n] = state[regOfNode.at(n)];
+      break;
+    case Net::And: {
+      bool zero = false, one = true;
+      for (Lit l : net.fanins[n]) {
+        uint8_t v = vals[nodeOf(l)];
+        if (isNeg(l))
+          v = ternaryNot(v);
+        zero |= v == TZero;
+        one &= v == TOne;
+      }
+      vals[n] = zero ? TZero : one ? TOne : TX;
+      break;
+    }
+    }
+  }
+}
+
+SmallVector<uint8_t> Correspondence::ternaryNext(ArrayRef<uint8_t> vals) const {
+  SmallVector<uint8_t> next(regs.size());
+  for (auto [i, r] : llvm::enumerate(regs)) {
+    uint8_t v = vals[nodeOf(r.next)];
+    next[i] = isNeg(r.next) ? ternaryNot(v) : v;
+  }
+  return next;
+}
+
 unsigned Correspondence::ternaryConstants() {
-  // A ternary value as (may be 0, may be 1).
-  enum : uint8_t { Zero = 1, One = 2, X = 3 };
-  auto neg = [](uint8_t v) -> uint8_t {
-    return uint8_t(((v & Zero) ? One : 0) | ((v & One) ? Zero : 0));
-  };
   // The abstract state: each register's possible values in the states seen
   // so far. Joining with the successor until it no longer changes gives an
   // over-approximation of the reachable states.
   SmallVector<uint8_t> state(regs.size());
   for (auto [i, r] : llvm::enumerate(regs))
-    state[i] = r.init ? (*r.init ? One : Zero) : X;
-  SmallVector<uint8_t> vals(net.size());
-  auto litVal = [&](Lit l) {
-    uint8_t v = vals[nodeOf(l)];
-    return isNeg(l) ? neg(v) : v;
-  };
+    state[i] = r.init ? (*r.init ? TOne : TZero) : TX;
+  SmallVector<uint8_t> vals;
   for (bool changed = true; changed;) {
     changed = false;
-    vals[0] = Zero;
-    for (unsigned n = 1; n < net.size(); ++n) {
-      switch (net.kind[n]) {
-      case Net::Const:
-        vals[n] = Zero;
-        break;
-      case Net::Free:
-        vals[n] = X;
-        break;
-      case Net::State:
-        vals[n] = state[regOfNode.at(n)];
-        break;
-      case Net::And: {
-        bool zero = false, one = true;
-        for (Lit l : net.fanins[n]) {
-          uint8_t v = litVal(l);
-          zero |= v == Zero;
-          one &= v == One;
-        }
-        vals[n] = zero ? Zero : one ? One : X;
-        break;
-      }
-      }
-    }
-    for (auto [i, r] : llvm::enumerate(regs)) {
-      uint8_t joined = state[i] | litVal(r.next);
+    ternaryEval(state, vals);
+    auto next = ternaryNext(vals);
+    for (unsigned i = 0; i < regs.size(); ++i) {
+      uint8_t joined = state[i] | next[i];
       if (joined != state[i]) {
         state[i] = joined;
         changed = true;
@@ -1162,13 +1214,556 @@ unsigned Correspondence::ternaryConstants() {
   Class constant;
   constant.constant = true;
   for (auto [i, r] : llvm::enumerate(regs))
-    if (state[i] != X)
-      constant.members.push_back({unsigned(i), state[i] == One});
+    if (state[i] != TX)
+      constant.members.push_back({unsigned(i), state[i] == TOne});
   classes.clear();
   unsigned n = constant.members.size();
   if (n)
     classes.push_back(std::move(constant));
   return n;
+}
+
+namespace {
+/// An i1 signal while logic is built: a value, possibly inverted, or (no
+/// value) the constant `neg`.
+struct Sig {
+  Value v;
+  bool neg = false;
+  bool isConst() const { return !v; }
+  bool isFalse() const { return !v && !neg; }
+  bool isTrue() const { return !v && neg; }
+  Sig operator~() const { return {v, !neg}; }
+};
+
+/// Builds and-inverter logic over signals, folding constants.
+class SigBuilder {
+public:
+  SigBuilder(OpBuilder &builder, Location loc) : builder(builder), loc(loc) {}
+
+  static Sig constant(bool c) { return {Value(), c}; }
+
+  Sig land(ArrayRef<Sig> ins) {
+    SmallVector<Value> values;
+    SmallVector<bool> inverted;
+    for (Sig s : ins) {
+      if (s.isFalse())
+        return constant(false);
+      if (s.isTrue())
+        continue;
+      values.push_back(s.v);
+      inverted.push_back(s.neg);
+    }
+    if (values.empty())
+      return constant(true);
+    if (values.size() == 1)
+      return {values[0], inverted[0]};
+    return {aig::AndInverterOp::create(builder, loc, values, inverted), false};
+  }
+
+  Sig lor(ArrayRef<Sig> ins) {
+    SmallVector<Sig> negated;
+    for (Sig s : ins)
+      negated.push_back(~s);
+    return ~land(negated);
+  }
+
+  /// The signal as a value.
+  Value value(Sig s) {
+    if (s.isConst()) {
+      auto &c = constants[s.neg];
+      if (!c)
+        c = hw::ConstantOp::create(builder, loc, builder.getI1Type(), s.neg);
+      return c;
+    }
+    if (!s.neg)
+      return s.v;
+    return aig::AndInverterOp::create(builder, loc, s.v, true);
+  }
+
+private:
+  OpBuilder &builder;
+  Location loc;
+  Value constants[2];
+};
+} // namespace
+
+/// Temporal decomposition (Case, Mony, Baumgartner, Kanzelman, "Enhanced
+/// verification by temporal decomposition", FMCAD 2009; ABC `tempor`).
+/// Ternary simulation from the initial state (inputs X) gives the state of
+/// each cycle; the join of the states from cycle k on tells which register
+/// bits are constant from then on (transient before). The module is rebuilt
+/// to start at cycle k, the one (up to `maxPrefix`) that shrinks it most
+/// (with `force`: the first one with the most such bits): they become
+/// constants; the other register bits start with
+/// their value of cycle k, the known one, or, where it depends on the inputs
+/// of the prefix, the unrolled logic of the prefix over new inputs
+/// (`NAME_preT`), selected in the first cycle by a new register `first`.
+///
+/// The properties of the prefix are kept: with G_t = the constraints hold in
+/// the cycles 0..t of the prefix, an assertion p becomes
+///   !(first & pf) & (p | m),  pf = OR_t (G_t & !p_t),  m = first & !G_{k-1}
+/// (a failure in the prefix shows in the first cycle), a constraint c
+/// becomes c | m, and after a prefix that breaks a constraint the trace
+/// ends (a new constraint that is false from the second cycle on). So a
+/// counterexample of depth d is one of depth at most d + k of the module
+/// before, and a bounded proof to depth d covers d + k.
+///
+/// Exact only if the net is the module: all state modeled, all leaves
+/// inputs. Otherwise nothing is done.
+Correspondence::Decomposition Correspondence::decompose(unsigned maxPrefix,
+                                                        bool checkPrefix,
+                                                        bool badOutputs,
+                                                        bool force) {
+  Decomposition res;
+  auto *body = module.getBodyBlock();
+  SmallVector<verif::AssertOp> asserts;
+  SmallVector<verif::AssumeOp> assumes;
+  for (auto &op : *body) {
+    if (isa<seq::CompRegOp, seq::InitialOp, hw::ConstantOp, hw::OutputOp>(op))
+      continue;
+    if (auto a = dyn_cast<verif::AssertOp>(op)) {
+      if (!a.getProperty().getType().isInteger(1))
+        return res;
+      asserts.push_back(a);
+      continue;
+    }
+    if (auto a = dyn_cast<verif::AssumeOp>(op)) {
+      if (!a.getProperty().getType().isInteger(1))
+        return res;
+      assumes.push_back(a);
+      continue;
+    }
+    if (isa<comb::CombDialect, synth::SynthDialect>(op.getDialect()))
+      continue;
+    return res;
+  }
+  // Outputs change with the shift; they are only kept as bad-state outputs.
+  auto *outputOp = body->getTerminator();
+  if (outputOp->getNumOperands() && !badOutputs)
+    return res;
+  for (auto out : outputOp->getOperands())
+    if (!out.getType().isInteger(1))
+      return res;
+
+  // The literal of `enable -> property`.
+  auto holdLit = [&](Value prop, Value en) -> Lit {
+    Lit l = lit(prop, 0);
+    if (!en)
+      return l;
+    Lit e = lit(en, 0);
+    if (e == kFalse || l == (kFalse ^ 1))
+      return kFalse ^ 1;
+    if (e == (kFalse ^ 1))
+      return l;
+    if (l == kFalse)
+      return e ^ 1;
+    return mkLit(net.add(Net::And, {e, l ^ 1})) ^ 1;
+  };
+  SmallVector<Lit> assertLits, assumeLits, outLits;
+  for (auto a : asserts)
+    assertLits.push_back(holdLit(a.getProperty(), a.getEnable()));
+  for (auto a : assumes)
+    assumeLits.push_back(holdLit(a.getProperty(), a.getEnable()));
+  for (auto out : outputOp->getOperands())
+    outLits.push_back(lit(out, 0));
+
+  // The net must be exact.
+  if (approximate)
+    return res;
+  for (unsigned n = 1; n < net.size(); ++n) {
+    if (net.kind[n] != Net::Free)
+      continue;
+    auto it = leafOrigin.find(n);
+    if (it == leafOrigin.end() || !isa<BlockArgument>(it->second.first))
+      return res;
+  }
+
+  // The ternary states of the first cycles, and the values of all nodes in
+  // them.
+  SmallVector<SmallVector<uint8_t>> states, frames;
+  states.emplace_back(regs.size());
+  for (auto [i, r] : llvm::enumerate(regs))
+    states[0][i] = r.init ? (*r.init ? TOne : TZero) : TX;
+  for (unsigned t = 0; t < maxPrefix; ++t) {
+    SmallVector<uint8_t> vals;
+    ternaryEval(states[t], vals);
+    auto next = ternaryNext(vals);
+    // A fixed point: all later states are the same.
+    if (next == states[t])
+      break;
+    frames.push_back(std::move(vals));
+    states.push_back(std::move(next));
+  }
+  // The join of the states from cycle i on (an over-approximation).
+  auto forever = [&](unsigned i) {
+    SmallVector<uint8_t> join(states[i]), vals;
+    for (bool changed = true; changed;) {
+      changed = false;
+      ternaryEval(join, vals);
+      auto next = ternaryNext(vals);
+      for (unsigned r = 0; r < regs.size(); ++r) {
+        uint8_t joined = join[r] | next[r];
+        changed |= joined != join[r];
+        join[r] = joined;
+      }
+    }
+    return join;
+  };
+  auto count = [](ArrayRef<uint8_t> state) {
+    return unsigned(llvm::count_if(state, [](uint8_t v) { return v != TX; }));
+  };
+  // The joins of all candidate prefixes; later ones have more constant bits.
+  unsigned last = states.size() - 1;
+  SmallVector<SmallVector<uint8_t>> joins;
+  for (unsigned i = 0; i <= last; ++i)
+    joins.push_back(forever(i));
+  unsigned k = 0;
+  if (force) {
+    // The first prefix with the most constant bits.
+    while (count(joins[k]) != count(joins[last]))
+      ++k;
+  } else {
+    // The prefix that shrinks the module most: constant register bits and
+    // and-gates, less the logic of the prefix.
+    auto constantGates = [&](ArrayRef<uint8_t> state) {
+      SmallVector<uint8_t> vals;
+      ternaryEval(state, vals);
+      unsigned n = 0;
+      for (unsigned i = 1; i < net.size(); ++i)
+        n += net.kind[i] == Net::And && vals[i] != TX;
+      return n;
+    };
+    auto prefixGates = [&](unsigned i) {
+      unsigned gates = 1;
+      SmallVector<std::pair<unsigned, unsigned>> stack;
+      for (unsigned r = 0; r < regs.size(); ++r)
+        if (joins[i][r] == TX && states[i][r] == TX) {
+          stack.push_back({regs[r].node, i});
+          gates += 3;
+        }
+      for (unsigned t = 0; t < i; ++t) {
+        for (Lit l : assumeLits)
+          stack.push_back({nodeOf(l), t});
+        if (!checkPrefix)
+          continue;
+        for (Lit l : assertLits)
+          stack.push_back({nodeOf(l), t});
+        for (Lit l : outLits)
+          stack.push_back({nodeOf(l), t});
+      }
+      DenseSet<std::pair<unsigned, unsigned>> seen;
+      while (!stack.empty()) {
+        auto [n, t] = stack.pop_back_val();
+        if (n == 0 || !seen.insert({n, t}).second)
+          continue;
+        if (t < i && frames[t][n] != TX)
+          continue;
+        if (net.kind[n] == Net::State) {
+          auto &r = regs[regOfNode.at(n)];
+          if (t > 0 && states[t][regOfNode.at(n)] == TX)
+            stack.push_back({nodeOf(r.next), t - 1});
+        } else if (net.kind[n] == Net::And) {
+          ++gates;
+          for (Lit l : net.fanins[n])
+            stack.push_back({nodeOf(l), t});
+        }
+      }
+      return gates;
+    };
+    int64_t best = int64_t(count(joins[0])) + constantGates(joins[0]);
+    for (unsigned i = 1; i <= last; ++i) {
+      int64_t value = int64_t(count(joins[i])) + constantGates(joins[i]) -
+                      int64_t(prefixGates(i));
+      LLVM_DEBUG(llvm::dbgs() << "temporal-decomposition: prefix " << i << ": "
+                              << count(joins[i]) << " constant bits, "
+                              << constantGates(joins[i]) << " constant gates, "
+                              << prefixGates(i)
+                              << " prefix gates (no prefix: " << best << ")\n");
+      if (value > best) {
+        best = value;
+        k = i;
+      }
+    }
+  }
+  auto &join = joins[k];
+  if (!count(join))
+    return res;
+  res.constant = count(joins[0]);
+  res.transient = count(join) - res.constant;
+  res.prefix = k;
+  res.changed = true;
+  ArrayRef<uint8_t> at = states[k];
+  LLVM_DEBUG(llvm::dbgs() << "temporal-decomposition: prefix " << k << ", "
+                          << res.constant << " constant and " << res.transient
+                          << " transient register bits of " << regs.size()
+                          << "\n");
+
+  unsigned base = 0;
+  if (auto old = module->getAttrOfType<IntegerAttr>("verif.target_shift"))
+    base = old.getInt();
+  Value clock = regs[0].op.getClk();
+  OpBuilder builder(outputOp);
+  auto loc = module.getLoc();
+  SigBuilder sb(builder, loc);
+  Value initials[2];
+  auto initialValue = [&](bool bit) {
+    auto &v = initials[bit];
+    if (!v) {
+      OpBuilder::InsertionGuard guard(builder);
+      builder.setInsertionPointToStart(body);
+      v = seq::createConstantInitialValue(
+          builder, loc, builder.getIntegerAttr(builder.getI1Type(), bit));
+    }
+    return v;
+  };
+  // first: 1 in the first cycle only.
+  Value firstReg;
+  auto first = [&]() -> Sig {
+    if (!firstReg)
+      firstReg = seq::CompRegOp::create(
+          builder, loc, sb.value(SigBuilder::constant(false)), clock, Value(),
+          Value(), builder.getStringAttr("prefix_first"), hw::InnerSymAttr(),
+          initialValue(true));
+    return {firstReg, false};
+  };
+
+  // The value of a node in cycle t of the prefix (t < k), or of a state bit
+  // in cycle k, as logic over new inputs.
+  DenseMap<std::pair<unsigned, unsigned>, Sig> unrolled;
+  DenseMap<std::pair<unsigned, unsigned>, Value> prefixInputs;
+  // New inputs are placeholders until all are known (adding ports one by
+  // one is quadratic).
+  SmallVector<std::pair<hw::ConstantOp, std::string>> newInputs;
+  auto newInput = [&](const Twine &name, Type type) -> Value {
+    auto placeholder = hw::ConstantOp::create(
+        builder, loc, APInt(cast<IntegerType>(type).getWidth(), 0));
+    newInputs.push_back({placeholder, name.str()});
+    ++res.inputs;
+    return placeholder;
+  };
+  auto unroll = [&](Lit root, unsigned frame) -> Sig {
+    SmallVector<std::pair<unsigned, unsigned>> stack{{nodeOf(root), frame}};
+    while (!stack.empty()) {
+      auto key = stack.pop_back_val();
+      auto [n, t] = key;
+      if (unrolled.count(key))
+        continue;
+      uint8_t known = TX;
+      if (n == 0)
+        known = TZero;
+      else if (t < k)
+        known = frames[t][n];
+      else if (net.kind[n] == Net::State)
+        known = at[regOfNode.at(n)];
+      if (known != TX) {
+        unrolled[key] = SigBuilder::constant(known == TOne);
+        continue;
+      }
+      switch (net.kind[n]) {
+      case Net::Const:
+        break;
+      case Net::Free: {
+        auto [value, bit] = leafOrigin.at(n);
+        auto arg = cast<BlockArgument>(value);
+        auto &input = prefixInputs[{arg.getArgNumber(), t}];
+        if (!input)
+          input = newInput(Twine(module.getInputName(arg.getArgNumber())) +
+                               "_pre" + Twine(base + t),
+                           arg.getType());
+        Value v = input;
+        if (!arg.getType().isInteger(1))
+          v = comb::ExtractOp::create(builder, loc, v, bit, 1);
+        unrolled[key] = {v, false};
+        break;
+      }
+      case Net::State: {
+        auto &r = regs[regOfNode.at(n)];
+        if (t == 0) {
+          // No initial value: any value.
+          Value v =
+              newInput("init" + Twine(regOfNode.at(n)) + "_pre" + Twine(base),
+                       builder.getI1Type());
+          unrolled[key] = {v, false};
+          break;
+        }
+        auto it = unrolled.find({nodeOf(r.next), t - 1});
+        if (it == unrolled.end()) {
+          stack.push_back(key);
+          stack.push_back({nodeOf(r.next), t - 1});
+          break;
+        }
+        Sig s = it->second;
+        unrolled[key] = isNeg(r.next) ? ~s : s;
+        break;
+      }
+      case Net::And: {
+        bool ready = true;
+        for (Lit l : net.fanins[n]) {
+          if (unrolled.count({nodeOf(l), t}))
+            continue;
+          if (ready)
+            stack.push_back(key);
+          ready = false;
+          stack.push_back({nodeOf(l), t});
+        }
+        if (!ready)
+          break;
+        SmallVector<Sig> ins;
+        for (Lit l : net.fanins[n]) {
+          Sig s = unrolled.lookup({nodeOf(l), t});
+          ins.push_back(isNeg(l) ? ~s : s);
+        }
+        unrolled[key] = sb.land(ins);
+        break;
+      }
+      }
+    }
+    Sig s = unrolled.lookup({nodeOf(root), frame});
+    return isNeg(root) ? ~s : s;
+  };
+
+  if (k > 0) {
+    // G_t: the constraints hold in the cycles 0..t.
+    SmallVector<Sig> guards;
+    Sig guard = SigBuilder::constant(true);
+    for (unsigned t = 0; t < k; ++t) {
+      SmallVector<Sig> all{guard};
+      for (Lit l : assumeLits)
+        all.push_back(unroll(l, t));
+      guard = sb.land(all);
+      guards.push_back(guard);
+    }
+    // m: the first cycle after a prefix that breaks a constraint.
+    Sig invalid = SigBuilder::constant(false);
+    if (!guard.isTrue())
+      invalid = sb.land({first(), ~guard});
+    // first & (the property fails in the prefix).
+    auto prefixFail = [&](Lit hold) -> Sig {
+      if (!checkPrefix)
+        return SigBuilder::constant(false);
+      SmallVector<Sig> fails;
+      for (unsigned t = 0; t < k; ++t)
+        fails.push_back(sb.land({guards[t], ~unroll(hold, t)}));
+      Sig fail = sb.lor(fails);
+      if (fail.isFalse())
+        return fail;
+      return sb.land({first(), fail});
+    };
+    auto holdNow = [&](Value prop, Value en) -> Sig {
+      if (!en)
+        return {prop, false};
+      return ~sb.land({Sig{en, false}, Sig{prop, true}});
+    };
+    for (auto [a, l] : llvm::zip(asserts, assertLits)) {
+      Sig fail = prefixFail(l);
+      if (fail.isFalse() && invalid.isFalse())
+        continue;
+      Sig hold = sb.land(
+          {~fail, sb.lor({holdNow(a.getProperty(), a.getEnable()), invalid})});
+      a.getPropertyMutable().assign(sb.value(hold));
+      a.getEnableMutable().clear();
+    }
+    for (auto [i, l] : llvm::enumerate(outLits)) {
+      Sig fail = prefixFail(l ^ 1);
+      if (fail.isFalse() && invalid.isFalse())
+        continue;
+      Sig bad = sb.lor(
+          {fail, sb.land({Sig{outputOp->getOperand(i), false}, ~invalid})});
+      outputOp->setOperand(i, sb.value(bad));
+    }
+    if (!invalid.isFalse()) {
+      for (auto a : assumes) {
+        Sig hold = sb.lor({holdNow(a.getProperty(), a.getEnable()), invalid});
+        a.getPropertyMutable().assign(sb.value(hold));
+        a.getEnableMutable().clear();
+      }
+      Value ended = seq::CompRegOp::create(
+          builder, loc, sb.value(invalid), clock, Value(), Value(),
+          builder.getStringAttr("prefix_invalid"), hw::InnerSymAttr(),
+          initialValue(false));
+      verif::AssumeOp::create(builder, loc, sb.value(Sig{ended, true}), Value(),
+                              StringAttr());
+    }
+  }
+
+  // Rebuild the registers, one per bit that is not constant.
+  llvm::MapVector<Operation *, SmallVector<unsigned>> bitsOf;
+  for (unsigned i = 0; i < regs.size(); ++i)
+    bitsOf[regs[i].op].push_back(i);
+  for (auto &[opPtr, indices] : bitsOf) {
+    auto op = cast<seq::CompRegOp>(opPtr);
+    if (k == 0 &&
+        llvm::none_of(indices, [&](unsigned i) { return join[i] != TX; }))
+      continue;
+    OpBuilder regBuilder(op);
+    auto regLoc = op.getLoc();
+    SmallVector<Value> bits;
+    for (auto [bit, i] : llvm::enumerate(indices)) {
+      if (join[i] != TX) {
+        bits.push_back(sb.value(SigBuilder::constant(join[i] == TOne)));
+        continue;
+      }
+      Value next = op.getInput();
+      if (indices.size() > 1)
+        next = comb::ExtractOp::create(regBuilder, regLoc, next, bit, 1);
+      // The initial value: the one of cycle k if it is known.
+      std::optional<bool> init = regs[i].init;
+      if (k > 0) {
+        init.reset();
+        if (at[i] != TX)
+          init = at[i] == TOne;
+      }
+      StringAttr name = op.getNameAttr();
+      if (name && indices.size() > 1)
+        name =
+            regBuilder.getStringAttr(name.getValue() + "[" + Twine(bit) + "]");
+      Value reg = seq::CompRegOp::create(
+          regBuilder, regLoc, next, op.getClk(), Value(), Value(), name,
+          hw::InnerSymAttr(), init ? initialValue(*init) : Value());
+      if (k > 0 && at[i] == TX) {
+        // It depends on the prefix: its logic in the first cycle.
+        Sig start = unroll(mkLit(regs[i].node), k);
+        Sig f = first();
+        reg = sb.value(
+            sb.lor({sb.land({f, start}), sb.land({~f, Sig{reg, false}})}));
+      }
+      bits.push_back(reg);
+    }
+    Value whole = bits[0];
+    if (bits.size() > 1) {
+      SmallVector<Value> msbFirst(llvm::reverse(bits));
+      whole = comb::ConcatOp::create(regBuilder, regLoc, msbFirst);
+    }
+    op.getResult().replaceAllUsesWith(whole);
+    op.erase();
+  }
+  // Add the new inputs.
+  if (!newInputs.empty()) {
+    Namespace names;
+    for (auto port : module.getPortList())
+      names.newName(port.name.getValue());
+    SmallVector<std::pair<unsigned, hw::PortInfo>> ports;
+    unsigned index = module.getNumInputPorts();
+    for (auto &[placeholder, name] : newInputs) {
+      hw::PortInfo port;
+      port.name = builder.getStringAttr(names.newName(name));
+      port.dir = hw::ModulePort::Direction::Input;
+      port.type = placeholder.getType();
+      ports.push_back({index, port});
+    }
+    // The block arguments first: updating the ports sets their locations.
+    for (auto &[placeholder, name] : newInputs) {
+      Value arg = body->addArgument(placeholder.getType(), loc);
+      placeholder.getResult().replaceAllUsesWith(arg);
+      placeholder.erase();
+    }
+    module.modifyPorts(ports, {}, {}, {});
+  }
+  if (k > 0)
+    module->setAttr(
+        "verif.target_shift",
+        IntegerAttr::get(IntegerType::get(module.getContext(), 32), base + k));
+  return res;
 }
 
 std::optional<Correspondence::Conflict>
@@ -1466,6 +2061,28 @@ struct CheckConstraintsPass
       diag.attachNote(op.getLoc()) << "constraint in the conflict";
     if (failOnConflict)
       signalPassFailure();
+  }
+};
+} // namespace
+
+namespace {
+struct TemporalDecompositionPass
+    : public circt::synth::impl::TemporalDecompositionBase<
+          TemporalDecompositionPass> {
+  using TemporalDecompositionBase::TemporalDecompositionBase;
+
+  void runOnOperation() override {
+    Params opts{64, 1, 0, 0, -1, "auto", false, 0, 0};
+    Correspondence c(getOperation(), opts);
+    if (!c.build())
+      return markAllAnalysesPreserved();
+    auto res = c.decompose(maxPrefix, checkPrefix, badOutputs, force);
+    if (!res.changed)
+      return markAllAnalysesPreserved();
+    prefixStat += res.prefix;
+    numConstantStat += res.constant;
+    numTransientStat += res.transient;
+    numInputsStat += res.inputs;
   }
 };
 } // namespace

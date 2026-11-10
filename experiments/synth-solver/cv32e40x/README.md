@@ -541,3 +541,37 @@ confirmed by ABC pdr).
 `synth-forward-retime` finds nothing to move on CV32E40X (no and-gate reads
 only registers); its register split alone drops unread bits: 2879 -> 2684
 latches, 55278 -> 53313 ands (dprove: equivalent).
+
+## Timing-changing passes (verif-shift-target, synth-temporal-decomposition)
+
+Both record the shift in the module attribute `verif.target_shift`: a
+counterexample of depth d is one of depth at most d + shift of the model
+before, and a bounded proof to depth d covers d + shift.
+
+`verif-shift-target` (HWMCC, ABC bmc3): arbitrated_top_n3_* fail at
+18/10/10, after one step at 17/9/9, after two at 16/8/8.
+
+`synth-temporal-decomposition{bad-outputs}` on a_gate_clk_i: 372 register
+bits are constant from the start, 3 more after one cycle. Skipping that cycle
+does not pay (no gate becomes constant, 10 gates of prefix logic), so the
+default keeps the timing and the result is that of `synth-ternary-constants`:
+
+| model                 | latches | ands  | pass time |
+|-----------------------|---------|-------|-----------|
+| base                  | 2879    | 55278 |           |
+| ternary constants     | 2418    | 48767 | 0.4 s     |
+| temporal dec. (force) | 2416    | 48765 | 0.5 s     |
+| rc                    | 2375    | 48376 | 16 s      |
+
+HWMCC (hwmcc/check_shift.sh: rBMC on both models, witnesses of the new model
+mapped back and replayed on the original): with `force`, 121 models: 78 with
+a prefix (1, 2 or 4 cycles) all consistent, 12 of them with counterexamples
+(depth d becomes d - k, all witnesses replay); 40 without transients; 3 not
+run (2 import errors, 1 timeout before ports were added in one batch; it
+passes since). With the default policy none of 33 sampled models is shifted:
+the prefix logic outweighs the few transient bits (cv32e40x-p664 with
+`force`: 25 transient bits, 146510 -> 791338 ands).
+
+ABC is not used for these checks: it starts latches without initial value
+at 0. For hkust/x-epic/a16-p1 ABC pdr reports "proved" while the model fails
+at depth 10 (rBMC; replayed with hwmcc/aigreplay.py).

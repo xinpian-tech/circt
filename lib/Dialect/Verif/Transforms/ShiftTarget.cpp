@@ -211,16 +211,16 @@ LogicalResult ShiftTargetPass::shiftOnce() {
 
 void ShiftTargetPass::runOnOperation() {
   module = getOperation();
+  // Nothing to shift without assertions: the module (and its shift) stays.
+  auto asserts = module.getBodyBlock()->getOps<verif::AssertOp>();
+  if (!steps || asserts.begin() == asserts.end())
+    return markAllAnalysesPreserved();
+  round = 0;
   if (auto old = module->getAttrOfType<IntegerAttr>("verif.target_shift"))
     round = old.getInt();
   for (unsigned i = 0; i < steps; ++i, ++round)
     if (failed(shiftOnce()))
       return signalPassFailure();
-  if (!steps)
-    return markAllAnalysesPreserved();
-  unsigned total = steps;
-  if (auto old = module->getAttrOfType<IntegerAttr>("verif.target_shift"))
-    total += old.getInt();
   module->setAttr("verif.target_shift",
-                  IntegerAttr::get(IntegerType::get(&getContext(), 32), total));
+                  IntegerAttr::get(IntegerType::get(&getContext(), 32), round));
 }
