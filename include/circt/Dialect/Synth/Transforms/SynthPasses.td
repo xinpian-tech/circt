@@ -562,4 +562,24 @@ def CheckConstraints : Pass<"synth-check-constraints", "hw::HWModuleOp"> {
   ];
 }
 
+def ForwardRetime : Pass<"synth-forward-retime", "hw::HWModuleOp"> {
+  let summary = "Move registers forward through and-gates, cycle-exactly";
+  let description = [{
+    An i1 `synth.aig.and_inv` whose operands are all registers on one clock
+    (no reset, constant or no initial value) that nothing else reads becomes
+    one register of the gate over their next-state values, with the gate
+    over their initial values as initial value (in ternary logic: unknown
+    initial values give an unknown one only when they decide the gate).
+    Every signal keeps its value in every cycle, so properties and
+    counterexample depths do not change; the module has fewer registers.
+    Repeated until no gate qualifies. Multi-bit registers are split into
+    one register per bit first.
+  }];
+  let dependentDialects = ["comb::CombDialect", "seq::SeqDialect"];
+  let statistics = [
+    Statistic<"numMovedStat", "num-moved", "Gates moved past their registers">,
+    Statistic<"numRemovedStat", "num-removed", "Registers removed (net)">
+  ];
+}
+
 #endif // CIRCT_DIALECT_SYNTH_TRANSFORMS_PASSES_TD
