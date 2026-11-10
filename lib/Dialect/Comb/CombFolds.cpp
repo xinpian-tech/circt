@@ -1309,7 +1309,9 @@ static LogicalResult mergeComplementaryTerms(OrOp op,
     return failure();
   auto inputs = op.getInputs();
   using Term = SmallVector<std::pair<Value, bool>, 4>;
-  SmallVector<Term> terms;
+  // The literals of each term in operand order (for the result), and sorted
+  // (to compare terms).
+  SmallVector<Term> terms, sorted;
   for (auto input : inputs) {
     Term term;
     if (auto andOp = input.getDefiningOp<AndOp>())
@@ -1317,15 +1319,17 @@ static LogicalResult mergeComplementaryTerms(OrOp op,
         term.push_back(getOrTermLiteral(operand));
     else
       term.push_back(getOrTermLiteral(input));
-    llvm::sort(term, [](auto a, auto b) {
+    Term key = term;
+    llvm::sort(key, [](auto a, auto b) {
       return a.first.getAsOpaquePointer() < b.first.getAsOpaquePointer() ||
              (a.first == b.first && a.second < b.second);
     });
     terms.push_back(std::move(term));
+    sorted.push_back(std::move(key));
   }
   for (unsigned i = 0; i < terms.size(); ++i) {
     for (unsigned j = i + 1; j < terms.size(); ++j) {
-      auto &a = terms[i], &b = terms[j];
+      auto &a = sorted[i], &b = sorted[j];
       if (a.size() != b.size())
         continue;
       std::optional<unsigned> pos;
@@ -1339,14 +1343,20 @@ static LogicalResult mergeComplementaryTerms(OrOp op,
       }
       if (!adjacent || !pos)
         continue;
-      // Build the merged term from the remaining literals.
+      // Build the merged term from the remaining literals, in the operand
+      // order of the first term (deterministic).
       auto loc = op.getLoc();
       SmallVector<Value> literals;
-      for (unsigned k = 0; k < a.size(); ++k)
-        if (k != *pos)
-          literals.push_back(a[k].second
-                                 ? createOrFoldNot(rewriter, loc, a[k].first)
-                                 : a[k].first);
+      bool dropped = false;
+      for (auto literal : terms[i]) {
+        if (!dropped && literal == a[*pos]) {
+          dropped = true;
+          continue;
+        }
+        literals.push_back(literal.second
+                               ? createOrFoldNot(rewriter, loc, literal.first)
+                               : literal.first);
+      }
       Value merged;
       if (literals.empty())
         merged = hw::ConstantOp::create(rewriter, loc, APInt(1, 1));

@@ -2575,7 +2575,7 @@ hw.module @OrOfComplementaryTerms(in %a : i1, in %b : i1, in %c : i1, out o : i1
   %nc = comb.xor %c, %true : i1
   %0 = comb.and %a, %b, %c : i1
   %1 = comb.and %nc, %a, %b : i1
-  // CHECK: [[R:%.+]] = comb.and %a, %b
+  // CHECK: [[R:%.+]] = comb.and %a, %b : i1
   // CHECK: hw.output [[R]]
   %2 = comb.or %0, %1 : i1
   hw.output %2 : i1
