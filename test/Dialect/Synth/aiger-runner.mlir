@@ -35,3 +35,17 @@ hw.module @unknownOperation(in %a: i2, in %b: i2, out out: i2) {
   %2 = synth.aig.and_inv %1, %a : i2
   hw.output %2 : i2
 }
+
+// Verification ops are other ops to the runner: their operands are outputs of
+// the exported logic, not AIGER bad states or constraints.
+// CHECK-LABEL: hw.module @verification(in %a : i1, in %b : i1)
+// CHECK-DAG:     verif.assert %[[P:.+]] : i1
+// CHECK-DAG:     verif.assume %[[Q:.+]] if %a : i1
+// CHECK-DAG:     %[[P]] = synth.aig.and_inv %b, %a : i1
+// CHECK-DAG:     %[[Q]] = synth.aig.and_inv not %b, %a : i1
+hw.module @verification(in %a: i1, in %b: i1) {
+  %0 = synth.aig.and_inv %b, %a : i1
+  verif.assert %0 : i1
+  %1 = synth.aig.and_inv not %b, %a : i1
+  verif.assume %1 if %a : i1
+}
