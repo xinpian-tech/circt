@@ -41,6 +41,13 @@ pipeline() {
     # Register correspondence (sequential: registers equal, complementary or
     # constant in all reachable states are merged).
     rc) echo "hw.module(synth-register-correspondence,canonicalize,$BITS)" ;;
+    # Signal correspondence (and-gates too), ternary constants, the register
+    # split of synth-forward-retime (unread bits of wide registers go), and
+    # all of them followed by functional reduction.
+    sc) echo "hw.module(synth-register-correspondence{internal},canonicalize,$BITS)" ;;
+    tc) echo "hw.module(synth-ternary-constants,canonicalize,$BITS)" ;;
+    split) echo "hw.module(synth-forward-retime,canonicalize,$BITS)" ;;
+    all) echo "hw.module(synth-forward-retime,synth-ternary-constants,canonicalize,synth-register-correspondence{internal},canonicalize,$BITS,synth-functional-reduction{use-choices=false},canonicalize,$BITS)" ;;
     # Without sop balancing.
     opt-nosop) echo "hw.module(cse,synth-structural-hash,canonicalize,synth-maximum-and-cover,$BITS)" ;;
   esac
