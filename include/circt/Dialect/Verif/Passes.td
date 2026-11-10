@@ -313,4 +313,25 @@ def StripContractsPass : Pass<"strip-contracts"> {
   }];
 }
 
+def ShiftTargetPass : Pass<"verif-shift-target", "hw::HWModuleOp"> {
+  let summary = "Check the assertions one cycle ahead (target shift)";
+  let description = [{
+    Each `verif.assert` `p` (i1) becomes `(first -> p) && (c' -> p')`: `p'`
+    is `p` in the next cycle, built from the current one (registers are
+    replaced by their next-state input, inputs by new inputs
+    `NAME_shiftK` for their value in the next cycle), `c'` the
+    `verif.assume`s in the next cycle, and `first` a new register that is 1
+    in the initial cycle only. A counterexample of depth t maps to one of
+    depth t + 1 of the original (or t = 0 from `first`), with the new inputs
+    as the inputs of the last cycle; a bounded proof to depth k covers
+    k + 1. Repeated `steps` times; the module records the total in
+    `verif.target_shift`. Registers with reset, several clocks and
+    non-combinational ops in the cones are rejected.
+  }];
+  let options = [
+    Option<"steps", "steps", "unsigned", "1", "Number of cycles to shift">
+  ];
+  let dependentDialects = ["seq::SeqDialect", "synth::SynthDialect"];
+}
+
 #endif // CIRCT_DIALECT_VERIF_PASSES_TD
