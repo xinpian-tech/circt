@@ -187,7 +187,11 @@ def AssertionsToOutputPass : Pass<"verif-assertions-to-output",
     assertion that is missing or unsupported is an error, other unsupported
     properties are left out with a warning. `assumes` lists labels of
     assertions to use as assumptions. With `replace-outputs` (default), the
-    output replaces the module's outputs.
+    output replaces the module's outputs. With `constraints`, each
+    assumption becomes a `verif.assume` of the i1 that must hold in every
+    cycle, and the output is 1 where an assertion is violated: the same
+    semantics, with the assumptions kept apart (as AIGER constraints) so
+    that later passes can use them.
   }];
   let options = [
     ListOption<"asserts", "asserts", "std::string",
@@ -197,7 +201,11 @@ def AssertionsToOutputPass : Pass<"verif-assertions-to-output",
     Option<"outputName", "output-name", "std::string", "\"bad\"",
            "Name of the output">,
     Option<"replaceOutputs", "replace-outputs", "bool", "true",
-           "Replace the outputs of the module by the new output">
+           "Replace the outputs of the module by the new output">,
+    Option<"constraints", "constraints", "bool", "false",
+           "Keep the assumptions as `verif.assume` ops of the condition that "
+           "must hold in every cycle (AIGER constraints) instead of folding "
+           "them into the output">
   ];
   let statistics = [
     Statistic<"numAsserts", "num-asserts", "Number of assertions checked">,

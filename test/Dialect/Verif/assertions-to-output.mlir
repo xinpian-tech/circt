@@ -1,6 +1,7 @@
 // RUN: circt-opt %s --pass-pipeline='builtin.module(verif-assertions-to-output)' | FileCheck %s
 // RUN: circt-opt %s --pass-pipeline='builtin.module(verif-assertions-to-output{asserts=a_seq})' | FileCheck %s --check-prefix=SEL
 // RUN: not circt-opt %s --pass-pipeline='builtin.module(verif-assertions-to-output{asserts=a_nope})' 2>&1 | FileCheck %s --check-prefix=ERR
+// RUN: circt-opt %s --pass-pipeline='builtin.module(verif-assertions-to-output{constraints})' | FileCheck %s --check-prefix=CST
 
 // ERR: no assertion labeled 'a_nope'
 
@@ -47,6 +48,13 @@ hw.module @Props(in %clk : i1, in %en : i1, in %a : i1, in %b : i1,
   verif.clocked_assume %b, posedge %clk label "m_b" : i1
   hw.output %a : i1
 }
+
+// With constraints, the assumption is a verif.assume of the condition and
+// the output is only the violation of the assertions.
+// CST-LABEL: hw.module @Props
+// CST:       [[ANY:%.+]] = comb.or bin
+// CST:       verif.assume %{{.+}} : i1
+// CST-NEXT:  hw.output [[ANY]] : i1
 
 // Only the selected assertion is checked; the assumption stays.
 // SEL-LABEL: hw.module @Props
