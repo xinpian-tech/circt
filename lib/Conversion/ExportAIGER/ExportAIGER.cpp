@@ -164,6 +164,8 @@ private:
 
   /// Visit an operation and process it
   LogicalResult visit(Operation *op);
+  /// An op the exporter does not know: through the handler, if any.
+  LogicalResult visitUnhandled(Operation *op);
 
   /// Visit specific operation types
   LogicalResult visit(aig::AndInverterOp op);
@@ -552,38 +554,45 @@ LogicalResult AIGERExporter::visit(Operation *op) {
       .Case<comb::ConcatOp>([&](auto op) { return visit(op); })
       .Case<comb::ExtractOp>([&](auto op) { return visit(op); })
       .Case<comb::ReplicateOp>([&](auto op) { return visit(op); })
-      .Case<verif::AssertOp, verif::AssumeOp>(
-          [&](auto op) { return visit(op); })
+      .Case<verif::AssertOp, verif::AssumeOp>([&](auto op) {
+        // With a handler (a module exported for optimization, e.g. by the
+        // ABC runner), they are other ops: their operands are outputs.
+        if (handler)
+          return visitUnhandled(op);
+        return visit(op);
+      })
       .Case<hw::HWModuleOp, hw::ConstantOp, hw::OutputOp, seq::InitialOp>(
           [](auto) { return success(); })
-      .Default([&](Operation *op) -> LogicalResult {
-        // Handle unknown operations if handler is set
-        if (!handler)
-          return mlir::emitError(op->getLoc(), "unhandled operation: ") << *op;
+      .Default([&](Operation *op) { return visitUnhandled(op); });
+}
 
-        // Handle unknown operations through the handler
-        for (mlir::OpOperand &operand : op->getOpOperands()) {
-          if (operand.get().getType().isInteger())
-            for (int64_t i = 0; i < getBitWidth(operand.get()); ++i) {
-              if (handler->operandCallback(operand, i, outputs.size()))
-                addOutput({operand.get(), i});
-            }
-        }
+LogicalResult AIGERExporter::visitUnhandled(Operation *op) {
+  // Handle unknown operations if handler is set
+  if (!handler)
+    return mlir::emitError(op->getLoc(), "unhandled operation: ") << *op;
 
-        for (mlir::OpResult result : op->getOpResults()) {
-          if (!result.getType().isInteger())
-            continue;
-          for (int64_t i = 0; i < getBitWidth(result); ++i) {
-            if (handler->valueCallback(result, i, inputs.size()))
-              addInput({result, i});
-            else
-              // Treat it as a constant
-              valueLiteralMap[{result, i}] = 0;
-          }
-        }
+  // Handle unknown operations through the handler
+  for (mlir::OpOperand &operand : op->getOpOperands()) {
+    if (operand.get().getType().isInteger())
+      for (int64_t i = 0; i < getBitWidth(operand.get()); ++i) {
+        if (handler->operandCallback(operand, i, outputs.size()))
+          addOutput({operand.get(), i});
+      }
+  }
 
-        return success();
-      });
+  for (mlir::OpResult result : op->getOpResults()) {
+    if (!result.getType().isInteger())
+      continue;
+    for (int64_t i = 0; i < getBitWidth(result); ++i) {
+      if (handler->valueCallback(result, i, inputs.size()))
+        addInput({result, i});
+      else
+        // Treat it as a constant
+        valueLiteralMap[{result, i}] = 0;
+    }
+  }
+
+  return success();
 }
 
 LogicalResult AIGERExporter::visit(aig::AndInverterOp op) {

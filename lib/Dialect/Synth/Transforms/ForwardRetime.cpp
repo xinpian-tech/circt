@@ -53,14 +53,9 @@ static bool getConstantInit(seq::CompRegOp op, std::optional<APInt> &init) {
   auto initial = op.getInitialValue();
   if (!initial)
     return true;
-  auto result = dyn_cast<OpResult>(initial);
-  auto initialOp =
-      result ? dyn_cast<seq::InitialOp>(result.getOwner()) : seq::InitialOp();
   APInt c;
-  if (!initialOp ||
-      !matchPattern(initialOp.getBodyBlock()->getTerminator()->getOperand(
-                        result.getResultNumber()),
-                    m_ConstantInt(&c)))
+  if (!initial.getDefiningOp<seq::InitialOp>() ||
+      !matchPattern(seq::unwrapImmutableValue(initial), m_ConstantInt(&c)))
     return false;
   init = c;
   return true;
@@ -80,7 +75,8 @@ struct ForwardRetimePass
 
 private:
   Value initialValue(OpBuilder &builder, Location loc, bool bit);
-  void splitRegisters();
+  /// Returns whether a register was split.
+  bool splitRegisters();
 
   hw::HWModuleOp module;
   Value initials[2];
@@ -101,7 +97,7 @@ Value ForwardRetimePass::initialValue(OpBuilder &builder, Location loc,
 
 /// Splits the retimable multi-bit registers into one register per bit, and
 /// folds the wiring around them so that gates read the bits directly.
-void ForwardRetimePass::splitRegisters() {
+bool ForwardRetimePass::splitRegisters() {
   SmallVector<seq::CompRegOp> wide;
   for (auto op : module.getBodyBlock()->getOps<seq::CompRegOp>())
     if (isRetimable(op) && !op.getType().isInteger(1))
@@ -129,7 +125,7 @@ void ForwardRetimePass::splitRegisters() {
     op.erase();
   }
   if (wide.empty())
-    return;
+    return false;
   // Fold extract(concat) and the like, on the wiring ops only.
   RewritePatternSet patterns(&getContext());
   comb::ExtractOp::getCanonicalizationPatterns(patterns, &getContext());
@@ -142,12 +138,13 @@ void ForwardRetimePass::splitRegisters() {
       wiring.push_back(op);
   });
   (void)applyOpPatternsGreedily(wiring, std::move(patterns), config);
+  return true;
 }
 
 void ForwardRetimePass::runOnOperation() {
   module = getOperation();
   initials[0] = initials[1] = Value();
-  splitRegisters();
+  bool split = splitRegisters();
 
   // The i1 register of `v`, if it can be moved.
   auto regOf = [](Value v) -> seq::CompRegOp {
@@ -231,6 +228,6 @@ void ForwardRetimePass::runOnOperation() {
   }
   numMovedStat += moved;
   numRemovedStat += removed - moved;
-  if (!moved && !initials[0] && !initials[1])
+  if (!moved && !split)
     markAllAnalysesPreserved();
 }

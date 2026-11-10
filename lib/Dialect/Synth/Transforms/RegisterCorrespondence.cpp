@@ -57,6 +57,21 @@ using namespace circt;
 using namespace mlir;
 using namespace circt::synth;
 
+/// The constant initial value of a register: true with `init` set if it has
+/// one, true with `init` empty if it has none, false if it is not constant.
+static bool getConstantInit(seq::CompRegOp op, std::optional<APInt> &init) {
+  init.reset();
+  auto initial = op.getInitialValue();
+  if (!initial)
+    return true;
+  APInt c;
+  if (!initial.getDefiningOp<seq::InitialOp>() ||
+      !matchPattern(seq::unwrapImmutableValue(initial), m_ConstantInt(&c)))
+    return false;
+  init = c;
+  return true;
+}
+
 namespace {
 /// A literal of the bit-level net: node index times two, plus one if
 /// negated. Node 0 is the constant false.
@@ -483,28 +498,19 @@ bool Correspondence::build() {
     all.push_back(op);
     ++clocks[op.getClk()];
   });
+  // Ties go to the clock of the first register (deterministic).
   Value clock;
   unsigned best = 0;
-  for (auto [c, n] : clocks)
-    if (n > best)
-      clock = c, best = n;
+  for (auto op : all)
+    if (unsigned n = clocks.lookup(op.getClk()); n > best)
+      clock = op.getClk(), best = n;
   for (auto op : all) {
     auto type = dyn_cast<IntegerType>(op.getType());
     if (!type || op.getClk() != clock || op.getReset() || op.getInnerSymAttr())
       continue;
     std::optional<APInt> init;
-    if (auto initial = op.getInitialValue()) {
-      auto result = dyn_cast<OpResult>(initial);
-      auto initialOp = result ? dyn_cast<seq::InitialOp>(result.getOwner())
-                              : seq::InitialOp();
-      APInt c;
-      if (!initialOp ||
-          !matchPattern(initialOp.getBodyBlock()->getTerminator()->getOperand(
-                            result.getResultNumber()),
-                        m_ConstantInt(&c)))
-        continue;
-      init = c;
-    }
+    if (!getConstantInit(op, init))
+      continue;
     for (unsigned i = 0, e = type.getWidth(); i < e; ++i) {
       RegBit r;
       r.op = op;
@@ -643,35 +649,34 @@ void Correspondence::drop(const DenseSet<unsigned> &gone) {
 }
 
 void Correspondence::refine(ArrayRef<uint64_t> vals, uint64_t mask) {
-  bool changed = false;
+  // Each class splits by the members' values relative to the class value:
+  // members with equal relative values stay together. The group of the
+  // representative (relative value 0) keeps the class; a constant class has
+  // the value 0 too.
   SmallVector<Class> out;
   for (auto &c : classes) {
     uint64_t ref = c.constant ? 0 : vals[cands[c.members[0].first].node];
-    Class same, other;
-    same.constant = c.constant;
+    llvm::MapVector<uint64_t, Class> groups;
     for (auto [i, p] : c.members) {
       uint64_t v = vals[cands[i].node];
       if (p)
         v = ~v;
-      if (((v ^ ref) & mask) == 0)
-        same.members.push_back({i, p});
-      else
-        other.members.push_back({i, p});
+      groups[(v ^ ref) & mask].members.push_back({i, p});
     }
-    out.push_back(std::move(same));
-    if (other.members.empty())
-      continue;
-    changed = true;
-    bool p0 = other.members[0].second;
-    for (auto &m : other.members)
-      m.second ^= p0;
-    out.push_back(std::move(other));
+    for (auto &[key, g] : groups) {
+      if (key == 0) {
+        g.constant = c.constant;
+      } else {
+        // A new class: relative to its first member.
+        bool p0 = g.members[0].second;
+        for (auto &m : g.members)
+          m.second ^= p0;
+      }
+      out.push_back(std::move(g));
+    }
   }
   classes = std::move(out);
   dropSingletons();
-  // A split-off class may not be uniform on all patterns yet.
-  if (changed)
-    refine(vals, mask);
 }
 
 DenseMap<unsigned, Subst> Correspondence::reduction() const {
@@ -823,9 +828,13 @@ bool Correspondence::proveBase() {
         if (net.kind[n] == Net::And)
           continue;
         // The own value of a leaf (a register member's own initial value).
-        auto v = enc.lookupOwn(n);
-        if (v)
+        // A register that is not encoded has its initial value, if any (the
+        // buffer holds older counterexamples); other leaves can be anything.
+        if (auto v = enc.lookupOwn(n))
           setBit(leaves[n], bit, modelValue(*solver, *v));
+        else if (net.kind[n] == Net::State)
+          if (auto init = regs[regOfNode.at(n)].init)
+            setBit(leaves[n], bit, *init);
       }
     };
     auto simulate = [&](SmallVectorImpl<uint64_t> &vals) {
@@ -1128,6 +1137,10 @@ bool Correspondence::proveIncremental(bool step) {
           else if (r1 != IncrementalSATSolver::kUNSAT)
             giveUp.insert(m);
         }
+        // Every pair has been decided (or given up) under the current
+        // hypotheses; querying the chunk again could hit the limit again and
+        // loop. `clean` is false, so the next pass checks it again.
+        break;
       }
     }
     if (!giveUp.empty()) {
@@ -1873,16 +1886,9 @@ std::pair<unsigned, unsigned> Correspondence::merge() {
     }
     OpBuilder builder(op);
     auto loc = op.getLoc();
+    // Modeled registers have a constant initial value or none.
     std::optional<APInt> init;
-    if (auto initial = op.getInitialValue()) {
-      auto result = cast<OpResult>(initial);
-      auto initialOp = cast<seq::InitialOp>(result.getOwner());
-      APInt c;
-      (void)matchPattern(initialOp.getBodyBlock()->getTerminator()->getOperand(
-                             result.getResultNumber()),
-                         m_ConstantInt(&c));
-      init = c;
-    }
+    (void)getConstantInit(op, init);
     SmallVector<Value> bits;
     SmallVector<seq::CompRegOp> newRegs;
     for (unsigned i = 0; i < w; ++i) {

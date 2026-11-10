@@ -32,6 +32,7 @@
 #include "circt/Dialect/Synth/SynthOps.h"
 #include "circt/Dialect/Verif/VerifOps.h"
 #include "circt/Dialect/Verif/VerifPasses.h"
+#include "circt/Support/Namespace.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/IRMapping.h"
 
@@ -52,14 +53,20 @@ struct ShiftTargetPass
   void runOnOperation() override;
 
 private:
-  /// One shift of the module; fails (with an error) on what it cannot shift.
-  LogicalResult shiftOnce();
+  /// One shift of the module; returns whether it shifted, fails (with an
+  /// error) on what it cannot shift.
+  FailureOr<bool> shiftOnce();
   /// The value of `root` in the next cycle.
   FailureOr<Value> next(Value root);
+  /// Adds the new inputs of the last shift as ports.
+  void addInputs();
 
   hw::HWModuleOp module;
   OpBuilder *builder = nullptr;
   DenseMap<Value, Value> nextValue;
+  /// New inputs: placeholders and names, added as ports after each shift
+  /// (adding them one by one is quadratic).
+  SmallVector<std::pair<Operation *, std::string>> newInputs;
   /// The number of shifts done so far, for the names of new inputs.
   unsigned round = 0;
 };
@@ -89,9 +96,11 @@ FailureOr<Value> ShiftTargetPass::next(Value root) {
         continue;
       }
       auto name = module.getInputName(arg.getArgNumber());
-      auto [_, newArg] = module.appendInput(
-          Twine(name) + "_shift" + Twine(round), arg.getType());
-      nextValue[v] = newArg;
+      auto placeholder = UnrealizedConversionCastOp::create(
+          *builder, arg.getLoc(), arg.getType(), ValueRange{});
+      newInputs.push_back(
+          {placeholder, (Twine(name) + "_shift" + Twine(round)).str()});
+      nextValue[v] = placeholder.getResult(0);
       continue;
     }
     Operation *op = v.getDefiningOp();
@@ -123,7 +132,7 @@ FailureOr<Value> ShiftTargetPass::next(Value root) {
   return nextValue.at(root);
 }
 
-LogicalResult ShiftTargetPass::shiftOnce() {
+FailureOr<bool> ShiftTargetPass::shiftOnce() {
   auto *body = module.getBodyBlock();
   SmallVector<verif::AssertOp> asserts;
   SmallVector<verif::AssumeOp> assumes;
@@ -147,10 +156,16 @@ LogicalResult ShiftTargetPass::shiftOnce() {
     }
   }
   if (asserts.empty())
-    return success();
+    return false;
   if (!clock) {
-    // A combinational module: the next cycle is the same check.
-    return success();
+    // Without registers there is no cycle to shift (and no clock for
+    // `first`), unless the state is of a kind the pass does not handle.
+    for (auto &op : *body)
+      if (!isa<verif::AssertOp, verif::AssumeOp, hw::OutputOp, seq::InitialOp>(
+              op) &&
+          !op.hasTrait<OpTrait::ConstantLike>() && !isCombinational(&op))
+        return op.emitError("cannot shift through this op");
+    return false;
   }
 
   OpBuilder b(body->getTerminator());
@@ -206,7 +221,32 @@ LogicalResult ShiftTargetPass::shiftOnce() {
     a.getPropertyMutable().assign(ok);
     a.getEnableMutable().clear();
   }
-  return success();
+  return true;
+}
+
+/// Adds the new inputs of a shift as ports: block arguments first (updating
+/// the ports sets their locations), then the ports in one go.
+void ShiftTargetPass::addInputs() {
+  if (newInputs.empty())
+    return;
+  auto *body = module.getBodyBlock();
+  Namespace names;
+  for (auto port : module.getPortList())
+    names.newName(port.name.getValue());
+  SmallVector<std::pair<unsigned, hw::PortInfo>> ports;
+  unsigned index = module.getNumInputPorts();
+  for (auto &[placeholder, name] : newInputs) {
+    hw::PortInfo port;
+    port.name = StringAttr::get(&getContext(), names.newName(name));
+    port.dir = hw::ModulePort::Direction::Input;
+    port.type = placeholder->getResult(0).getType();
+    ports.push_back({index, port});
+    Value arg = body->addArgument(port.type, placeholder->getLoc());
+    placeholder->getResult(0).replaceAllUsesWith(arg);
+    placeholder->erase();
+  }
+  module.modifyPorts(ports, {}, {}, {});
+  newInputs.clear();
 }
 
 void ShiftTargetPass::runOnOperation() {
@@ -218,9 +258,20 @@ void ShiftTargetPass::runOnOperation() {
   round = 0;
   if (auto old = module->getAttrOfType<IntegerAttr>("verif.target_shift"))
     round = old.getInt();
-  for (unsigned i = 0; i < steps; ++i, ++round)
-    if (failed(shiftOnce()))
+  newInputs.clear();
+  bool changed = false;
+  for (unsigned i = 0; i < steps; ++i, ++round) {
+    auto shifted = shiftOnce();
+    if (failed(shifted))
       return signalPassFailure();
+    if (!*shifted)
+      break;
+    // The inputs are ports before the next shift, which shifts them too.
+    addInputs();
+    changed = true;
+  }
+  if (!changed)
+    return markAllAnalysesPreserved();
   module->setAttr("verif.target_shift",
                   IntegerAttr::get(IntegerType::get(&getContext(), 32), round));
 }

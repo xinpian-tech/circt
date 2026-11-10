@@ -65,3 +65,22 @@ hw.module @NoAssert(in %clk : !seq.clock, in %a : i1, out o : i1) {
   %r = seq.compreg %a, %clk : i1
   hw.output %r : i1
 }
+
+// -----
+
+// Without registers there is nothing to shift.
+// CHECK-LABEL: hw.module @Combinational
+// CHECK-NOT:     verif.target_shift
+// CHECK:         verif.assert %a : i1
+hw.module @Combinational(in %a : i1) {
+  verif.assert %a : i1
+}
+
+// -----
+
+// State the pass does not model is rejected, even without seq.compreg.
+hw.module @FirReg(in %clk : !seq.clock, in %a : i1) {
+  // expected-error @below {{cannot shift through this op}}
+  %r = seq.firreg %a clock %clk : i1
+  verif.assert %r : i1
+}

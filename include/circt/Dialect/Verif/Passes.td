@@ -326,7 +326,10 @@ def ShiftTargetPass : Pass<"verif-shift-target", "hw::HWModuleOp"> {
     as the inputs of the last cycle; a bounded proof to depth k covers
     k + 1. Repeated `steps` times; the module records the total in
     `verif.target_shift`. Registers with reset, several clocks and
-    non-combinational ops in the cones are rejected.
+    non-combinational ops in the cones are rejected. A module without
+    registers has nothing to shift and is left alone. The new inputs change
+    the port list, so the pass is meant for top-level verification models
+    (instances of the module are not updated).
   }];
   let options = [
     Option<"steps", "steps", "unsigned", "1", "Number of cycles to shift">
