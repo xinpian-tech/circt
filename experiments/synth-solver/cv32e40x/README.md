@@ -487,3 +487,91 @@ abc-scorr 51 s per model).
   shorter one), all 483 witnesses pass `aigsim -c`, and no counterexample
   is on an assertion that rIC3 proved on the same model (in 192 runs rBMC
   finds a counterexample where IC3 timed out at 60 s).
+
+## Register correspondence (synth-register-correspondence, results-core-rbmc-rc.tsv)
+
+`synth-register-correspondence` merges register bits that are equal,
+complementary or constant in every reachable state, proved by induction
+(the register part of ABC's scorr). Configuration `rc` of
+`run_aig_configs.sh`: the pass, canonicalize, and the bit-level cleanup.
+
+| config | latches | ANDs | pass (s) |
+|---|---|---|---|
+| base | 2891 | 56070 | |
+| rc | 2389 | 49162 | 16 (max 25) |
+| abc-scorr | 2016 | 30758 | 51 |
+
+Equivalence of rc with base: ABC `miter; dprove` proves 90 of the 97
+models equivalent and times out (15 min) on 7; on those 7 miters rBMC
+finds no difference (up to bound 30 on six, bound 4 on a_shift_result_ll).
+
+rBMC, bound 20, 150 s, the three configurations in one batch (82
+assertions finished by all):
+
+| config | SAT | K | TO | PAR-2 (s) | common (s) | ratio |
+|---|---|---|---|---|---|---|
+| base | 44 | 38 | 15 | 70.7 | 2358 | 1.00 |
+| rc | 44 | 39 | 14 | 67.4 | 2205 | 0.89 |
+| abc-scorr | 44 | 40 | 13 | 58.7 | 1572 | 0.34 |
+
+Register correspondence alone gives 11%; scorr gets 3x. scorr also merges
+internal signals (signal correspondence, not only registers) and runs dc2
+afterwards, so its models have 13% fewer latches and 37% fewer AND gates
+than rc. No soundness problems across the three configurations.
+
+## Signal correspondence, forward retiming
+
+`synth-register-correspondence{internal}` also merges i1 and-gates. With
+one incremental solver and chunked queries (`chunk=256`, the default),
+a_gate_clk_i takes 409 s (the per-pair speculative rounds, `chunk=0`, had
+not converged after 40 min):
+
+| model      | latches | ands  |
+|------------|---------|-------|
+| base       | 2879    | 55278 |
+| rc         | 2375    | 48376 |
+| internal   | 2373    | 40548 |
+| abc-scorr  | 2373    | 35555 |
+
+ABC dprove: equivalent to base. On 40 HWMCC safety models (every fourth
+of the small ones): 26 equivalent by dprove, none different; two of the
+others had their property proved by the pass itself (bad merged to 0,
+confirmed by ABC pdr).
+
+`synth-forward-retime` finds nothing to move on CV32E40X (no and-gate reads
+only registers); its register split alone drops unread bits: 2879 -> 2684
+latches, 55278 -> 53313 ands (dprove: equivalent).
+
+## Timing-changing passes (verif-shift-target, synth-temporal-decomposition)
+
+Both record the shift in the module attribute `verif.target_shift`: a
+counterexample of depth d is one of depth at most d + shift of the model
+before, and a bounded proof to depth d covers d + shift.
+
+`verif-shift-target` (HWMCC, ABC bmc3): arbitrated_top_n3_* fail at
+18/10/10, after one step at 17/9/9, after two at 16/8/8.
+
+`synth-temporal-decomposition{bad-outputs}` on a_gate_clk_i: 372 register
+bits are constant from the start, 3 more after one cycle. Skipping that cycle
+does not pay (no gate becomes constant, 10 gates of prefix logic), so the
+default keeps the timing and the result is that of `synth-ternary-constants`:
+
+| model                 | latches | ands  | pass time |
+|-----------------------|---------|-------|-----------|
+| base                  | 2879    | 55278 |           |
+| ternary constants     | 2418    | 48767 | 0.4 s     |
+| temporal dec. (force) | 2416    | 48765 | 0.5 s     |
+| rc                    | 2375    | 48376 | 16 s      |
+
+HWMCC (hwmcc/check_shift.sh: rBMC on both models, witnesses of the new model
+mapped back and replayed on the original): with `force`, 121 models: 78 with
+a prefix (1, 2 or 4 cycles) all consistent, 12 of them with counterexamples
+(depth d becomes d - k, all witnesses replay); 40 without transients; 3 not
+run (2 import errors, 1 timeout before ports were added in one batch; it
+passes since). With the default policy none of 33 sampled models is shifted:
+the prefix logic outweighs the few transient bits (cv32e40x-p664 with
+`force`: 25 transient bits, 146510 -> 791338 ands).
+
+ABC is not used for these checks: it starts latches without initial value
+at 0. For hkust/x-epic/a16-p1 ABC pdr reports "proved" while the model fails
+at depth 10 (rBMC; replayed with hwmcc/aigreplay.py).
