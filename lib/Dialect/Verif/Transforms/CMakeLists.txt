@@ -7,6 +7,7 @@ add_circt_dialect_library(CIRCTVerifTransforms
   LowerSymbolicValues.cpp
   LowerTests.cpp
   PrepareForFormal.cpp
+  ShiftTarget.cpp
   SimplifyAssumeEq.cpp
   StripContracts.cpp
   SimplifyODC.cpp
