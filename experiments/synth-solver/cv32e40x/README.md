@@ -575,3 +575,63 @@ the prefix logic outweighs the few transient bits (cv32e40x-p664 with
 ABC is not used for these checks: it starts latches without initial value
 at 0. For hkust/x-epic/a16-p1 ABC pdr reports "proved" while the model fails
 at depth 10 (rBMC; replayed with hwmcc/aigreplay.py).
+
+## The new passes on all 97 assertions (results-core-rbmc-sc.tsv)
+
+Configurations of `run_aig_configs.sh`, each followed by canonicalize and the
+bit-level cleanup: `tc` (synth-ternary-constants), `split`
+(synth-forward-retime; on CV32E40X only its register split acts), `rc`
+(synth-register-correspondence), `sc` (the same with `internal`: signal
+correspondence), `all` (forward-retime, ternary-constants, sc, then
+functional reduction). 12 exports in parallel on 16 cores, so pass times
+are under load. rBMC as above (bound 20, 150 s, 8 in parallel).
+
+Sizes (mean over the 97 models) and pass times:
+
+| config | latches | ANDs | pass (s, mean) | pass (s, max) |
+|---|---|---|---|---|
+| base | 2891 | 56070 | | |
+| tc | 2432 | 49558 | 1.0 | 1.3 |
+| split | 2699 | 54116 | 1.1 | 1.3 |
+| rc | 2389 | 49162 | 477 | 1461 |
+| sc | 2019 | 35042 | 1039 | 1441 |
+| all | 2019 | 35042 | 984 | 1785 |
+| abc-scorr | 2016 | 30758 | 51 | 82 |
+
+sc and abc-scorr reduce 15 assertions to a constant (0 latches, 0 ANDs:
+the bad output merged with 0); the same 15 for both, all of them proved by
+rIC3 and without counterexample to bound 20 in every configuration. `all`
+equals sc up to one AND gate on 3 models: after signal correspondence the
+other passes find nothing.
+
+rBMC (84 assertions finished by every configuration):
+
+| config | SAT | K | TO | PAR-2 (s) | common (s) | ratio |
+|---|---|---|---|---|---|---|
+| base | 44 | 40 | 13 | 59.2 | 1839 | 1.00 |
+| tc | 44 | 40 | 13 | 58.1 | 1731 | 0.92 |
+| split | 44 | 40 | 13 | 57.8 | 1706 | 0.95 |
+| rc | 44 | 40 | 13 | 57.3 | 1660 | 0.87 |
+| sc | 44 | 40 | 13 | 52.6 | 1198 | 0.36 |
+| all | 44 | 40 | 13 | 52.1 | 1151 | 0.35 |
+| abc-scorr | 44 | 40 | 13 | 51.8 | 1122 | 0.35 |
+
+- Signal correspondence gives BMC the same speedup as ABC's scorr (2.8x,
+  geometric mean); rc 13%, tc 8%, split 5%. No configuration finishes an
+  assertion that base does not.
+- Soundness: the same counterexample length in every configuration, no
+  bound 20 without counterexample where another has one, all 308 witnesses
+  pass `aigsim -c`.
+- Cost: sc takes about 20x the time of scorr (1039 s against 51 s per model
+  here). ABC runs dc2 after scorr, hence its 12% fewer ANDs.
+
+Chunk size of the incremental proof (`chunk`), a_gate_clk_i, machine less
+loaded (rBMC, 8 jobs). Without `internal`, small chunks are faster; with it,
+the default 256 is. The results are the same; the default stays 256.
+
+| chunk | rc (s) | rc SAT calls | sc (s) | sc SAT calls |
+|---|---|---|---|---|
+| 0 (one pair at a time) | 35 | 21732 | did not converge in 40 min (earlier) | |
+| 8 | 37 | 1604 | > 21 min (stopped) | |
+| 32 | 32 | 1415 | 749 | 8760 |
+| 256 | 125 | 1495 | 637 | 3751 |

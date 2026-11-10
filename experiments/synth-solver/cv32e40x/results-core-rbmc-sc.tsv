@@ -1,0 +1,680 @@
+assert	config	latches	ands	pass_seconds	result	depth	seconds	witness
+a_addr_incr	abc-scorr	0	0	50.2	K	20	0.01	-
+a_addr_incr	all	0	0	631.6	K	20	0.01	-
+a_addr_incr	base	2944	56295		K	20	106.66	-
+a_addr_incr	rc	2407	49065	60.0	K	20	3.36	-
+a_addr_incr	sc	0	0	840.0	K	20	0.01	-
+a_addr_incr	split	2749	54330	1.0	K	20	106.81	-
+a_addr_incr	tc	2481	49766	0.9	K	20	90.70	-
+a_branch_taken_ex_flush	abc-scorr	2377	35464	47.3	K	20	21.77	-
+a_branch_taken_ex_flush	all	2377	40559	732.7	K	20	21.90	-
+a_branch_taken_ex_flush	base	2883	55288		K	20	37.92	-
+a_branch_taken_ex_flush	rc	2379	48386	108.6	K	20	39.18	-
+a_branch_taken_ex_flush	sc	2377	40559	907.1	K	20	21.41	-
+a_branch_taken_ex_flush	split	2688	53323	1.2	K	20	27.28	-
+a_branch_taken_ex_flush	tc	2422	48777	1.1	K	20	33.82	-
+a_bubble_ex_when_branch_taken_wb	abc-scorr	2373	35526	48.5	K	20	76.71	-
+a_bubble_ex_when_branch_taken_wb	all	2373	40544	720.6	K	20	52.88	-
+a_bubble_ex_when_branch_taken_wb	base	2879	55272		K	20	101.27	-
+a_bubble_ex_when_branch_taken_wb	rc	2375	48370	78.5	K	20	112.02	-
+a_bubble_ex_when_branch_taken_wb	sc	2373	40544	758.6	K	20	69.37	-
+a_bubble_ex_when_branch_taken_wb	split	2684	53307	0.7	K	20	97.93	-
+a_bubble_ex_when_branch_taken_wb	tc	2418	48761	0.7	K	20	101.72	-
+a_check_acc_mul_value_zero	abc-scorr	2373	35516	50.3	K	20	18.71	-
+a_check_acc_mul_value_zero	all	2373	40576	640.4	K	20	21.16	-
+a_check_acc_mul_value_zero	base	2879	55304		K	20	29.23	-
+a_check_acc_mul_value_zero	rc	2375	48402	81.5	K	20	27.02	-
+a_check_acc_mul_value_zero	sc	2373	40576	742.6	K	20	14.39	-
+a_check_acc_mul_value_zero	split	2684	53339	1.0	K	20	30.03	-
+a_check_acc_mul_value_zero	tc	2418	48793	1.1	K	20	27.12	-
+a_check_result_constant	abc-scorr	2408	35785	53.1	TO	4	150.02	-
+a_check_result_constant	all	2408	40776	682.1	TO	4	150.03	-
+a_check_result_constant	base	2914	55505		TO	4	150.04	-
+a_check_result_constant	rc	2410	48603	451.5	TO	4	150.03	-
+a_check_result_constant	sc	2408	40776	770.9	TO	4	150.03	-
+a_check_result_constant	split	2719	53540	0.7	TO	4	150.03	-
+a_check_result_constant	tc	2453	48994	0.7	TO	4	150.04	-
+a_clock_en_5	abc-scorr	0	0	45.5	K	20	0.01	-
+a_clock_en_5	all	0	0	599.5	K	20	0.01	-
+a_clock_en_5	base	2879	55272		K	20	1.62	-
+a_clock_en_5	rc	2375	48370	85.7	K	20	1.45	-
+a_clock_en_5	sc	0	0	759.8	K	20	0.01	-
+a_clock_en_5	split	2684	53307	1.1	K	20	1.56	-
+a_clock_en_5	tc	2418	48761	1.0	K	20	1.47	-
+a_core_sleep	abc-scorr	0	0	51.5	K	20	0.01	-
+a_core_sleep	all	0	0	530.1	K	20	0.01	-
+a_core_sleep	base	2879	55271		K	20	1.22	-
+a_core_sleep	rc	2375	48369	88.3	K	20	1.10	-
+a_core_sleep	sc	0	0	824.9	K	20	0.01	-
+a_core_sleep	split	2684	53306	1.0	K	20	1.18	-
+a_core_sleep	tc	2418	48760	1.0	K	20	1.12	-
+a_csr_wr_in_wb_no_fetch	abc-scorr	2373	35543	51.7	SAT	12	5.45	ok
+a_csr_wr_in_wb_no_fetch	all	2373	40543	701.7	SAT	12	10.43	ok
+a_csr_wr_in_wb_no_fetch	base	2879	55272		SAT	12	6.88	ok
+a_csr_wr_in_wb_no_fetch	rc	2375	48370	68.2	SAT	12	6.34	ok
+a_csr_wr_in_wb_no_fetch	sc	2373	40543	776.9	SAT	12	10.25	ok
+a_csr_wr_in_wb_no_fetch	split	2684	53307	0.6	SAT	12	6.94	ok
+a_csr_wr_in_wb_no_fetch	tc	2418	48761	0.6	SAT	12	11.61	ok
+a_data_i_stable_during_waited_addr_ph	abc-scorr	2446	36307	46.8	K	20	68.59	-
+a_data_i_stable_during_waited_addr_ph	all	2456	41357	728.0	K	20	69.22	-
+a_data_i_stable_during_waited_addr_ph	base	2961	56126		K	20	102.57	-
+a_data_i_stable_during_waited_addr_ph	rc	2458	49205	64.0	K	20	105.15	-
+a_data_i_stable_during_waited_addr_ph	sc	2456	41357	829.1	K	20	69.30	-
+a_data_i_stable_during_waited_addr_ph	split	2772	54182	0.7	K	20	74.23	-
+a_data_i_stable_during_waited_addr_ph	tc	2501	49596	0.7	K	20	76.52	-
+a_data_o_stable_during_waited_addr_ph	abc-scorr	2446	36317	49.4	K	20	67.54	-
+a_data_o_stable_during_waited_addr_ph	all	2456	41360	720.1	K	20	89.44	-
+a_data_o_stable_during_waited_addr_ph	base	2961	56214		K	20	80.39	-
+a_data_o_stable_during_waited_addr_ph	rc	2458	49208	75.3	K	20	84.11	-
+a_data_o_stable_during_waited_addr_ph	sc	2456	41360	762.7	K	20	72.25	-
+a_data_o_stable_during_waited_addr_ph	split	2772	54270	0.7	K	20	90.22	-
+a_data_o_stable_during_waited_addr_ph	tc	2501	49599	0.7	K	20	95.83	-
+a_data_obi_max_2_outstanding_transactions	abc-scorr	2403	35646	81.5	K	20	8.06	-
+a_data_obi_max_2_outstanding_transactions	all	2403	40996	677.1	K	20	18.05	-
+a_data_obi_max_2_outstanding_transactions	base	2911	56152		K	20	36.68	-
+a_data_obi_max_2_outstanding_transactions	rc	2405	49222	38.1	K	20	25.60	-
+a_data_obi_max_2_outstanding_transactions	sc	2403	40996	716.0	K	20	17.12	-
+a_data_obi_max_2_outstanding_transactions	split	2716	54187	0.7	K	20	44.75	-
+a_data_obi_max_2_outstanding_transactions	tc	2450	49641	0.7	K	20	42.78	-
+a_debug_taken_rf_write	abc-scorr	2373	35474	48.8	SAT	12	4.09	ok
+a_debug_taken_rf_write	all	2373	40542	685.0	SAT	12	9.43	ok
+a_debug_taken_rf_write	base	2879	55272		SAT	12	14.57	ok
+a_debug_taken_rf_write	rc	2375	48370	78.2	SAT	12	7.55	ok
+a_debug_taken_rf_write	sc	2373	40542	736.0	SAT	12	5.08	ok
+a_debug_taken_rf_write	split	2684	53307	0.7	SAT	12	14.44	ok
+a_debug_taken_rf_write	tc	2418	48761	0.7	SAT	12	15.24	ok
+a_enter_sleep_no_lsu	abc-scorr	2376	35553	48.0	K	20	5.50	-
+a_enter_sleep_no_lsu	all	2376	40554	737.1	K	20	5.63	-
+a_enter_sleep_no_lsu	base	2882	55283		K	20	6.67	-
+a_enter_sleep_no_lsu	rc	2378	48381	645.0	K	20	22.30	-
+a_enter_sleep_no_lsu	sc	2376	40554	682.6	K	20	13.82	-
+a_enter_sleep_no_lsu	split	2687	53318	0.7	K	20	7.76	-
+a_enter_sleep_no_lsu	tc	2421	48772	0.7	K	20	23.93	-
+a_exc_no_sequence_debug	abc-scorr	2378	35586	50.6	SAT	15	22.68	ok
+a_exc_no_sequence_debug	all	2378	40566	1079.2	SAT	15	23.51	ok
+a_exc_no_sequence_debug	base	2884	55295		SAT	15	34.74	ok
+a_exc_no_sequence_debug	rc	2380	48393	653.4	SAT	15	24.07	ok
+a_exc_no_sequence_debug	sc	2378	40566	913.1	SAT	15	22.82	ok
+a_exc_no_sequence_debug	split	2689	53330	0.7	SAT	15	32.95	ok
+a_exc_no_sequence_debug	tc	2423	48784	0.7	SAT	15	32.36	ok
+a_fencei_hndshk_ack_b4_req_clear	abc-scorr	2377	35467	47.9	K	20	29.30	-
+a_fencei_hndshk_ack_b4_req_clear	all	2377	40555	1138.1	K	20	24.45	-
+a_fencei_hndshk_ack_b4_req_clear	base	2883	55285		K	20	44.46	-
+a_fencei_hndshk_ack_b4_req_clear	rc	2379	48383	1310.6	K	20	35.48	-
+a_fencei_hndshk_ack_b4_req_clear	sc	2377	40555	952.0	K	20	25.41	-
+a_fencei_hndshk_ack_b4_req_clear	split	2688	53320	0.7	K	20	36.22	-
+a_fencei_hndshk_ack_b4_req_clear	tc	2422	48774	0.7	K	20	37.94	-
+a_fencei_hndshk_req_when_fencei_wb	abc-scorr	2378	35611	49.7	SAT	9	2.25	ok
+a_fencei_hndshk_req_when_fencei_wb	all	2378	40568	989.9	SAT	9	2.14	ok
+a_fencei_hndshk_req_when_fencei_wb	base	2884	55298		SAT	9	3.44	ok
+a_fencei_hndshk_req_when_fencei_wb	rc	2380	48396	91.3	SAT	9	5.36	ok
+a_fencei_hndshk_req_when_fencei_wb	sc	2378	40568	865.1	SAT	9	1.93	ok
+a_fencei_hndshk_req_when_fencei_wb	split	2689	53333	1.2	SAT	9	5.22	ok
+a_fencei_hndshk_req_when_fencei_wb	tc	2423	48787	1.2	SAT	9	3.89	ok
+a_fencei_lsu_busy	abc-scorr	2373	35515	48.6	SAT	5	0.34	ok
+a_fencei_lsu_busy	all	2373	40542	1110.9	SAT	5	0.24	ok
+a_fencei_lsu_busy	base	2879	55271		SAT	5	0.33	ok
+a_fencei_lsu_busy	rc	2375	48369	151.6	SAT	5	0.31	ok
+a_fencei_lsu_busy	sc	2373	40542	976.6	SAT	5	0.24	ok
+a_fencei_lsu_busy	split	2684	53306	1.0	SAT	5	0.32	ok
+a_fencei_lsu_busy	tc	2418	48760	1.1	SAT	5	0.30	ok
+a_fencei_wb_valid	abc-scorr	2374	35498	47.2	K	20	39.70	-
+a_fencei_wb_valid	all	2374	40546	1060.2	K	20	34.42	-
+a_fencei_wb_valid	base	2882	55281		K	20	50.24	-
+a_fencei_wb_valid	rc	2378	48379	918.6	K	20	46.52	-
+a_fencei_wb_valid	sc	2374	40546	1191.7	K	20	37.18	-
+a_fencei_wb_valid	split	2687	53316	1.1	K	20	51.16	-
+a_fencei_wb_valid	tc	2421	48770	1.1	K	20	45.50	-
+a_functional_unit_enable_onehot_noptr	abc-scorr	0	0	45.9	K	20	0.01	-
+a_functional_unit_enable_onehot_noptr	all	0	0	865.7	K	20	0.01	-
+a_functional_unit_enable_onehot_noptr	base	2879	55316		K	20	1.45	-
+a_functional_unit_enable_onehot_noptr	rc	2375	48412	857.1	K	20	1.30	-
+a_functional_unit_enable_onehot_noptr	sc	0	0	1330.3	K	20	0.01	-
+a_functional_unit_enable_onehot_noptr	split	2684	53351	1.1	K	20	1.47	-
+a_functional_unit_enable_onehot_noptr	tc	2418	48803	1.0	K	20	1.35	-
+a_gate_clk_i	abc-scorr	2373	35555	49.1	SAT	6	0.53	ok
+a_gate_clk_i	all	2373	40548	811.2	SAT	6	0.49	ok
+a_gate_clk_i	base	2879	55278		SAT	6	0.50	ok
+a_gate_clk_i	rc	2375	48376	124.4	SAT	6	0.46	ok
+a_gate_clk_i	sc	2373	40548	1163.4	SAT	6	0.33	ok
+a_gate_clk_i	split	2684	53313	1.1	SAT	6	0.51	ok
+a_gate_clk_i	tc	2418	48767	1.1	SAT	6	0.51	ok
+a_if_ex_trig_exclusive	abc-scorr	2373	35519	47.1	SAT	15	7.49	ok
+a_if_ex_trig_exclusive	all	2373	40543	986.0	SAT	15	5.02	ok
+a_if_ex_trig_exclusive	base	2879	55333		SAT	15	22.16	ok
+a_if_ex_trig_exclusive	rc	2375	48369	181.1	SAT	15	21.97	ok
+a_if_ex_trig_exclusive	sc	2373	40543	1205.6	SAT	15	11.67	ok
+a_if_ex_trig_exclusive	split	2684	53368	1.1	SAT	15	21.16	ok
+a_if_ex_trig_exclusive	tc	2418	48760	1.0	SAT	15	18.15	ok
+a_illegal_2	abc-scorr	0	0	46.9	K	20	0.01	-
+a_illegal_2	all	0	0	1321.9	K	20	0.01	-
+a_illegal_2	base	2879	55276		K	20	1.20	-
+a_illegal_2	rc	2375	48374	138.9	K	20	1.10	-
+a_illegal_2	sc	0	0	989.2	K	20	0.01	-
+a_illegal_2	split	2684	53311	1.1	K	20	1.18	-
+a_illegal_2	tc	2418	48765	1.0	K	20	1.12	-
+a_instr_err_mepc	abc-scorr	2440	35992	49.1	K	20	22.27	-
+a_instr_err_mepc	all	2440	40943	1229.2	K	20	18.97	-
+a_instr_err_mepc	base	2948	55798		K	20	29.45	-
+a_instr_err_mepc	rc	2442	48871	468.7	K	20	29.87	-
+a_instr_err_mepc	sc	2440	40943	875.8	K	20	20.84	-
+a_instr_err_mepc	split	2755	53843	1.1	K	20	30.17	-
+a_instr_err_mepc	tc	2485	49262	1.0	K	20	32.02	-
+a_interruptible_equivalency	abc-scorr	2373	35549	49.1	SAT	5	1.26	ok
+a_interruptible_equivalency	all	2373	40565	1179.8	SAT	5	0.54	ok
+a_interruptible_equivalency	base	2879	55297		SAT	5	1.59	ok
+a_interruptible_equivalency	rc	2375	48394	183.5	SAT	5	0.75	ok
+a_interruptible_equivalency	sc	2373	40565	1067.5	SAT	5	0.55	ok
+a_interruptible_equivalency	split	2684	53332	1.1	SAT	5	1.77	ok
+a_interruptible_equivalency	tc	2418	48785	1.1	SAT	5	0.73	ok
+a_irq_pri	abc-scorr	2395	35684	47.6	SAT	6	0.50	ok
+a_irq_pri	all	2408	40716	1211.5	SAT	6	0.39	ok
+a_irq_pri	base	2914	55510		SAT	6	0.89	ok
+a_irq_pri	rc	2410	48543	364.4	SAT	6	0.72	ok
+a_irq_pri	sc	2408	40716	998.1	SAT	6	0.37	ok
+a_irq_pri	split	2719	53545	1.1	SAT	6	0.80	ok
+a_irq_pri	tc	2453	48934	1.0	SAT	6	0.54	ok
+a_jalr_fw_match	abc-scorr	2373	35766	43.2	SAT	4	0.56	ok
+a_jalr_fw_match	all	2373	40674	1065.0	SAT	4	0.28	ok
+a_jalr_fw_match	base	2879	55389		SAT	4	0.33	ok
+a_jalr_fw_match	rc	2375	48487	653.0	SAT	4	0.35	ok
+a_jalr_fw_match	sc	2373	40674	1018.7	SAT	4	0.33	ok
+a_jalr_fw_match	split	2684	53424	1.0	SAT	4	0.49	ok
+a_jalr_fw_match	tc	2418	48878	1.0	SAT	4	0.31	ok
+a_jalr_fwd	abc-scorr	2373	35757	47.6	K	20	23.45	-
+a_jalr_fwd	all	2373	40680	886.0	K	20	19.10	-
+a_jalr_fwd	base	2879	55395		K	20	47.45	-
+a_jalr_fwd	rc	2375	48493	751.7	K	20	33.65	-
+a_jalr_fwd	sc	2373	40680	952.9	K	20	21.88	-
+a_jalr_fwd	split	2684	53430	1.1	K	20	38.60	-
+a_jalr_fwd	tc	2418	48884	1.0	K	20	37.08	-
+a_kill_state	abc-scorr	0	0	49.1	K	20	0.01	-
+a_kill_state	all	0	0	873.3	K	20	0.01	-
+a_kill_state	base	2882	55284		K	20	2.17	-
+a_kill_state	rc	2378	48382	166.3	K	20	1.94	-
+a_kill_state	sc	0	0	903.9	K	20	0.01	-
+a_kill_state	split	2687	53319	1.1	K	20	2.47	-
+a_kill_state	tc	2421	48773	1.0	K	20	1.86	-
+a_latched_bus_error	abc-scorr	2378	35460	54.5	SAT	7	0.92	ok
+a_latched_bus_error	all	2378	40571	1109.2	SAT	7	0.61	ok
+a_latched_bus_error	base	2888	55381		SAT	7	1.66	ok
+a_latched_bus_error	rc	2381	48439	714.0	SAT	7	1.17	ok
+a_latched_bus_error	sc	2378	40571	926.0	SAT	7	0.83	ok
+a_latched_bus_error	split	2693	53416	1.1	SAT	7	2.64	ok
+a_latched_bus_error	tc	2427	48870	1.1	SAT	7	2.21	ok
+a_lsu_wb_valid	abc-scorr	2373	35549	45.9	SAT	4	0.22	ok
+a_lsu_wb_valid	all	2373	40544	1159.7	SAT	4	0.23	ok
+a_lsu_wb_valid	base	2879	55305		SAT	4	0.26	ok
+a_lsu_wb_valid	rc	2375	48370	189.1	SAT	4	0.23	ok
+a_lsu_wb_valid	sc	2373	40544	831.7	SAT	4	0.20	ok
+a_lsu_wb_valid	split	2684	53340	1.1	SAT	4	0.24	ok
+a_lsu_wb_valid	tc	2418	48761	1.0	SAT	4	0.25	ok
+a_max_seq_len_pop	abc-scorr	2373	35531	51.7	SAT	15	3.03	ok
+a_max_seq_len_pop	all	2373	40548	1077.4	SAT	15	10.74	ok
+a_max_seq_len_pop	base	2879	55276		SAT	15	8.85	ok
+a_max_seq_len_pop	rc	2375	48374	179.6	SAT	15	8.72	ok
+a_max_seq_len_pop	sc	2373	40548	1412.1	SAT	15	4.38	ok
+a_max_seq_len_pop	split	2684	53311	1.1	SAT	15	7.27	ok
+a_max_seq_len_pop	tc	2418	48765	1.1	SAT	15	6.69	ok
+a_max_seq_len_popret	abc-scorr	2373	35645	44.4	SAT	16	4.34	ok
+a_max_seq_len_popret	all	2373	40544	910.8	SAT	16	11.45	ok
+a_max_seq_len_popret	base	2879	55278		SAT	16	7.65	ok
+a_max_seq_len_popret	rc	2375	48376	189.5	SAT	16	8.63	ok
+a_max_seq_len_popret	sc	2373	40544	1377.4	SAT	16	5.59	ok
+a_max_seq_len_popret	split	2684	53313	1.0	SAT	16	8.16	ok
+a_max_seq_len_popret	tc	2418	48767	1.1	SAT	16	7.90	ok
+a_max_seq_len_popretz	abc-scorr	2373	35456	53.0	SAT	16	3.24	ok
+a_max_seq_len_popretz	all	2373	40545	952.1	SAT	16	4.56	ok
+a_max_seq_len_popretz	base	2879	55273		SAT	16	8.27	ok
+a_max_seq_len_popretz	rc	2375	48371	160.7	SAT	16	9.19	ok
+a_max_seq_len_popretz	sc	2373	40545	1176.2	SAT	16	3.96	ok
+a_max_seq_len_popretz	split	2684	53308	1.1	SAT	16	9.10	ok
+a_max_seq_len_popretz	tc	2418	48762	1.0	SAT	16	8.59	ok
+a_max_seq_len_push	abc-scorr	2373	35585	53.3	SAT	15	3.20	ok
+a_max_seq_len_push	all	2373	40547	977.3	SAT	15	3.21	ok
+a_max_seq_len_push	base	2879	55276		SAT	15	9.58	ok
+a_max_seq_len_push	rc	2375	48374	140.1	SAT	15	8.65	ok
+a_max_seq_len_push	sc	2373	40547	1147.9	SAT	15	3.31	ok
+a_max_seq_len_push	split	2684	53311	1.1	SAT	15	7.14	ok
+a_max_seq_len_push	tc	2418	48765	1.0	SAT	15	6.81	ok
+a_mcontrol6_hit_set	abc-scorr	2376	35454	53.7	SAT	16	18.82	ok
+a_mcontrol6_hit_set	all	2376	40554	1030.1	SAT	16	14.72	ok
+a_mcontrol6_hit_set	base	2882	55284		SAT	16	23.19	ok
+a_mcontrol6_hit_set	rc	2378	48381	1041.9	SAT	16	23.61	ok
+a_mcontrol6_hit_set	sc	2376	40554	1045.2	SAT	16	16.09	ok
+a_mcontrol6_hit_set	split	2687	53319	1.1	SAT	16	22.31	ok
+a_mcontrol6_hit_set	tc	2421	48773	1.1	SAT	16	20.32	ok
+a_mip_mie_write_disable	abc-scorr	0	0	52.4	K	20	0.01	-
+a_mip_mie_write_disable	all	0	0	865.6	K	20	0.01	-
+a_mip_mie_write_disable	base	2914	55506		K	20	1.20	-
+a_mip_mie_write_disable	rc	2410	48539	1069.6	K	20	1.08	-
+a_mip_mie_write_disable	sc	0	0	1004.1	K	20	0.01	-
+a_mip_mie_write_disable	split	2719	53541	1.1	K	20	1.16	-
+a_mip_mie_write_disable	tc	2453	48930	1.0	K	20	1.11	-
+a_mip_mie_write_enable	abc-scorr	2395	35670	54.7	SAT	6	0.58	ok
+a_mip_mie_write_enable	all	2408	40714	1097.5	SAT	6	0.37	ok
+a_mip_mie_write_enable	base	2914	55507		SAT	6	0.83	ok
+a_mip_mie_write_enable	rc	2410	48540	371.6	SAT	6	0.70	ok
+a_mip_mie_write_enable	sc	2408	40714	1011.7	SAT	6	0.39	ok
+a_mip_mie_write_enable	split	2719	53542	1.1	SAT	6	0.85	ok
+a_mip_mie_write_enable	tc	2453	48931	1.0	SAT	6	0.53	ok
+a_mret_dbg_mode_illegal	abc-scorr	2453	35940	47.1	SAT	13	6.40	ok
+a_mret_dbg_mode_illegal	all	2453	40961	1081.2	SAT	13	13.02	ok
+a_mret_dbg_mode_illegal	base	2879	55307		SAT	13	19.24	ok
+a_mret_dbg_mode_illegal	rc	2455	48871	171.5	SAT	13	18.56	ok
+a_mret_dbg_mode_illegal	sc	2453	40960	1128.6	SAT	13	13.23	ok
+a_mret_dbg_mode_illegal	split	2764	53809	1.1	SAT	13	18.33	ok
+a_mret_dbg_mode_illegal	tc	2498	49263	1.1	SAT	13	18.18	ok
+a_mret_in_wb_csr_restore_mret	abc-scorr	2373	35511	48.5	SAT	12	10.99	ok
+a_mret_in_wb_csr_restore_mret	all	2373	40544	973.9	SAT	12	11.56	ok
+a_mret_in_wb_csr_restore_mret	base	2879	55273		SAT	12	17.60	ok
+a_mret_in_wb_csr_restore_mret	rc	2375	48370	647.6	SAT	12	16.03	ok
+a_mret_in_wb_csr_restore_mret	sc	2373	40544	946.5	SAT	12	12.32	ok
+a_mret_in_wb_csr_restore_mret	split	2684	53306	1.1	SAT	12	18.62	ok
+a_mret_in_wb_csr_restore_mret	tc	2418	48761	1.0	SAT	12	15.55	ok
+a_mul_result	abc-scorr	2373	39580	49.6	TO	3	150.02	-
+a_mul_result	all	2373	44676	888.0	TO	4	150.02	-
+a_mul_result	base	2879	59405		TO	4	150.03	-
+a_mul_result	rc	2375	52503	184.5	TO	4	150.06	-
+a_mul_result	sc	2373	44676	1159.6	TO	6	150.12	-
+a_mul_result	split	2684	57440	1.2	TO	7	150.09	-
+a_mul_result	tc	2418	52894	1.2	TO	3	150.02	-
+a_mulh_result	abc-scorr	2373	48586	71.2	TO	6	150.06	-
+a_mulh_result	all	2373	53981	1359.1	TO	6	150.04	-
+a_mulh_result	base	2879	68711		TO	6	150.06	-
+a_mulh_result	rc	2375	61809	402.0	TO	6	150.06	-
+a_mulh_result	sc	2373	53981	1434.7	TO	6	150.04	-
+a_mulh_result	split	2684	66746	1.3	TO	6	150.05	-
+a_mulh_result	tc	2418	62200	1.3	TO	6	150.06	-
+a_mulhsu_result	abc-scorr	2373	46085	67.2	TO	6	150.05	-
+a_mulhsu_result	all	2373	51494	1784.9	TO	6	150.05	-
+a_mulhsu_result	base	2879	66223		TO	6	150.04	-
+a_mulhsu_result	rc	2375	59321	259.0	TO	6	150.07	-
+a_mulhsu_result	sc	2373	51494	1200.7	TO	6	150.05	-
+a_mulhsu_result	split	2684	64258	1.3	TO	6	150.04	-
+a_mulhsu_result	tc	2418	59712	1.2	TO	6	150.05	-
+a_mulhu_result	abc-scorr	2373	43812	69.1	TO	6	150.03	-
+a_mulhu_result	all	2373	49221	1685.2	TO	6	150.06	-
+a_mulhu_result	base	2879	63951		TO	6	150.05	-
+a_mulhu_result	rc	2375	57049	261.2	TO	6	150.04	-
+a_mulhu_result	sc	2373	49221	1441.3	TO	6	150.08	-
+a_mulhu_result	split	2684	61986	1.2	TO	6	150.05	-
+a_mulhu_result	tc	2418	57440	1.2	TO	6	150.05	-
+a_nmi_handler_max_retire	abc-scorr	2376	35581	47.9	SAT	7	0.63	ok
+a_nmi_handler_max_retire	all	2376	40572	928.7	SAT	7	0.38	ok
+a_nmi_handler_max_retire	base	2883	55317		SAT	7	0.80	ok
+a_nmi_handler_max_retire	rc	2378	48405	170.7	SAT	7	0.89	ok
+a_nmi_handler_max_retire	sc	2376	40572	1014.6	SAT	7	0.65	ok
+a_nmi_handler_max_retire	split	2688	53352	1.1	SAT	7	0.99	ok
+a_nmi_handler_max_retire	tc	2422	48806	1.0	SAT	7	0.82	ok
+a_no_back_to_back_branch	abc-scorr	0	0	50.1	K	20	0.01	-
+a_no_back_to_back_branch	all	0	0	970.2	K	20	0.01	-
+a_no_back_to_back_branch	base	2882	55282		K	20	2.16	-
+a_no_back_to_back_branch	rc	2378	48380	1092.7	K	20	2.33	-
+a_no_back_to_back_branch	sc	0	0	1085.7	K	20	0.01	-
+a_no_back_to_back_branch	split	2687	53317	1.1	K	20	3.25	-
+a_no_back_to_back_branch	tc	2421	48771	1.0	K	20	1.76	-
+a_no_context_from_pointer	abc-scorr	2375	35525	46.6	SAT	6	1.68	ok
+a_no_context_from_pointer	all	2375	40563	944.6	SAT	6	2.80	ok
+a_no_context_from_pointer	base	2879	55289		SAT	6	3.81	ok
+a_no_context_from_pointer	rc	2377	48393	136.7	SAT	6	3.96	ok
+a_no_context_from_pointer	sc	2375	40563	992.5	SAT	6	2.81	ok
+a_no_context_from_pointer	split	2686	53334	1.1	SAT	6	2.08	ok
+a_no_context_from_pointer	tc	2420	48784	1.0	SAT	6	2.91	ok
+a_no_event_during_debug_taken_nonstep	abc-scorr	2373	35517	46.5	SAT	16	21.17	ok
+a_no_event_during_debug_taken_nonstep	all	2373	40565	1124.8	SAT	16	16.66	ok
+a_no_event_during_debug_taken_nonstep	base	2879	55308		SAT	16	25.00	ok
+a_no_event_during_debug_taken_nonstep	rc	2375	48393	646.3	SAT	16	23.13	ok
+a_no_event_during_debug_taken_nonstep	sc	2373	40565	993.3	SAT	16	19.03	ok
+a_no_event_during_debug_taken_nonstep	split	2684	53343	1.1	SAT	16	24.78	ok
+a_no_event_during_debug_taken_nonstep	tc	2418	48784	1.1	SAT	16	21.44	ok
+a_no_event_during_debug_taken_step	abc-scorr	2373	35636	47.0	SAT	9	1.14	ok
+a_no_event_during_debug_taken_step	all	2373	40555	903.3	SAT	9	1.18	ok
+a_no_event_during_debug_taken_step	base	2879	55299		SAT	9	1.61	ok
+a_no_event_during_debug_taken_step	rc	2375	48386	669.5	SAT	9	1.42	ok
+a_no_event_during_debug_taken_step	sc	2373	40555	1103.5	SAT	9	1.19	ok
+a_no_event_during_debug_taken_step	split	2684	53334	1.1	SAT	9	1.66	ok
+a_no_event_during_debug_taken_step	tc	2418	48777	1.0	SAT	9	1.46	ok
+a_no_exc_no_sequence_debug	abc-scorr	2377	35571	47.3	SAT	9	2.33	ok
+a_no_exc_no_sequence_debug	all	2377	40563	961.8	SAT	9	2.49	ok
+a_no_exc_no_sequence_debug	base	2883	55292		SAT	9	5.21	ok
+a_no_exc_no_sequence_debug	rc	2379	48390	1202.5	SAT	9	3.68	ok
+a_no_exc_no_sequence_debug	sc	2377	40563	1163.2	SAT	9	2.56	ok
+a_no_exc_no_sequence_debug	split	2688	53327	1.1	SAT	9	5.19	ok
+a_no_exc_no_sequence_debug	tc	2422	48781	1.0	SAT	9	3.39	ok
+a_no_irq_write_during_sleep	abc-scorr	2373	35546	50.2	K	20	1.97	-
+a_no_irq_write_during_sleep	all	2373	40543	1072.2	K	20	4.73	-
+a_no_irq_write_during_sleep	base	2879	55271		K	20	21.78	-
+a_no_irq_write_during_sleep	rc	2375	48369	184.3	K	20	7.13	-
+a_no_irq_write_during_sleep	sc	2373	40543	977.3	K	20	13.19	-
+a_no_irq_write_during_sleep	split	2684	53306	1.0	K	20	7.50	-
+a_no_irq_write_during_sleep	tc	2418	48760	1.1	K	20	22.10	-
+a_no_sleep_during_debug	abc-scorr	2373	35495	50.2	K	20	20.33	-
+a_no_sleep_during_debug	all	2373	40543	1149.2	K	20	17.57	-
+a_no_sleep_during_debug	base	2879	55271		K	20	28.09	-
+a_no_sleep_during_debug	rc	2375	48369	122.9	K	20	23.00	-
+a_no_sleep_during_debug	sc	2373	40543	997.3	K	20	17.46	-
+a_no_sleep_during_debug	split	2684	53306	1.0	K	20	24.20	-
+a_no_sleep_during_debug	tc	2418	48760	1.0	K	20	32.74	-
+a_no_transaction_count_overflow_0	abc-scorr	2373	35570	48.7	SAT	2	0.10	ok
+a_no_transaction_count_overflow_0	all	2373	40543	1042.5	SAT	2	0.09	ok
+a_no_transaction_count_overflow_0	base	2879	55270		SAT	2	0.11	ok
+a_no_transaction_count_overflow_0	rc	2375	48368	185.1	SAT	2	0.11	ok
+a_no_transaction_count_overflow_0	sc	2373	40543	1299.1	SAT	2	0.09	ok
+a_no_transaction_count_overflow_0	split	2684	53305	1.1	SAT	2	0.10	ok
+a_no_transaction_count_overflow_0	tc	2418	48759	1.1	SAT	2	0.10	ok
+a_not_busy_during_sleep	abc-scorr	2373	35547	52.6	SAT	6	0.51	ok
+a_not_busy_during_sleep	all	2373	40544	741.8	SAT	6	0.51	ok
+a_not_busy_during_sleep	base	2879	55272		SAT	6	0.54	ok
+a_not_busy_during_sleep	rc	2375	48370	178.6	SAT	6	0.45	ok
+a_not_busy_during_sleep	sc	2373	40544	1259.7	SAT	6	0.36	ok
+a_not_busy_during_sleep	split	2684	53307	1.1	SAT	6	0.52	ok
+a_not_busy_during_sleep	tc	2418	48761	1.1	SAT	6	0.49	ok
+a_only_wpt_lsu_valid_sticky	abc-scorr	2374	35640	49.1	SAT	5	0.35	ok
+a_only_wpt_lsu_valid_sticky	all	2405	40608	833.0	SAT	5	0.25	ok
+a_only_wpt_lsu_valid_sticky	base	2911	55430		SAT	5	0.35	ok
+a_only_wpt_lsu_valid_sticky	rc	2407	48435	188.0	SAT	5	0.36	ok
+a_only_wpt_lsu_valid_sticky	sc	2405	40608	1117.2	SAT	5	0.23	ok
+a_only_wpt_lsu_valid_sticky	split	2716	53465	1.1	SAT	5	0.31	ok
+a_only_wpt_lsu_valid_sticky	tc	2450	48826	1.1	SAT	5	0.29	ok
+a_opb_fwd_wb	abc-scorr	2373	35726	46.6	K	20	21.74	-
+a_opb_fwd_wb	all	2373	40674	869.8	K	20	17.72	-
+a_opb_fwd_wb	base	2879	55401		K	20	25.72	-
+a_opb_fwd_wb	rc	2375	48499	190.0	K	20	32.58	-
+a_opb_fwd_wb	sc	2373	40674	1007.6	K	20	18.63	-
+a_opb_fwd_wb	split	2684	53436	1.1	K	20	33.07	-
+a_opb_fwd_wb	tc	2418	48890	1.0	K	20	31.06	-
+a_pma_expect_err	abc-scorr	0	0	45.8	K	20	0.01	-
+a_pma_expect_err	all	0	0	715.8	K	20	0.01	-
+a_pma_expect_err	base	2879	55315		K	20	1.12	-
+a_pma_expect_err	rc	2375	48381	148.3	K	20	1.03	-
+a_pma_expect_err	sc	0	0	943.8	K	20	0.01	-
+a_pma_expect_err	split	2684	53350	1.1	K	20	1.09	-
+a_pma_expect_err	tc	2418	48772	1.0	K	20	1.05	-
+a_pushpop_atomic_end_sequence_popret	abc-scorr	2412	35744	48.5	SAT	7	0.54	ok
+a_pushpop_atomic_end_sequence_popret	all	2412	40737	941.9	SAT	7	0.47	ok
+a_pushpop_atomic_end_sequence_popret	base	2886	55306		SAT	7	1.27	ok
+a_pushpop_atomic_end_sequence_popret	rc	2414	48604	910.4	SAT	7	0.77	ok
+a_pushpop_atomic_end_sequence_popret	sc	2412	40736	1241.8	SAT	7	0.48	ok
+a_pushpop_atomic_end_sequence_popret	split	2724	53544	1.1	SAT	7	1.06	ok
+a_pushpop_atomic_end_sequence_popret	tc	2457	48996	1.1	SAT	7	0.80	ok
+a_pushpop_atomic_end_sequence_popretz	abc-scorr	2413	35727	45.6	SAT	7	1.05	ok
+a_pushpop_atomic_end_sequence_popretz	all	2413	40775	848.2	SAT	7	0.65	ok
+a_pushpop_atomic_end_sequence_popretz	base	2886	55342		SAT	7	1.13	ok
+a_pushpop_atomic_end_sequence_popretz	rc	2415	48642	165.8	SAT	7	0.78	ok
+a_pushpop_atomic_end_sequence_popretz	sc	2413	40774	1175.5	SAT	7	0.71	ok
+a_pushpop_atomic_end_sequence_popretz	split	2724	53580	1.1	SAT	7	0.98	ok
+a_pushpop_atomic_end_sequence_popretz	tc	2458	49034	1.1	SAT	7	1.12	ok
+a_pushpop_sp_update	abc-scorr	2377	35549	47.3	SAT	9	2.63	ok
+a_pushpop_sp_update	all	2377	40566	1264.1	SAT	9	2.29	ok
+a_pushpop_sp_update	base	2880	55283		SAT	9	5.78	ok
+a_pushpop_sp_update	rc	2379	48401	147.0	SAT	9	5.93	ok
+a_pushpop_sp_update	sc	2377	40566	969.7	SAT	9	3.73	ok
+a_pushpop_sp_update	split	2688	53338	1.1	SAT	9	6.72	ok
+a_pushpop_sp_update	tc	2422	48792	1.0	SAT	9	6.16	ok
+a_req_after_wake	abc-scorr	2376	35487	45.8	K	20	7.34	-
+a_req_after_wake	all	2376	40553	1313.5	K	20	17.86	-
+a_req_after_wake	base	2882	55284		K	20	22.60	-
+a_req_after_wake	rc	2378	48382	1369.6	K	20	24.01	-
+a_req_after_wake	sc	2376	40553	1267.6	K	20	6.18	-
+a_req_after_wake	split	2687	53319	1.1	K	20	24.49	-
+a_req_after_wake	tc	2421	48773	1.0	K	20	22.87	-
+a_rf_halt_kill	abc-scorr	0	0	42.9	K	20	0.01	-
+a_rf_halt_kill	all	0	0	805.6	K	20	0.01	-
+a_rf_halt_kill	base	2879	55272		K	20	1.16	-
+a_rf_halt_kill	rc	2375	48370	183.2	K	20	1.08	-
+a_rf_halt_kill	sc	0	0	862.0	K	20	0.01	-
+a_rf_halt_kill	split	2684	53307	1.1	K	20	1.15	-
+a_rf_halt_kill	tc	2418	48761	1.0	K	20	1.08	-
+a_set_clear_dcsr_q	abc-scorr	2383	35635	45.8	SAT	19	38.20	ok
+a_set_clear_dcsr_q	all	2408	40686	875.0	SAT	19	37.30	ok
+a_set_clear_dcsr_q	base	2914	55415		SAT	19	49.82	ok
+a_set_clear_dcsr_q	rc	2410	48513	1003.5	SAT	19	47.24	ok
+a_set_clear_dcsr_q	sc	2408	40686	1156.6	SAT	19	37.00	ok
+a_set_clear_dcsr_q	split	2719	53450	1.1	SAT	19	50.57	ok
+a_set_clear_dcsr_q	tc	2453	48904	1.0	SAT	19	49.43	ok
+a_set_clear_dpc_q	abc-scorr	2407	35884	51.7	SAT	19	38.62	ok
+a_set_clear_dpc_q	all	2408	40806	958.6	SAT	19	37.77	ok
+a_set_clear_dpc_q	base	2914	55535		SAT	19	59.54	ok
+a_set_clear_dpc_q	rc	2410	48633	1361.5	SAT	19	56.88	ok
+a_set_clear_dpc_q	sc	2408	40806	896.1	SAT	19	43.77	ok
+a_set_clear_dpc_q	split	2719	53570	1.1	SAT	19	48.69	ok
+a_set_clear_dpc_q	tc	2453	49024	1.0	SAT	19	42.19	ok
+a_set_clear_dscratch0_q	abc-scorr	2408	35763	46.1	K	20	37.72	-
+a_set_clear_dscratch0_q	all	2408	40811	1145.7	K	20	49.84	-
+a_set_clear_dscratch0_q	base	2914	55540		K	20	67.63	-
+a_set_clear_dscratch0_q	rc	2410	48638	1306.2	K	20	65.74	-
+a_set_clear_dscratch0_q	sc	2408	40811	1076.1	K	20	58.67	-
+a_set_clear_dscratch0_q	split	2719	53575	1.1	K	20	48.06	-
+a_set_clear_dscratch0_q	tc	2453	49029	1.0	K	20	57.77	-
+a_set_clear_dscratch1_q	abc-scorr	2408	35772	45.7	K	20	44.05	-
+a_set_clear_dscratch1_q	all	2408	40811	933.3	K	20	47.85	-
+a_set_clear_dscratch1_q	base	2914	55540		K	20	58.05	-
+a_set_clear_dscratch1_q	rc	2410	48638	1113.4	K	20	62.28	-
+a_set_clear_dscratch1_q	sc	2408	40811	953.9	K	20	44.40	-
+a_set_clear_dscratch1_q	split	2719	53575	1.1	K	20	47.52	-
+a_set_clear_dscratch1_q	tc	2453	49029	1.0	K	20	49.25	-
+a_set_clear_jvt_q	abc-scorr	2402	35692	47.5	K	20	36.29	-
+a_set_clear_jvt_q	all	2408	40781	1151.5	K	20	33.05	-
+a_set_clear_jvt_q	base	2914	55510		K	20	43.51	-
+a_set_clear_jvt_q	rc	2410	48608	1281.4	K	20	55.06	-
+a_set_clear_jvt_q	sc	2408	40781	954.6	K	20	38.06	-
+a_set_clear_jvt_q	split	2719	53545	1.1	K	20	44.99	-
+a_set_clear_jvt_q	tc	2453	48999	1.1	K	20	46.29	-
+a_set_clear_mcause_q	abc-scorr	2388	35672	52.1	K	20	34.94	-
+a_set_clear_mcause_q	all	2408	40711	922.4	K	20	42.01	-
+a_set_clear_mcause_q	base	2914	55440		K	20	46.91	-
+a_set_clear_mcause_q	rc	2410	48538	1162.3	K	20	53.61	-
+a_set_clear_mcause_q	sc	2408	40711	999.4	K	20	41.77	-
+a_set_clear_mcause_q	split	2719	53475	1.1	K	20	50.99	-
+a_set_clear_mcause_q	tc	2453	48929	1.1	K	20	53.10	-
+a_set_clear_mepc_q	abc-scorr	2407	35885	47.7	K	20	39.08	-
+a_set_clear_mepc_q	all	2408	40806	998.7	K	20	35.34	-
+a_set_clear_mepc_q	base	2914	55535		K	20	61.28	-
+a_set_clear_mepc_q	rc	2410	48633	1070.3	K	20	56.93	-
+a_set_clear_mepc_q	sc	2408	40806	1105.1	K	20	42.34	-
+a_set_clear_mepc_q	split	2719	53570	1.1	K	20	45.71	-
+a_set_clear_mepc_q	tc	2453	49024	1.0	K	20	48.74	-
+a_set_clear_mstatus_q	abc-scorr	2378	35517	46.5	K	20	24.49	-
+a_set_clear_mstatus_q	all	2408	40661	1001.3	K	20	33.27	-
+a_set_clear_mstatus_q	base	2914	55390		K	20	46.36	-
+a_set_clear_mstatus_q	rc	2410	48488	1182.3	K	20	45.81	-
+a_set_clear_mstatus_q	sc	2408	40661	976.0	K	20	31.79	-
+a_set_clear_mstatus_q	split	2719	53425	1.1	K	20	43.32	-
+a_set_clear_mstatus_q	tc	2453	48879	1.0	K	20	42.39	-
+a_set_clear_tdata1_q	abc-scorr	2389	35658	47.6	K	20	56.97	-
+a_set_clear_tdata1_q	all	2408	40717	948.8	K	20	54.96	-
+a_set_clear_tdata1_q	base	2914	55540		K	20	76.94	-
+a_set_clear_tdata1_q	rc	2410	48544	1209.9	K	20	81.41	-
+a_set_clear_tdata1_q	sc	2408	40717	1274.7	K	20	56.60	-
+a_set_clear_tdata1_q	split	2719	53575	1.1	K	20	78.89	-
+a_set_clear_tdata1_q	tc	2453	48945	1.0	K	20	81.70	-
+a_set_clear_tdata2_q	abc-scorr	2408	35736	50.8	K	20	60.42	-
+a_set_clear_tdata2_q	all	2408	40811	890.0	K	20	55.79	-
+a_set_clear_tdata2_q	base	2914	55540		K	20	74.01	-
+a_set_clear_tdata2_q	rc	2410	48638	1040.9	K	20	82.50	-
+a_set_clear_tdata2_q	sc	2408	40811	959.9	K	20	57.46	-
+a_set_clear_tdata2_q	split	2719	53575	1.1	K	20	76.78	-
+a_set_clear_tdata2_q	tc	2453	49029	1.0	K	20	68.48	-
+a_shift_result_hh	abc-scorr	2373	39169	54.2	TO	7	150.05	-
+a_shift_result_hh	all	2373	44422	1115.9	TO	7	150.05	-
+a_shift_result_hh	base	2879	59172		TO	7	150.06	-
+a_shift_result_hh	rc	2375	52264	168.6	TO	7	150.08	-
+a_shift_result_hh	sc	2373	44422	1333.9	TO	7	150.06	-
+a_shift_result_hh	split	2684	57201	1.1	TO	7	150.06	-
+a_shift_result_hh	tc	2418	52655	1.1	TO	6	150.05	-
+a_shift_result_hl	abc-scorr	2373	38248	51.0	TO	5	150.03	-
+a_shift_result_hl	all	2373	43555	1071.7	TO	5	150.04	-
+a_shift_result_hl	base	2879	58344		TO	5	150.04	-
+a_shift_result_hl	rc	2375	51442	129.1	TO	5	150.04	-
+a_shift_result_hl	sc	2373	43555	1250.6	TO	5	150.05	-
+a_shift_result_hl	split	2684	56379	1.1	TO	5	150.05	-
+a_shift_result_hl	tc	2418	51833	1.1	TO	5	150.05	-
+a_shift_result_lh	abc-scorr	2373	38239	58.6	TO	4	150.05	-
+a_shift_result_lh	all	2373	43538	1047.5	TO	4	150.03	-
+a_shift_result_lh	base	2879	58327		TO	4	150.03	-
+a_shift_result_lh	rc	2375	51425	165.2	TO	4	150.04	-
+a_shift_result_lh	sc	2373	43538	1275.9	TO	4	150.03	-
+a_shift_result_lh	split	2684	56362	1.1	TO	4	150.04	-
+a_shift_result_lh	tc	2418	51816	1.1	TO	4	150.04	-
+a_shift_result_ll	abc-scorr	2373	37598	53.5	TO	4	150.03	-
+a_shift_result_ll	all	2373	42842	1112.3	TO	4	150.03	-
+a_shift_result_ll	base	2879	57571		TO	4	150.04	-
+a_shift_result_ll	rc	2375	50669	122.9	TO	4	150.03	-
+a_shift_result_ll	sc	2373	42842	1055.4	TO	4	150.04	-
+a_shift_result_ll	split	2684	55606	1.1	TO	4	150.03	-
+a_shift_result_ll	tc	2418	51060	1.1	TO	4	150.03	-
+a_shift_result_ll_lh	abc-scorr	2373	40410	57.4	TO	5	150.04	-
+a_shift_result_ll_lh	all	2373	46016	1438.9	TO	5	150.04	-
+a_shift_result_ll_lh	base	2879	60803		TO	5	150.05	-
+a_shift_result_ll_lh	rc	2375	53901	187.9	TO	5	150.05	-
+a_shift_result_ll_lh	sc	2373	46015	1146.9	TO	5	150.05	-
+a_shift_result_ll_lh	split	2684	58838	1.2	TO	5	150.03	-
+a_shift_result_ll_lh	tc	2418	54292	1.1	TO	5	150.04	-
+a_shift_result_ll_lh_hl_shift	abc-scorr	2373	43319	66.8	TO	6	150.06	-
+a_shift_result_ll_lh_hl_shift	all	2373	49360	1651.4	TO	6	150.06	-
+a_shift_result_ll_lh_hl_shift	base	2879	64266		TO	6	150.04	-
+a_shift_result_ll_lh_hl_shift	rc	2375	57364	184.4	TO	6	150.04	-
+a_shift_result_ll_lh_hl_shift	sc	2373	49361	1164.3	TO	6	150.06	-
+a_shift_result_ll_lh_hl_shift	split	2684	62301	1.2	TO	6	150.05	-
+a_shift_result_ll_lh_hl_shift	tc	2418	57755	1.2	TO	6	150.04	-
+a_shift_result_ll_shift	abc-scorr	2373	37658	48.0	TO	5	150.03	-
+a_shift_result_ll_shift	all	2373	42749	998.3	TO	5	150.04	-
+a_shift_result_ll_shift	base	2879	57478		TO	5	150.04	-
+a_shift_result_ll_shift	rc	2375	50576	188.0	TO	5	150.04	-
+a_shift_result_ll_shift	sc	2373	42749	1180.4	TO	5	150.03	-
+a_shift_result_ll_shift	split	2684	55513	1.1	TO	5	150.04	-
+a_shift_result_ll_shift	tc	2418	50967	1.1	TO	5	150.04	-
+a_single_step_no_irq_id	abc-scorr	2407	35773	81.9	SAT	9	1.22	ok
+a_single_step_no_irq_id	all	2408	40855	1064.6	SAT	9	1.81	ok
+a_single_step_no_irq_id	base	2914	55692		SAT	9	2.06	ok
+a_single_step_no_irq_id	rc	2410	48788	378.4	SAT	9	2.19	ok
+a_single_step_no_irq_id	sc	2408	40855	929.4	SAT	9	1.01	ok
+a_single_step_no_irq_id	split	2719	53727	1.1	SAT	9	2.52	ok
+a_single_step_no_irq_id	tc	2453	49179	1.1	SAT	9	1.74	ok
+a_single_step_no_irq_if	abc-scorr	2407	35799	79.8	SAT	9	1.49	ok
+a_single_step_no_irq_if	all	2408	40855	1043.6	SAT	9	1.77	ok
+a_single_step_no_irq_if	base	2914	55692		SAT	9	2.15	ok
+a_single_step_no_irq_if	rc	2410	48788	919.2	SAT	9	2.29	ok
+a_single_step_no_irq_if	sc	2408	40855	1200.2	SAT	9	1.50	ok
+a_single_step_no_irq_if	split	2719	53727	1.1	SAT	9	2.24	ok
+a_single_step_no_irq_if	tc	2453	49179	1.1	SAT	9	1.85	ok
+a_single_step_pipecheck	abc-scorr	2373	35615	47.2	K	20	38.41	-
+a_single_step_pipecheck	all	2373	40553	872.2	K	20	37.09	-
+a_single_step_pipecheck	base	2879	55284		K	20	49.17	-
+a_single_step_pipecheck	rc	2375	48382	185.9	K	20	41.14	-
+a_single_step_pipecheck	sc	2373	40553	1157.5	K	20	34.82	-
+a_single_step_pipecheck	split	2684	53319	1.0	K	20	48.79	-
+a_single_step_pipecheck	tc	2418	48773	1.1	K	20	45.20	-
+a_sleep_to_irq	abc-scorr	2376	35602	50.3	SAT	8	1.10	ok
+a_sleep_to_irq	all	2376	40554	1204.0	SAT	8	0.81	ok
+a_sleep_to_irq	base	2882	55287		SAT	8	1.39	ok
+a_sleep_to_irq	rc	2378	48385	1069.6	SAT	8	1.97	ok
+a_sleep_to_irq	sc	2376	40554	1101.2	SAT	8	0.86	ok
+a_sleep_to_irq	split	2687	53322	1.1	SAT	8	1.46	ok
+a_sleep_to_irq	tc	2421	48776	1.1	SAT	8	1.51	ok
+a_sleep_to_nmi	abc-scorr	2376	35688	51.4	SAT	6	0.50	ok
+a_sleep_to_nmi	all	2376	40552	991.6	SAT	6	0.45	ok
+a_sleep_to_nmi	base	2882	55284		SAT	6	0.53	ok
+a_sleep_to_nmi	rc	2378	48382	1244.6	SAT	6	0.84	ok
+a_sleep_to_nmi	sc	2376	40552	1073.6	SAT	6	0.46	ok
+a_sleep_to_nmi	split	2687	53319	1.1	SAT	6	0.78	ok
+a_sleep_to_nmi	tc	2421	48773	1.0	SAT	6	0.72	ok
+a_stable_id_sleep	abc-scorr	2515	36437	60.1	TO	18	150.13	-
+a_stable_id_sleep	all	2585	41612	787.7	TO	19	150.25	-
+a_stable_id_sleep	base	3073	56626		TO	19	150.16	-
+a_stable_id_sleep	rc	2587	49480	143.6	TO	17	150.16	-
+a_stable_id_sleep	sc	2585	41611	973.5	TO	18	150.35	-
+a_stable_id_sleep	split	2928	54823	1.1	TO	17	150.15	-
+a_stable_id_sleep	tc	2630	49873	1.1	TO	17	150.18	-
+a_suppress_csr_xif_illegal_pipeline_illegal	abc-scorr	0	0	47.6	K	20	0.01	-
+a_suppress_csr_xif_illegal_pipeline_illegal	all	0	0	956.1	K	20	0.01	-
+a_suppress_csr_xif_illegal_pipeline_illegal	base	2882	55283		K	20	2.98	-
+a_suppress_csr_xif_illegal_pipeline_illegal	rc	2378	48381	1461.2	K	20	2.44	-
+a_suppress_csr_xif_illegal_pipeline_illegal	sc	0	0	1203.8	K	20	0.01	-
+a_suppress_csr_xif_illegal_pipeline_illegal	split	2687	53318	1.1	K	20	3.96	-
+a_suppress_csr_xif_illegal_pipeline_illegal	tc	2421	48772	1.1	K	20	2.36	-
+a_tdata1_writes_unique	abc-scorr	2373	35637	44.4	SAT	18	18.99	ok
+a_tdata1_writes_unique	all	2373	40545	943.0	SAT	18	20.00	ok
+a_tdata1_writes_unique	base	2879	55275		SAT	18	34.96	ok
+a_tdata1_writes_unique	rc	2375	48373	299.2	SAT	18	26.26	ok
+a_tdata1_writes_unique	sc	2373	40545	1031.3	SAT	18	19.64	ok
+a_tdata1_writes_unique	split	2684	53310	1.1	SAT	18	31.60	ok
+a_tdata1_writes_unique	tc	2418	48764	1.0	SAT	18	33.30	ok
+a_trigger_match_in_debug	abc-scorr	2373	35533	45.6	SAT	14	6.59	ok
+a_trigger_match_in_debug	all	2373	40543	1055.3	SAT	14	4.53	ok
+a_trigger_match_in_debug	base	2879	55271		SAT	14	10.57	ok
+a_trigger_match_in_debug	rc	2375	48369	182.6	SAT	14	5.90	ok
+a_trigger_match_in_debug	sc	2373	40543	1268.3	SAT	14	7.05	ok
+a_trigger_match_in_debug	split	2684	53306	1.1	SAT	14	7.68	ok
+a_trigger_match_in_debug	tc	2418	48760	1.1	SAT	14	10.98	ok
+a_valid_jump	abc-scorr	0	0	47.2	K	20	0.01	-
+a_valid_jump	all	0	0	941.9	K	20	0.01	-
+a_valid_jump	base	2879	55273		K	20	1.26	-
+a_valid_jump	rc	2375	48371	188.1	K	20	1.17	-
+a_valid_jump	sc	0	0	1100.6	K	20	0.01	-
+a_valid_jump	split	2684	53308	1.1	K	20	1.53	-
+a_valid_jump	tc	2418	48762	1.1	K	20	1.15	-
+a_valid_o	abc-scorr	0	0	49.7	K	20	0.01	-
+a_valid_o	all	0	0	900.9	K	20	0.01	-
+a_valid_o	base	2879	55268		K	20	1.61	-
+a_valid_o	rc	2375	48366	182.1	K	20	1.12	-
+a_valid_o	sc	0	0	961.3	K	20	0.01	-
+a_valid_o	split	2684	53303	1.0	K	20	1.54	-
+a_valid_o	tc	2418	48757	1.0	K	20	1.16	-
+a_wakeup_interruptible	abc-scorr	2376	35526	44.1	SAT	6	0.50	ok
+a_wakeup_interruptible	all	2376	40551	1110.8	SAT	6	0.57	ok
+a_wakeup_interruptible	base	2882	55283		SAT	6	0.78	ok
+a_wakeup_interruptible	rc	2378	48381	1436.8	SAT	6	0.55	ok
+a_wakeup_interruptible	sc	2376	40551	1107.4	SAT	6	0.45	ok
+a_wakeup_interruptible	split	2687	53318	1.1	SAT	6	0.65	ok
+a_wakeup_interruptible	tc	2421	48772	1.1	SAT	6	0.69	ok
+a_wb_interruptible_abort	abc-scorr	0	0	46.6	K	20	0.01	-
+a_wb_interruptible_abort	all	0	0	959.8	K	20	0.01	-
+a_wb_interruptible_abort	base	2882	55281		K	20	4.85	-
+a_wb_interruptible_abort	rc	2378	48379	172.7	K	20	2.09	-
+a_wb_interruptible_abort	sc	0	0	920.0	K	20	0.01	-
+a_wb_interruptible_abort	split	2687	53316	1.1	K	20	3.26	-
+a_wb_interruptible_abort	tc	2421	48770	1.1	K	20	4.20	-
+a_wb_ready_exception	abc-scorr	2377	35547	45.0	SAT	13	7.14	ok
+a_wb_ready_exception	all	2377	40559	951.8	SAT	13	12.55	ok
+a_wb_ready_exception	base	2883	55287		SAT	13	16.28	ok
+a_wb_ready_exception	rc	2379	48385	174.2	SAT	13	13.32	ok
+a_wb_ready_exception	sc	2377	40559	1276.9	SAT	13	9.97	ok
+a_wb_ready_exception	split	2688	53322	1.1	SAT	13	8.37	ok
+a_wb_ready_exception	tc	2422	48776	1.1	SAT	13	8.03	ok
+a_woke_to_debug_single_cycle	abc-scorr	2375	35624	52.0	K	20	22.08	-
+a_woke_to_debug_single_cycle	all	2375	40549	989.4	K	20	20.29	-
+a_woke_to_debug_single_cycle	base	2882	55280		K	20	32.55	-
+a_woke_to_debug_single_cycle	rc	2378	48378	1134.1	K	20	26.97	-
+a_woke_to_debug_single_cycle	sc	2375	40549	805.8	K	20	26.91	-
+a_woke_to_debug_single_cycle	split	2687	53315	1.1	K	20	30.31	-
+a_woke_to_debug_single_cycle	tc	2421	48769	1.1	K	20	27.68	-
+a_wpt_debug_entry	abc-scorr	2373	35435	53.2	SAT	15	14.07	ok
+a_wpt_debug_entry	all	2373	40546	1106.8	SAT	15	7.07	ok
+a_wpt_debug_entry	base	2879	55275		SAT	15	24.93	ok
+a_wpt_debug_entry	rc	2375	48373	185.3	SAT	15	10.50	ok
+a_wpt_debug_entry	sc	2373	40546	1115.7	SAT	15	15.08	ok
+a_wpt_debug_entry	split	2684	53310	1.1	SAT	15	9.22	ok
+a_wpt_debug_entry	tc	2418	48764	1.1	SAT	15	22.15	ok
+a_wpt_mpu_cnt_share	abc-scorr	0	0	52.2	K	20	0.01	-
+a_wpt_mpu_cnt_share	all	0	0	665.2	K	20	0.01	-
+a_wpt_mpu_cnt_share	base	2879	55277		K	20	1.40	-
+a_wpt_mpu_cnt_share	rc	2375	48366	148.0	K	20	1.08	-
+a_wpt_mpu_cnt_share	sc	0	0	865.6	K	20	0.01	-
+a_wpt_mpu_cnt_share	split	2684	53312	1.1	K	20	1.18	-
+a_wpt_mpu_cnt_share	tc	2418	48757	1.1	K	20	1.08	-
+a_wpt_wb_halt	abc-scorr	2373	35514	48.0	SAT	15	19.25	ok
+a_wpt_wb_halt	all	2373	40542	933.8	SAT	15	16.29	ok
+a_wpt_wb_halt	base	2879	55303		SAT	15	25.84	ok
+a_wpt_wb_halt	rc	2375	48370	188.7	SAT	15	24.45	ok
+a_wpt_wb_halt	sc	2373	40542	927.3	SAT	15	25.77	ok
+a_wpt_wb_halt	split	2684	53338	1.1	SAT	15	25.60	ok
+a_wpt_wb_halt	tc	2418	48761	1.1	SAT	15	27.82	ok
+a_wpt_wb_valid	abc-scorr	2376	35597	47.6	SAT	16	17.36	ok
+a_wpt_wb_valid	all	2376	40552	764.1	SAT	16	16.28	ok
+a_wpt_wb_valid	base	2882	55312		SAT	16	28.60	ok
+a_wpt_wb_valid	rc	2378	48379	887.6	SAT	16	19.61	ok
+a_wpt_wb_valid	sc	2376	40552	777.0	SAT	16	17.87	ok
+a_wpt_wb_valid	split	2687	53347	1.1	SAT	16	26.84	ok
+a_wpt_wb_valid	tc	2421	48770	1.1	SAT	16	24.59	ok
