@@ -38,6 +38,7 @@ kept; "shifted" that counterexample depths change by a recorded amount
 | Resets to logic; with `initial-reset` registers with reset start in reset | `seq-lower-firreg-to-compreg` | #7 e7b2d4eb3 | reachable |
 | Combinational cycles rebuilt as their unique fixed point | `synth-remove-false-cycles` | #13 63b0c4a2f | exact; with `obligation`, reachable (an output to prove 0) |
 | Register and signal correspondence (scorr) | `synth-register-correspondence{internal}` | #26 332e50493; speed-up (CaDiCaL without lucky phases) #32 102898012 | reachable |
+| ... assuming the property held before (`property-directed`) | `synth-register-correspondence{property-directed}` | #33 3bcd05c83 | property |
 | Constant registers by ternary simulation | `synth-ternary-constants` | #27 d8360b48b | reachable |
 | Forward retiming (and register split) | `synth-forward-retime` | #29 ca4b18cae | exact |
 | Transient signals (temporal decomposition) | `synth-temporal-decomposition` | #30 b7de4b110 | shifted |
