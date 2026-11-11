@@ -4,7 +4,8 @@ All commits are on one branch, `review/synth-for-solver` of
 xinpian-tech/circt, based on upstream/main 788265c13 (2026-11-10). Each
 simplification is one commit (two where noted); "#n" is the position of
 the commit on the branch (1 is the oldest). Commits only depend on earlier
-ones.
+ones. The branch holds only CIRCT changes; these experiments (scripts,
+notes, results) are on exp/synth-for-solver only.
 
 The layers are those of yaoshi `docs/idea/simplification-layers.md`: what
 a simplification depends on (design only; clock; reset and initial
@@ -36,7 +37,7 @@ kept; "shifted" that counterexample depths change by a recorded amount
 |---|---|---|---|
 | Resets to logic; with `initial-reset` registers with reset start in reset | `seq-lower-firreg-to-compreg` | #7 e7b2d4eb3 | reachable |
 | Combinational cycles rebuilt as their unique fixed point | `synth-remove-false-cycles` | #13 63b0c4a2f | exact; with `obligation`, reachable (an output to prove 0) |
-| Register and signal correspondence (scorr) | `synth-register-correspondence{internal}` | #26 332e50493; speed-up (CaDiCaL without lucky phases) #33 9f33d2fda | reachable |
+| Register and signal correspondence (scorr) | `synth-register-correspondence{internal}` | #26 332e50493; speed-up (CaDiCaL without lucky phases) #32 102898012 | reachable |
 | Constant registers by ternary simulation | `synth-ternary-constants` | #27 d8360b48b | reachable |
 | Forward retiming (and register split) | `synth-forward-retime` | #29 ca4b18cae | exact |
 | Transient signals (temporal decomposition) | `synth-temporal-decomposition` | #30 b7de4b110 | shifted |
