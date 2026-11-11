@@ -322,6 +322,21 @@ def RegisterCorrespondence
     The module keeps its outputs in every reachable state from the initial
     state; it is meant for models that are checked from that state (e.g. by
     a model checker after ExportAIGER).
+
+    With `property-directed`, the inductive step may also assume that the
+    property holds in the cycle before: the classes then only have to hold
+    in the states reached while the property held so far (and in the first
+    state where it fails), and simulation ignores what comes after a
+    failure. Until the first failure of the property the module is
+    unchanged, so the property fails in the same cycle as before, or never;
+    after it, outputs may change. The property is the single i1
+    `verif.assert` of the module or, with `bad-outputs`, its single i1
+    output, which is 1 in a bad state. With more than one, nothing is
+    assumed (a warning): a property that fails only after another one has
+    failed could be lost. With `conjunction` their conjunction is assumed
+    instead: only the first failure of any of them is kept (e.g. when the
+    other properties are proof obligations that are checked separately on
+    the module before the pass).
   }];
   let options = [
     Option<"numPatterns", "num-patterns", "unsigned", "256",
@@ -343,7 +358,16 @@ def RegisterCorrespondence
            "to split more classes">,
     Option<"chunk", "chunk", "unsigned", "256",
            "Pairs checked by one SAT query, with one incremental solver "
-           "(0: one query per pair, speculatively reduced)">
+           "(0: one query per pair, speculatively reduced)">,
+    Option<"propertyDirected", "property-directed", "bool", "false",
+           "Assume in the inductive step that the property held in the cycle "
+           "before (keeps the first failure only)">,
+    Option<"badOutputs", "bad-outputs", "bool", "false",
+           "With property-directed: the property is the module's output, "
+           "1 in a bad state">,
+    Option<"conjunction", "conjunction", "bool", "false",
+           "With property-directed: assume the conjunction of several "
+           "properties (keeps the first failure of any)">
   ];
   let statistics = [
     Statistic<"numCandidatesStat", "num-candidates",

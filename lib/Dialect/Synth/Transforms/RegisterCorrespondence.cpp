@@ -136,6 +136,13 @@ struct Params {
   bool internal;
   unsigned cexFrames;
   unsigned chunk;
+  /// Assume in the inductive step that the property held in the cycle
+  /// before (see RegisterCorrespondencePass).
+  bool propertyDirected = false;
+  /// Module outputs are bad states (for `propertyDirected`).
+  bool badOutputs = false;
+  /// With several properties, assume their conjunction.
+  bool conjunction = false;
 };
 
 class Correspondence {
@@ -188,6 +195,9 @@ public:
                           bool force);
 
   unsigned numIterations = 0, numSATCalls = 0, numUnknown = 0;
+  /// With `propertyDirected`: the number of properties found if it is not
+  /// exactly one (the property is then not assumed).
+  std::optional<unsigned> propertyIgnored;
   unsigned numCandidates() const {
     unsigned n = 0;
     for (auto &c : classes)
@@ -197,6 +207,13 @@ public:
 
 private:
   Lit lit(Value value, unsigned bit);
+  /// The literal of `enable -> property`.
+  Lit holdLit(Value prop, Value en);
+  /// Whether the property holds in `vals` (all ones without
+  /// `propertyDirected`).
+  uint64_t holds(ArrayRef<uint64_t> vals) const {
+    return propLit ? value(vals, *propLit) : ~uint64_t(0);
+  }
   /// Evaluates the and-gates on 64 patterns: `vals[node]`, with the leaves
   /// and the state bits already set.
   void eval(SmallVectorImpl<uint64_t> &vals) const;
@@ -260,6 +277,9 @@ private:
   /// (not inputs or registers): an and-gate may then depend on another one
   /// through them, which the net does not show.
   bool hiddenPaths = false;
+  /// With `propertyDirected`: the literal that is 1 where the property
+  /// holds.
+  std::optional<Lit> propLit;
 };
 
 /// A solver for the many small queries of the proofs. CaDiCaL's lucky
@@ -497,6 +517,20 @@ Lit Correspondence::lit(Value value, unsigned bit) {
   return memo.at({value, bit});
 }
 
+Lit Correspondence::holdLit(Value prop, Value en) {
+  Lit l = lit(prop, 0);
+  if (!en)
+    return l;
+  Lit e = lit(en, 0);
+  if (e == kFalse || l == (kFalse ^ 1))
+    return kFalse ^ 1;
+  if (e == (kFalse ^ 1))
+    return l;
+  if (l == kFalse)
+    return e ^ 1;
+  return mkLit(net.add(Net::And, {e, l ^ 1})) ^ 1;
+}
+
 bool Correspondence::build() {
   // Model the registers on the most common clock, without reset, inner
   // symbol, or a non-constant initial value; the others are free.
@@ -556,6 +590,31 @@ bool Correspondence::build() {
                [](const Cand &a, const Cand &b) { return a.node < b.node; });
     cands.append(gates.begin(), gates.end());
   }
+  if (opts.propertyDirected) {
+    SmallVector<Lit> props;
+    unsigned other = 0;
+    for (auto a : module.getBodyBlock()->getOps<verif::AssertOp>()) {
+      if (a.getProperty().getType().isInteger(1))
+        props.push_back(holdLit(a.getProperty(), a.getEnable()));
+      else
+        ++other;
+    }
+    if (opts.badOutputs)
+      for (auto out : module.getBodyBlock()->getTerminator()->getOperands()) {
+        if (out.getType().isInteger(1))
+          props.push_back(lit(out, 0) ^ 1);
+        else
+          ++other;
+      }
+    if (other || props.empty() || (props.size() > 1 && !opts.conjunction)) {
+      propertyIgnored = props.size() + other;
+    } else if (props.size() == 1) {
+      propLit = props[0];
+    } else {
+      SmallVector<Lit, 2> ins(props.begin(), props.end());
+      propLit = mkLit(net.add(Net::And, std::move(ins)));
+    }
+  }
   // Free leaves that are results of ops in the body (not inputs or
   // registers) may hide paths between and-gates.
   for (auto &[key, l] : memo) {
@@ -586,11 +645,15 @@ void Correspondence::simulateCandidates() {
   unsigned frames = std::max(1u, unsigned(opts.numFrames));
   // Signature of each candidate: its values in every frame and pattern.
   SmallVector<SmallVector<uint64_t>> sig(cands.size());
+  // The patterns of each signature word that count: with `propertyDirected`
+  // those where the property held in all earlier frames.
+  SmallVector<uint64_t> live;
   SmallVector<uint64_t> vals(net.size());
   for (unsigned w = 0; w < words; ++w) {
     SmallVector<uint64_t> state(regs.size());
     for (unsigned i = 0; i < regs.size(); ++i)
       state[i] = regs[i].init ? (*regs[i].init ? ~uint64_t(0) : 0) : rng();
+    uint64_t alive = ~uint64_t(0);
     for (unsigned f = 0; f < frames; ++f) {
       for (unsigned n = 1; n < net.size(); ++n)
         if (net.kind[n] == Net::Free)
@@ -598,6 +661,8 @@ void Correspondence::simulateCandidates() {
       for (unsigned i = 0; i < regs.size(); ++i)
         vals[regs[i].node] = state[i];
       eval(vals);
+      live.push_back(alive);
+      alive &= holds(vals);
       for (unsigned c = 0; c < cands.size(); ++c)
         sig[c].push_back(vals[cands[c].node]);
       for (unsigned i = 0; i < regs.size(); ++i)
@@ -610,11 +675,11 @@ void Correspondence::simulateCandidates() {
   Class constant;
   constant.constant = true;
   for (unsigned i = 0; i < cands.size(); ++i) {
+    // (The first pattern of the first frame always counts.)
     bool phase = sig[i][0] & 1;
     SmallVector<uint64_t> key = std::move(sig[i]);
-    if (phase)
-      for (auto &x : key)
-        x = ~x;
+    for (auto [x, l] : llvm::zip(key, live))
+      x = (phase ? ~x : x) & l;
     if (llvm::all_of(key, [](uint64_t x) { return x == 0; })) {
       constant.members.push_back({i, phase});
       continue;
@@ -880,6 +945,8 @@ bool Correspondence::proveStep() {
       return solver->newVar();
     };
     FrameEncoder enc1(*solver, net, trueVar, leaf1, subst);
+    if (propLit)
+      solver->addClause({enc0(*propLit)});
     // The leaves of frame 0 at [n], the free leaves of frame 1 at
     // [size + n].
     unsigned size = net.size();
@@ -924,7 +991,9 @@ bool Correspondence::proveStep() {
       // inductive, so they also hold in these frames, and splitting by them
       // only removes candidates that would not be proved.
       SmallVector<uint64_t> cur(v1);
-      for (unsigned f = 0; f < opts.cexFrames; ++f) {
+      // (Not with `propertyDirected`: the frames would have to stop where
+      // the property fails.)
+      for (unsigned f = 0, e = propLit ? 0 : opts.cexFrames; f < e; ++f) {
         SmallVector<uint64_t> red(cur);
         for (unsigned n = 1; n < size; ++n)
           if (auto it = subst.find(n); it != subst.end()) {
@@ -985,6 +1054,10 @@ bool Correspondence::proveIncremental(bool step) {
   };
   FrameEncoder enc1(*solver, net, trueVar, leaf1, noSubst);
   FrameEncoder &checked = step ? enc1 : enc0;
+  // With `propertyDirected` the step starts from a state where the property
+  // holds (see RegisterCorrespondencePass).
+  if (step && propLit)
+    solver->addClause({enc0(*propLit)});
 
   // A pair: member candidate, representative candidate (-1: constant
   // false), phase.
@@ -1093,7 +1166,13 @@ bool Correspondence::proveIncremental(bool step) {
     refine(cur, ~uint64_t(0));
     // Successors with random inputs (see proveStep for why this is sound in
     // the step; in the base case they are reachable states).
+    // With `propertyDirected` only patterns where the property held so far
+    // count.
+    uint64_t alive = ~uint64_t(0);
     for (unsigned f = 0; f < opts.cexFrames && !classes.empty(); ++f) {
+      alive &= holds(cur);
+      if (!alive)
+        break;
       SmallVector<uint64_t> next(size);
       for (unsigned n = 1; n < size; ++n)
         if (net.kind[n] == Net::Free)
@@ -1101,7 +1180,7 @@ bool Correspondence::proveIncremental(bool step) {
       for (auto &r : regs)
         next[r.node] = value(cur, r.next);
       eval(next);
-      refine(next, ~uint64_t(0));
+      refine(next, alive);
       cur = std::move(next);
     }
     index();
@@ -1368,20 +1447,6 @@ Correspondence::Decomposition Correspondence::decompose(unsigned maxPrefix,
     if (!out.getType().isInteger(1))
       return res;
 
-  // The literal of `enable -> property`.
-  auto holdLit = [&](Value prop, Value en) -> Lit {
-    Lit l = lit(prop, 0);
-    if (!en)
-      return l;
-    Lit e = lit(en, 0);
-    if (e == kFalse || l == (kFalse ^ 1))
-      return kFalse ^ 1;
-    if (e == (kFalse ^ 1))
-      return l;
-    if (l == kFalse)
-      return e ^ 1;
-    return mkLit(net.add(Net::And, {e, l ^ 1})) ^ 1;
-  };
   SmallVector<Lit> assertLits, assumeLits, outLits;
   for (auto a : asserts)
     assertLits.push_back(holdLit(a.getProperty(), a.getEnable()));
@@ -2008,12 +2073,17 @@ struct RegisterCorrespondencePass
 
   void runOnOperation() override {
     auto module = getOperation();
-    Params opts{numPatterns,   numFrames,          seed,
-                maxIterations, int(conflictLimit), satSolver,
-                internal,      cexFrames,          chunk};
+    Params opts{numPatterns,      numFrames,          seed,
+                maxIterations,    int(conflictLimit), satSolver,
+                internal,         cexFrames,          chunk,
+                propertyDirected, badOutputs,         conjunction};
     Correspondence c(module, opts);
     if (!c.build())
       return markAllAnalysesPreserved();
+    if (c.propertyIgnored)
+      module.emitWarning("property-directed needs exactly one i1 property "
+                         "(or conjunction), found ")
+          << *c.propertyIgnored << "; not assumed";
     c.simulateCandidates();
     numCandidatesStat += c.numCandidates();
     bool proved = chunk ? c.proveIncremental(false) && c.proveIncremental(true)
