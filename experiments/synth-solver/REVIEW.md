@@ -52,6 +52,7 @@ kept; "shifted" that counterexample depths change by a recorded amount
 | AIGER: latch initial values, resets rejected | ExportAIGER | #12 181304392 |
 | AIGER: unknown initial values, bad states, constraints (export and import) | ExportAIGER, ImportAIGER | #24 9eed00941 |
 | Split assumed conjunctions; substitute assumed inputs | `verif-split-assumes`, `verif-substitute-assumed-inputs` | #25 73fcbd2a2 |
+| Correspondence on traces where the constraints held (assumption x reachable) | `synth-register-correspondence{constraints}` | #34 3e5246582 |
 | Constraint conflicts (`:noConflict`, analysis) | `synth-check-constraints` | #28 f5ffd584b |
 
 ## Property
