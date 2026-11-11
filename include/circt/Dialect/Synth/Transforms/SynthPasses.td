@@ -337,6 +337,17 @@ def RegisterCorrespondence
     instead: only the first failure of any of them is kept (e.g. when the
     other properties are proof obligations that are checked separately on
     the module before the pass).
+
+    With `constraints`, the classes only have to hold on traces where the
+    constraints (i1 `verif.assume`s, AIGER constraints) held so far: the step
+    starts from a cycle where they held, and a pair of an and-gate outside
+    the cone of the constraints only has to be equal in cycles where they
+    hold. Pairs of registers, and of gates in the cone (merging them could
+    change the constraints), must be equal in every such cycle. The module
+    is then unchanged on every trace while the constraints hold, which is
+    what a model checker with constraints checks. Only with `chunk` > 0, and
+    only if the net shows every path to the constraints (else a warning and
+    the constraints are not used).
   }];
   let options = [
     Option<"numPatterns", "num-patterns", "unsigned", "256",
@@ -367,7 +378,9 @@ def RegisterCorrespondence
            "1 in a bad state">,
     Option<"conjunction", "conjunction", "bool", "false",
            "With property-directed: assume the conjunction of several "
-           "properties (keeps the first failure of any)">
+           "properties (keeps the first failure of any)">,
+    Option<"constraints", "constraints", "bool", "false",
+           "Prove the classes only where the constraints (verif.assume) held">
   ];
   let statistics = [
     Statistic<"numCandidatesStat", "num-candidates",
