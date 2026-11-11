@@ -4,9 +4,9 @@
   aigsel.py IN.aig OUT.aig INDEX
 
 Used to split the model and the false_cycle_obligation output of
-synth-remove-false-cycles{obligation} into two models. Inputs, latches and
-ANDs are kept as they are (the model checker removes what the output does
-not use).
+synth-remove-false-cycles{obligation} into two models. Inputs, latches,
+ANDs and invariant constraints (AIGER 1.9 C section) are kept as they are
+(the model checker removes what the output does not use).
 """
 import sys
 
@@ -18,12 +18,14 @@ def main():
   header = lines[0].split()
   assert header[0] == b"aig", "binary AIGER expected"
   m, i, l, o, a = (int(x) for x in header[1:6])
-  assert len(header) == 6, "AIGER 1.9 sections (B, C, J, F) not supported"
+  b, c, j, f = ([int(x) for x in header[6:]] + [0] * 4)[:4]
+  assert b == 0 and j == 0 and f == 0, "only outputs and constraints"
   assert 0 <= index < o
   latches = lines[1:1 + l]
   outputs = lines[1 + l:1 + l + o]
+  constraints = lines[1 + l + o:1 + l + o + c]
   # The binary ANDs are copied byte for byte: two varints per AND.
-  start = sum(len(x) + 1 for x in lines[:1 + l + o])
+  start = sum(len(x) + 1 for x in lines[:1 + l + o + c])
   pos = start
   for _ in range(2 * a):
     while data[pos] & 0x80:
@@ -45,10 +47,15 @@ def main():
       line = b"o0 " + pos_name[1]
     kept.append(line + b"\n")
   with open(out, "wb") as f:
-    f.write(b"aig %d %d %d 1 %d\n" % (m, i, l, a))
+    if c:
+      f.write(b"aig %d %d %d 1 %d 0 %d\n" % (m, i, l, a, c))
+    else:
+      f.write(b"aig %d %d %d 1 %d\n" % (m, i, l, a))
     for x in latches:
       f.write(x + b"\n")
     f.write(outputs[index] + b"\n")
+    for x in constraints:
+      f.write(x + b"\n")
     f.write(data[start:pos])
     f.write(b"".join(kept))
     f.write(comment)

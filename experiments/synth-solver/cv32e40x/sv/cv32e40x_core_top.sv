@@ -77,4 +77,48 @@ module cv32e40x_core_top #(parameter int DBG_NUM_TRIGGERS = 1) (
     .xif_mem_result_if (xif),
     .xif_result_if (xif),
     .*);
+
+  // Environment of dv/fv/jaspergold.tcl, as assertions labeled env_* that
+  // lower.sh --assume turns into assumptions: the integration assertions
+  // (addresses stable after fetch_enable_i and word-aligned; scan_cg_en_i is
+  // 0 above) and the OBI memory assertion a_r_after_a (a response only with
+  // an outstanding transaction) for both interfaces. The parity assertions
+  // do not apply (no parity ports).
+  logic fetch_enable_sticky;
+  always_ff @(posedge clk_i or negedge rst_ni)
+    if (!rst_ni) fetch_enable_sticky <= 1'b0;
+    else if (fetch_enable_i) fetch_enable_sticky <= 1'b1;
+
+  env_stable_bootaddr: assert property (@(posedge clk_i) disable iff (!rst_ni)
+    fetch_enable_sticky |-> $stable(boot_addr_i));
+  env_stable_dmexceptionaddr: assert property (@(posedge clk_i) disable iff (!rst_ni)
+    fetch_enable_sticky |-> $stable(dm_exception_addr_i));
+  env_stable_dmhaltaddr: assert property (@(posedge clk_i) disable iff (!rst_ni)
+    fetch_enable_sticky |-> $stable(dm_halt_addr_i));
+  env_stable_mtvecaddr: assert property (@(posedge clk_i) disable iff (!rst_ni)
+    fetch_enable_sticky |-> $stable(mtvec_addr_i));
+  env_aligned_bootaddr: assert property (@(posedge clk_i) disable iff (!rst_ni)
+    boot_addr_i[1:0] == 2'b00);
+  env_aligned_dmexceptionaddr: assert property (@(posedge clk_i) disable iff (!rst_ni)
+    dm_exception_addr_i[1:0] == 2'b00);
+  env_aligned_dmhaltaddr: assert property (@(posedge clk_i) disable iff (!rst_ni)
+    dm_halt_addr_i[1:0] == 2'b00);
+
+  logic [3:0] instr_outstanding, data_outstanding;
+  always_ff @(posedge clk_i or negedge rst_ni)
+    if (!rst_ni) instr_outstanding <= 4'h0;
+    else if (instr_req_o && instr_gnt_i && !instr_rvalid_i)
+      instr_outstanding <= instr_outstanding + 4'h1;
+    else if (!(instr_req_o && instr_gnt_i) && instr_rvalid_i)
+      instr_outstanding <= instr_outstanding - 4'h1;
+  always_ff @(posedge clk_i or negedge rst_ni)
+    if (!rst_ni) data_outstanding <= 4'h0;
+    else if (data_req_o && data_gnt_i && !data_rvalid_i)
+      data_outstanding <= data_outstanding + 4'h1;
+    else if (!(data_req_o && data_gnt_i) && data_rvalid_i)
+      data_outstanding <= data_outstanding - 4'h1;
+  env_instr_r_after_a: assert property (@(posedge clk_i) disable iff (!rst_ni)
+    instr_rvalid_i |-> instr_outstanding != 4'h0);
+  env_data_r_after_a: assert property (@(posedge clk_i) disable iff (!rst_ni)
+    data_rvalid_i |-> data_outstanding != 4'h0);
 endmodule

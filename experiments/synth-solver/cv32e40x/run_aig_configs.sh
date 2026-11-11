@@ -49,6 +49,9 @@ pipeline() {
     # (the module's output is the bad state).
     rcp) echo "hw.module(synth-register-correspondence{property-directed bad-outputs conjunction},canonicalize,$BITS)" ;;
     scp) echo "hw.module(synth-register-correspondence{internal property-directed bad-outputs conjunction},canonicalize,$BITS)" ;;
+    # Proved only on traces where the constraints (verif.assume) held.
+    rcc) echo "hw.module(synth-register-correspondence{constraints},canonicalize,$BITS)" ;;
+    scc) echo "hw.module(synth-register-correspondence{internal constraints},canonicalize,$BITS)" ;;
     tc) echo "hw.module(synth-ternary-constants,canonicalize,$BITS)" ;;
     split) echo "hw.module(synth-forward-retime,canonicalize,$BITS)" ;;
     all) echo "hw.module(synth-forward-retime,synth-ternary-constants,canonicalize,synth-register-correspondence{internal},canonicalize,$BITS,synth-functional-reduction{use-choices=false},canonicalize,$BITS)" ;;

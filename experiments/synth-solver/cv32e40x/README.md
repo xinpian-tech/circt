@@ -699,3 +699,72 @@ rBMC (bound 20, 150 s; rcp and scp in a second batch):
 - Without lucky phases the passes are much faster than in the first run
   (same load): sc 1039 -> 316 s, rc 477 -> 25 s per model on average, same
   models.
+
+## Environment constraints (results-core-rbmc-env.tsv, results-core-env-ablation.txt)
+
+The environment of the JasperGold setup in the CV32E40X source bundle
+(dv/fv/jaspergold.tcl), written as assertions labeled `env_*` in
+`sv/cv32e40x_core_top.sv` and lowered with `lower.sh --assume env_...
+--constraints` (they stay `verif.assume`, AIGER 1.9 invariant constraints;
+`aigsel.py` keeps them):
+
+- boot, debug-halt, debug-exception and mtvec addresses stable once
+  `fetch_enable_i` was seen, and the first three word-aligned (7
+  constraints);
+- OBI `a_r_after_a` for the instruction and the data interface: a response
+  only while a transaction is outstanding (a 4-bit counter per interface);
+- `scan_cg_en_i` = 0 (already in the top).
+
+The monitors add 137 latches to every model (3028 instead of 2891). New
+configurations `rcc` and `scc`: `synth-register-correspondence{constraints}`
+(with `internal` for scc), where the classes only have to hold on traces on
+which the constraints held so far (assumption x reachable cell of the
+simplification layers).
+
+Sizes and pass times (97 models, 12 exports in parallel):
+
+| config | latches | ANDs | pass (s, mean / max) |
+|---|---|---|---|
+| base | 3028 | 56719 | |
+| rc | 2525 | 49807 | 29 / 37 |
+| rcc | 2525 | 49807 | 35 / 39 |
+| sc | 2522 | 41936 | 318 / 523 |
+| scc | 2518 | 41846 | 667 / 1007 |
+
+rcc gives the same AIG as rc on all 97 models. scc merges 4 more latches
+and 85-90 more ANDs than sc on 96 models, and 34 latches / 540 ANDs more on
+a_data_obi_max_2_outstanding_transactions (the data-side outstanding
+counter, bounded by the response constraint). It needs about twice the
+time of sc: random simulation seldom satisfies the constraints, so fewer
+candidates are separated before the SAT checks.
+
+rBMC (bound 20, 150 s, 12 in parallel, one batch):
+
+| config | SAT | K | TO | PAR-2 (s) | ratio (72 common) |
+|---|---|---|---|---|---|
+| base | 0 | 72 | 25 | 123.9 | 1.00 |
+| rc | 0 | 72 | 25 | 120.9 | 0.87 |
+| rcc | 0 | 72 | 25 | 121.4 | 0.87 |
+| sc | 0 | 75 | 22 | 105.8 | 0.66 |
+| scc | 0 | 74 | 23 | 103.1 | 0.52 |
+
+- No counterexample in any configuration. Without the environment (section
+  above) base has 44 counterexamples of length 2-19; under the constraints
+  32 of these assertions reach bound 20 and 12 time out past the old
+  counterexample length, so all 44 were caused by inputs the environment
+  excludes. Checks: the constraints are satisfiable for 20 cycles (the
+  output replaced by a 20-latch delay chain gives a counterexample of length
+  20, witness ok; `aigdepth.py`), and with the constraints removed from the
+  same AIGs (`aigkeepcons.py`) the counterexamples come back with the old
+  lengths (6 checked).
+- Which constraint removes them (only one group kept with `aigkeepcons.py`,
+  rBMC to the old length; UNKNOWN = no counterexample): the stable and
+  aligned addresses none; the OBI response constraint all 44, the data
+  interface alone 21, the instruction interface alone 9, either alone 14. The unconstrained counterexamples are responses
+  (`rvalid`) without an outstanding request.
+- scc against sc on the 74 assertions both finish: 0.79 (geometric mean);
+  a_data_obi_max_2_outstanding_transactions, a_latched_bus_error and
+  a_fencei_lsu_busy are 11-14x faster, the slowest 1.4x slower. sc reaches
+  bound 20 on a_single_step_no_irq_id in 143 s, scc times out at 19.
+- Soundness: no configuration contradicts another (no counterexamples,
+  bound 20 reached or timeouts).
