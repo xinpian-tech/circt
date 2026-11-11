@@ -143,6 +143,9 @@ struct Params {
   bool badOutputs = false;
   /// With several properties, assume their conjunction.
   bool conjunction = false;
+  /// Prove the classes only on traces where the constraints (`verif.assume`)
+  /// held (see RegisterCorrespondencePass).
+  bool constraints = false;
 };
 
 class Correspondence {
@@ -198,6 +201,8 @@ public:
   /// With `propertyDirected`: the number of properties found if it is not
   /// exactly one (the property is then not assumed).
   std::optional<unsigned> propertyIgnored;
+  /// With `constraints`: why the constraints are not used, if they are not.
+  std::optional<StringRef> constraintsIgnored;
   unsigned numCandidates() const {
     unsigned n = 0;
     for (auto &c : classes)
@@ -209,10 +214,21 @@ private:
   Lit lit(Value value, unsigned bit);
   /// The literal of `enable -> property`.
   Lit holdLit(Value prop, Value en);
+  void buildConstraints();
+  void updateHiddenPaths();
   /// Whether the property holds in `vals` (all ones without
   /// `propertyDirected`).
   uint64_t holds(ArrayRef<uint64_t> vals) const {
     return propLit ? value(vals, *propLit) : ~uint64_t(0);
+  }
+  /// Whether the constraints hold in `vals` (all ones without them).
+  uint64_t constrained(ArrayRef<uint64_t> vals) const {
+    return consLit ? value(vals, *consLit) : ~uint64_t(0);
+  }
+  /// Whether the pairs of a candidate only have to hold where the
+  /// constraints do.
+  bool isCond(unsigned cand) const {
+    return !condCand.empty() && condCand[cand];
   }
   /// Evaluates the and-gates on 64 patterns: `vals[node]`, with the leaves
   /// and the state bits already set.
@@ -222,8 +238,9 @@ private:
     return isNeg(l) ? ~v : v;
   }
   /// Splits the classes by the candidate values in `vals` (for the patterns
-  /// in `mask`).
-  void refine(ArrayRef<uint64_t> vals, uint64_t mask);
+  /// in `mask`; for conditional candidates also only those in `condMask`).
+  void refine(ArrayRef<uint64_t> vals, uint64_t mask,
+              uint64_t condMask = ~uint64_t(0));
   void dropSingletons();
   /// Removes candidates from their classes (checks that gave up).
   void drop(const DenseSet<unsigned> &cands);
@@ -280,6 +297,11 @@ private:
   /// With `propertyDirected`: the literal that is 1 where the property
   /// holds.
   std::optional<Lit> propLit;
+  /// With `constraints`: the literal that is 1 where the constraints hold,
+  /// and the candidates whose pairs only have to hold where they do (and-
+  /// gates outside the cone of the constraints).
+  std::optional<Lit> consLit;
+  SmallVector<bool> condCand;
 };
 
 /// A solver for the many small queries of the proofs. CaDiCaL's lucky
@@ -615,18 +637,60 @@ bool Correspondence::build() {
       propLit = mkLit(net.add(Net::And, std::move(ins)));
     }
   }
-  // Free leaves that are results of ops in the body (not inputs or
-  // registers) may hide paths between and-gates.
-  for (auto &[key, l] : memo) {
-    auto result = dyn_cast<OpResult>(key.first);
-    if (result && net.kind[nodeOf(l)] == Net::Free &&
-        !isa<seq::CompRegOp>(result.getOwner()))
-      hiddenPaths = true;
-  }
+  updateHiddenPaths();
+  if (opts.constraints)
+    buildConstraints();
   LLVM_DEBUG(llvm::dbgs() << "register-correspondence: " << regs.size()
                           << " register bits, " << cands.size()
                           << " candidates, " << net.size() << " nodes\n");
   return true;
+}
+
+void Correspondence::updateHiddenPaths() {
+  // Free leaves made for results of ops in the body (not inputs or
+  // registers) may hide paths between and-gates. (Wiring of an input maps to
+  // the input's leaf and hides nothing.)
+  for (auto &[leaf, key] : leafOrigin) {
+    auto result = dyn_cast<OpResult>(key.first);
+    if (result && !isa<seq::CompRegOp>(result.getOwner()))
+      hiddenPaths = true;
+  }
+}
+
+void Correspondence::buildConstraints() {
+  SmallVector<Lit, 2> lits;
+  for (auto a : module.getBodyBlock()->getOps<verif::AssumeOp>()) {
+    if (!a.getProperty().getType().isInteger(1)) {
+      constraintsIgnored = "a constraint is not i1";
+      return;
+    }
+    lits.push_back(holdLit(a.getProperty(), a.getEnable()));
+  }
+  if (lits.empty())
+    return;
+  // A gate may only be merged under the constraints if it cannot change
+  // them; the cone of the net is the cone of the module only without
+  // hidden paths and made-up leaves (also those made for the constraints).
+  updateHiddenPaths();
+  if (hiddenPaths || approximate) {
+    constraintsIgnored = "the net does not show all paths to them";
+    return;
+  }
+  consLit = lits.size() == 1 ? lits[0] : mkLit(net.add(Net::And, lits));
+  SmallVector<bool> cone(net.size());
+  SmallVector<unsigned> stack{nodeOf(*consLit)};
+  while (!stack.empty()) {
+    unsigned n = stack.pop_back_val();
+    if (cone[n])
+      continue;
+    cone[n] = true;
+    if (net.kind[n] == Net::And)
+      for (Lit l : net.fanins[n])
+        stack.push_back(nodeOf(l));
+  }
+  condCand.resize(cands.size());
+  for (auto [i, c] : llvm::enumerate(cands))
+    condCand[i] = c.reg < 0 && !cone[c.node];
 }
 
 void Correspondence::eval(SmallVectorImpl<uint64_t> &vals) const {
@@ -647,7 +711,7 @@ void Correspondence::simulateCandidates() {
   SmallVector<SmallVector<uint64_t>> sig(cands.size());
   // The patterns of each signature word that count: with `propertyDirected`
   // those where the property held in all earlier frames.
-  SmallVector<uint64_t> live;
+  SmallVector<uint64_t> live, liveCond;
   SmallVector<uint64_t> vals(net.size());
   for (unsigned w = 0; w < words; ++w) {
     SmallVector<uint64_t> state(regs.size());
@@ -661,8 +725,12 @@ void Correspondence::simulateCandidates() {
       for (unsigned i = 0; i < regs.size(); ++i)
         vals[regs[i].node] = state[i];
       eval(vals);
+      // With `constraints` a frame counts where they held before it, and for
+      // conditional candidates where they also hold in it.
+      uint64_t cons = constrained(vals);
       live.push_back(alive);
-      alive &= holds(vals);
+      liveCond.push_back(alive & cons);
+      alive &= holds(vals) & cons;
       for (unsigned c = 0; c < cands.size(); ++c)
         sig[c].push_back(vals[cands[c].node]);
       for (unsigned i = 0; i < regs.size(); ++i)
@@ -675,11 +743,20 @@ void Correspondence::simulateCandidates() {
   Class constant;
   constant.constant = true;
   for (unsigned i = 0; i < cands.size(); ++i) {
-    // (The first pattern of the first frame always counts.)
-    bool phase = sig[i][0] & 1;
+    // Phase: the value in the first pattern that counts (for every
+    // candidate the same, so that complementary candidates get one key).
+    // Classes only propose pairs; proofs decide, so comparing registers on
+    // the conditional patterns as well loses nothing that matters.
+    ArrayRef<uint64_t> l = condCand.empty() ? live : liveCond;
+    bool phase = false;
+    for (auto [x, m] : llvm::zip(sig[i], l))
+      if (m) {
+        phase = (x & m & -m) != 0;
+        break;
+      }
     SmallVector<uint64_t> key = std::move(sig[i]);
-    for (auto [x, l] : llvm::zip(key, live))
-      x = (phase ? ~x : x) & l;
+    for (auto [x, m] : llvm::zip(key, l))
+      x = (phase ? ~x : x) & m;
     if (llvm::all_of(key, [](uint64_t x) { return x == 0; })) {
       constant.members.push_back({i, phase});
       continue;
@@ -723,7 +800,8 @@ void Correspondence::drop(const DenseSet<unsigned> &gone) {
   dropSingletons();
 }
 
-void Correspondence::refine(ArrayRef<uint64_t> vals, uint64_t mask) {
+void Correspondence::refine(ArrayRef<uint64_t> vals, uint64_t mask,
+                            uint64_t condMask) {
   // Each class splits by the members' values relative to the class value:
   // members with equal relative values stay together. The group of the
   // representative (relative value 0) keeps the class; a constant class has
@@ -736,7 +814,8 @@ void Correspondence::refine(ArrayRef<uint64_t> vals, uint64_t mask) {
       uint64_t v = vals[cands[i].node];
       if (p)
         v = ~v;
-      groups[(v ^ ref) & mask].members.push_back({i, p});
+      uint64_t m = isCond(i) ? mask & condMask : mask;
+      groups[(v ^ ref) & m].members.push_back({i, p});
     }
     for (auto &[key, g] : groups) {
       if (key == 0) {
@@ -1058,6 +1137,9 @@ bool Correspondence::proveIncremental(bool step) {
   // holds (see RegisterCorrespondencePass).
   if (step && propLit)
     solver->addClause({enc0(*propLit)});
+  // With `constraints` the step starts from a cycle where they held.
+  if (step && consLit)
+    solver->addClause({enc0(*consLit)});
 
   // A pair: member candidate, representative candidate (-1: constant
   // false), phase.
@@ -1079,6 +1161,9 @@ bool Correspondence::proveIncremental(bool step) {
       v.diff = solver->newVar();
       solver->addClause({-v.diff, x, t});
       solver->addClause({-v.diff, -x, -t});
+      // A conditional pair only has to hold where the constraints do.
+      if (isCond(m))
+        solver->addClause({-v.diff, checked(*consLit)});
     }
     return v.diff;
   };
@@ -1163,14 +1248,14 @@ bool Correspondence::proveIncremental(bool step) {
     } else {
       cur = std::move(v0);
     }
-    refine(cur, ~uint64_t(0));
+    refine(cur, ~uint64_t(0), constrained(cur));
     // Successors with random inputs (see proveStep for why this is sound in
     // the step; in the base case they are reachable states).
     // With `propertyDirected` only patterns where the property held so far
     // count.
     uint64_t alive = ~uint64_t(0);
     for (unsigned f = 0; f < opts.cexFrames && !classes.empty(); ++f) {
-      alive &= holds(cur);
+      alive &= holds(cur) & constrained(cur);
       if (!alive)
         break;
       SmallVector<uint64_t> next(size);
@@ -1180,7 +1265,7 @@ bool Correspondence::proveIncremental(bool step) {
       for (auto &r : regs)
         next[r.node] = value(cur, r.next);
       eval(next);
-      refine(next, alive);
+      refine(next, alive, constrained(next));
       cur = std::move(next);
     }
     index();
@@ -2073,13 +2158,26 @@ struct RegisterCorrespondencePass
 
   void runOnOperation() override {
     auto module = getOperation();
-    Params opts{numPatterns,      numFrames,          seed,
-                maxIterations,    int(conflictLimit), satSolver,
-                internal,         cexFrames,          chunk,
-                propertyDirected, badOutputs,         conjunction};
+    Params opts{numPatterns,
+                numFrames,
+                seed,
+                maxIterations,
+                int(conflictLimit),
+                satSolver,
+                internal,
+                cexFrames,
+                chunk,
+                propertyDirected,
+                badOutputs,
+                conjunction,
+                constraints && chunk};
     Correspondence c(module, opts);
     if (!c.build())
       return markAllAnalysesPreserved();
+    if (constraints && !chunk)
+      module.emitWarning("constraints need chunk > 0; not used");
+    if (c.constraintsIgnored)
+      module.emitWarning("constraints not used: ") << *c.constraintsIgnored;
     if (c.propertyIgnored)
       module.emitWarning("property-directed needs exactly one i1 property "
                          "(or conjunction), found ")
