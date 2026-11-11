@@ -1,0 +1,583 @@
+assert	config	latches	ands	pass_seconds	result	depth	seconds	witness
+a_addr_incr	abc-scorr	0	0	50.2	K	20	0.01	-
+a_addr_incr	base	2944	56295		K	20	137.07	-
+a_addr_incr	rc	2407	49065	25.6	K	20	5.06	-
+a_addr_incr	rcp	2407	49065	23.8	K	20	4.55	-
+a_addr_incr	sc	0	0	253.0	K	20	0.01	-
+a_addr_incr	scp	0	0	322.4	K	20	0.01	-
+a_branch_taken_ex_flush	abc-scorr	2377	35464	47.3	K	20	24.39	-
+a_branch_taken_ex_flush	base	2883	55288		K	20	45.03	-
+a_branch_taken_ex_flush	rc	2379	48386	25.4	K	20	45.17	-
+a_branch_taken_ex_flush	rcp	2379	48386	34.6	K	20	51.96	-
+a_branch_taken_ex_flush	sc	2377	40559	259.5	K	20	33.55	-
+a_branch_taken_ex_flush	scp	2377	40559	285.6	K	20	28.00	-
+a_bubble_ex_when_branch_taken_wb	abc-scorr	2373	35526	48.5	K	20	112.71	-
+a_bubble_ex_when_branch_taken_wb	base	2879	55272		K	20	142.26	-
+a_bubble_ex_when_branch_taken_wb	rc	2375	48370	18.4	TO	19	150.33	-
+a_bubble_ex_when_branch_taken_wb	rcp	2375	48370	27.0	K	20	140.43	-
+a_bubble_ex_when_branch_taken_wb	sc	2373	40544	367.7	K	20	106.36	-
+a_bubble_ex_when_branch_taken_wb	scp	2373	40544	320.3	K	20	104.99	-
+a_check_acc_mul_value_zero	abc-scorr	2373	35516	50.3	K	20	28.96	-
+a_check_acc_mul_value_zero	base	2879	55304		K	20	32.37	-
+a_check_acc_mul_value_zero	rc	2375	48402	25.2	K	20	40.04	-
+a_check_acc_mul_value_zero	rcp	2375	48402	27.4	K	20	34.39	-
+a_check_acc_mul_value_zero	sc	2373	40576	344.1	K	20	19.38	-
+a_check_acc_mul_value_zero	scp	2373	40576	261.7	K	20	16.81	-
+a_check_result_constant	abc-scorr	2408	35785	53.1	TO	4	150.04	-
+a_check_result_constant	base	2914	55505		TO	4	150.05	-
+a_check_result_constant	rc	2410	48603	23.1	TO	4	150.03	-
+a_check_result_constant	rcp	2410	48603	30.3	TO	4	150.03	-
+a_check_result_constant	sc	2408	40776	338.2	TO	4	150.02	-
+a_check_result_constant	scp	2408	40776	303.0	TO	4	150.03	-
+a_clock_en_5	abc-scorr	0	0	45.5	K	20	0.01	-
+a_clock_en_5	base	2879	55272		K	20	2.38	-
+a_clock_en_5	rc	2375	48370	21.1	K	20	2.19	-
+a_clock_en_5	rcp	2375	48370	24.5	K	20	2.29	-
+a_clock_en_5	sc	0	0	314.8	K	20	0.01	-
+a_clock_en_5	scp	0	0	293.1	K	20	0.01	-
+a_core_sleep	abc-scorr	0	0	51.5	K	20	0.01	-
+a_core_sleep	base	2879	55271		K	20	1.72	-
+a_core_sleep	rc	2375	48369	20.1	K	20	1.70	-
+a_core_sleep	rcp	2375	48369	34.2	K	20	1.64	-
+a_core_sleep	sc	0	0	249.4	K	20	0.01	-
+a_core_sleep	scp	0	0	253.0	K	20	0.01	-
+a_csr_wr_in_wb_no_fetch	abc-scorr	2373	35543	51.7	SAT	12	8.57	ok
+a_csr_wr_in_wb_no_fetch	base	2879	55272		SAT	12	10.85	ok
+a_csr_wr_in_wb_no_fetch	rc	2375	48370	18.5	SAT	12	10.18	ok
+a_csr_wr_in_wb_no_fetch	rcp	2375	48370	35.1	SAT	12	10.64	ok
+a_csr_wr_in_wb_no_fetch	sc	2373	40543	312.3	SAT	12	13.02	ok
+a_csr_wr_in_wb_no_fetch	scp	2373	40543	318.2	SAT	12	15.84	ok
+a_data_i_stable_during_waited_addr_ph	abc-scorr	2446	36307	46.8	K	20	99.05	-
+a_data_i_stable_during_waited_addr_ph	base	2961	56126		TO	19	151.93	-
+a_data_i_stable_during_waited_addr_ph	rc	2458	49205	26.7	TO	19	150.14	-
+a_data_i_stable_during_waited_addr_ph	rcp	2458	49205	24.4	K	20	134.12	-
+a_data_i_stable_during_waited_addr_ph	sc	2456	41357	336.1	K	20	76.67	-
+a_data_i_stable_during_waited_addr_ph	scp	2456	41357	327.0	K	20	85.69	-
+a_data_o_stable_during_waited_addr_ph	abc-scorr	2446	36317	49.4	K	20	82.24	-
+a_data_o_stable_during_waited_addr_ph	base	2961	56214		K	20	103.01	-
+a_data_o_stable_during_waited_addr_ph	rc	2458	49208	18.8	K	20	114.09	-
+a_data_o_stable_during_waited_addr_ph	rcp	2458	49208	32.3	K	20	123.19	-
+a_data_o_stable_during_waited_addr_ph	sc	2456	41360	296.0	K	20	110.93	-
+a_data_o_stable_during_waited_addr_ph	scp	2456	41360	316.3	K	20	87.60	-
+a_data_obi_max_2_outstanding_transactions	abc-scorr	2403	35646	81.5	K	20	10.23	-
+a_data_obi_max_2_outstanding_transactions	base	2911	56152		K	20	55.73	-
+a_data_obi_max_2_outstanding_transactions	rc	2405	49222	22.8	K	20	35.37	-
+a_data_obi_max_2_outstanding_transactions	rcp	2405	49222	27.9	K	20	39.45	-
+a_data_obi_max_2_outstanding_transactions	sc	2403	40996	311.0	K	20	19.51	-
+a_data_obi_max_2_outstanding_transactions	scp	2403	40996	291.4	K	20	27.25	-
+a_debug_taken_rf_write	abc-scorr	2373	35474	48.8	SAT	12	6.11	ok
+a_debug_taken_rf_write	base	2879	55272		SAT	12	16.07	ok
+a_debug_taken_rf_write	rc	2375	48370	25.5	SAT	12	11.87	ok
+a_debug_taken_rf_write	rcp	2375	48370	33.8	SAT	12	11.82	ok
+a_debug_taken_rf_write	sc	2373	40542	291.9	SAT	12	6.81	ok
+a_debug_taken_rf_write	scp	2373	40542	257.2	SAT	12	8.39	ok
+a_enter_sleep_no_lsu	abc-scorr	2376	35553	48.0	K	20	8.53	-
+a_enter_sleep_no_lsu	base	2882	55283		K	20	7.92	-
+a_enter_sleep_no_lsu	rc	2378	48381	23.6	K	20	25.60	-
+a_enter_sleep_no_lsu	rcp	2378	48381	34.0	K	20	33.35	-
+a_enter_sleep_no_lsu	sc	2376	40554	301.3	K	20	20.55	-
+a_enter_sleep_no_lsu	scp	2376	40554	293.8	K	20	20.37	-
+a_exc_no_sequence_debug	abc-scorr	2378	35586	50.6	SAT	15	32.16	ok
+a_exc_no_sequence_debug	base	2884	55295		SAT	15	52.28	ok
+a_exc_no_sequence_debug	rc	2380	48393	23.3	SAT	15	36.51	ok
+a_exc_no_sequence_debug	rcp	2380	48393	22.6	SAT	15	35.94	ok
+a_exc_no_sequence_debug	sc	2378	40566	251.9	SAT	15	31.72	ok
+a_exc_no_sequence_debug	scp	2378	40566	312.5	SAT	15	34.77	ok
+a_fencei_hndshk_ack_b4_req_clear	abc-scorr	2377	35467	47.9	K	20	41.02	-
+a_fencei_hndshk_ack_b4_req_clear	base	2883	55285		K	20	65.77	-
+a_fencei_hndshk_ack_b4_req_clear	rc	2379	48383	23.6	K	20	43.28	-
+a_fencei_hndshk_ack_b4_req_clear	rcp	2379	48383	22.0	K	20	49.42	-
+a_fencei_hndshk_ack_b4_req_clear	sc	2377	40555	305.3	K	20	36.32	-
+a_fencei_hndshk_ack_b4_req_clear	scp	2377	40555	285.3	K	20	38.05	-
+a_fencei_hndshk_req_when_fencei_wb	abc-scorr	2378	35611	49.7	SAT	9	2.89	ok
+a_fencei_hndshk_req_when_fencei_wb	base	2884	55298		SAT	9	5.32	ok
+a_fencei_hndshk_req_when_fencei_wb	rc	2380	48396	32.9	SAT	9	8.39	ok
+a_fencei_hndshk_req_when_fencei_wb	rcp	2380	48396	24.4	SAT	9	6.95	ok
+a_fencei_hndshk_req_when_fencei_wb	sc	2378	40568	274.0	SAT	9	2.92	ok
+a_fencei_hndshk_req_when_fencei_wb	scp	2378	40568	293.9	SAT	9	2.81	ok
+a_fencei_lsu_busy	abc-scorr	2373	35515	48.6	SAT	5	0.48	ok
+a_fencei_lsu_busy	base	2879	55271		SAT	5	0.47	ok
+a_fencei_lsu_busy	rc	2375	48369	26.1	SAT	5	0.43	ok
+a_fencei_lsu_busy	rcp	2375	48369	27.3	SAT	5	0.47	ok
+a_fencei_lsu_busy	sc	2373	40542	330.7	SAT	5	0.33	ok
+a_fencei_lsu_busy	scp	2373	40542	264.9	SAT	5	0.25	ok
+a_fencei_wb_valid	abc-scorr	2374	35498	47.2	K	20	52.41	-
+a_fencei_wb_valid	base	2882	55281		K	20	65.77	-
+a_fencei_wb_valid	rc	2378	48379	23.6	K	20	55.22	-
+a_fencei_wb_valid	rcp	2378	48379	23.2	K	20	60.41	-
+a_fencei_wb_valid	sc	2374	40546	307.1	K	20	51.06	-
+a_fencei_wb_valid	scp	2374	40546	312.1	K	20	45.30	-
+a_functional_unit_enable_onehot_noptr	abc-scorr	0	0	45.9	K	20	0.01	-
+a_functional_unit_enable_onehot_noptr	base	2879	55316		K	20	2.17	-
+a_functional_unit_enable_onehot_noptr	rc	2375	48412	31.3	K	20	1.93	-
+a_functional_unit_enable_onehot_noptr	rcp	2375	48412	27.7	K	20	1.94	-
+a_functional_unit_enable_onehot_noptr	sc	0	0	297.0	K	20	0.01	-
+a_functional_unit_enable_onehot_noptr	scp	0	0	335.8	K	20	0.01	-
+a_gate_clk_i	abc-scorr	2373	35555	49.1	SAT	6	0.57	ok
+a_gate_clk_i	base	2879	55278		SAT	6	0.68	ok
+a_gate_clk_i	rc	2375	48376	26.1	SAT	6	0.53	ok
+a_gate_clk_i	rcp	2375	48376	28.1	SAT	6	0.68	ok
+a_gate_clk_i	sc	2373	40548	261.8	SAT	6	0.38	ok
+a_gate_clk_i	scp	2373	40548	320.8	SAT	6	0.53	ok
+a_if_ex_trig_exclusive	abc-scorr	2373	35519	47.1	SAT	15	11.89	ok
+a_if_ex_trig_exclusive	base	2879	55333		SAT	15	34.36	ok
+a_if_ex_trig_exclusive	rc	2375	48369	25.7	SAT	15	23.92	ok
+a_if_ex_trig_exclusive	rcp	2375	48369	33.6	SAT	15	33.28	ok
+a_if_ex_trig_exclusive	sc	2373	40543	336.4	SAT	15	17.79	ok
+a_if_ex_trig_exclusive	scp	2373	40542	224.4	SAT	15	12.08	ok
+a_illegal_2	abc-scorr	0	0	46.9	K	20	0.01	-
+a_illegal_2	base	2879	55276		K	20	1.83	-
+a_illegal_2	rc	2375	48374	25.8	K	20	1.09	-
+a_illegal_2	rcp	2375	48374	36.2	K	20	1.53	-
+a_illegal_2	sc	0	0	357.8	K	20	0.01	-
+a_illegal_2	scp	0	0	337.6	K	20	0.01	-
+a_instr_err_mepc	abc-scorr	2440	35992	49.1	K	20	26.66	-
+a_instr_err_mepc	base	2948	55798		K	20	43.21	-
+a_instr_err_mepc	rc	2442	48871	28.2	K	20	45.81	-
+a_instr_err_mepc	rcp	2442	48871	35.3	K	20	46.94	-
+a_instr_err_mepc	sc	2440	40943	306.2	K	20	24.77	-
+a_instr_err_mepc	scp	2440	40943	361.5	K	20	30.19	-
+a_interruptible_equivalency	abc-scorr	2373	35549	49.1	SAT	5	1.88	ok
+a_interruptible_equivalency	base	2879	55297		SAT	5	1.86	ok
+a_interruptible_equivalency	rc	2375	48394	26.2	SAT	5	1.00	ok
+a_interruptible_equivalency	rcp	2375	48394	15.7	SAT	5	1.16	ok
+a_interruptible_equivalency	sc	2373	40565	339.5	SAT	5	0.82	ok
+a_interruptible_equivalency	scp	2373	40565	311.5	SAT	5	0.80	ok
+a_irq_pri	abc-scorr	2395	35684	47.6	SAT	6	0.73	ok
+a_irq_pri	base	2914	55510		SAT	6	1.40	ok
+a_irq_pri	rc	2410	48543	20.8	SAT	6	1.11	ok
+a_irq_pri	rcp	2410	48543	27.1	SAT	6	1.92	ok
+a_irq_pri	sc	2408	40716	325.0	SAT	6	0.52	ok
+a_irq_pri	scp	2408	40716	304.0	SAT	6	0.52	ok
+a_jalr_fw_match	abc-scorr	2373	35766	43.2	SAT	4	0.82	ok
+a_jalr_fw_match	base	2879	55389		SAT	4	0.48	ok
+a_jalr_fw_match	rc	2375	48487	26.0	SAT	4	0.52	ok
+a_jalr_fw_match	rcp	2375	48487	23.9	SAT	4	0.57	ok
+a_jalr_fw_match	sc	2373	40674	284.1	SAT	4	0.50	ok
+a_jalr_fw_match	scp	2373	40674	283.8	SAT	4	0.50	ok
+a_jalr_fwd	abc-scorr	2373	35757	47.6	K	20	33.87	-
+a_jalr_fwd	base	2879	55395		K	20	68.47	-
+a_jalr_fwd	rc	2375	48493	25.9	K	20	49.58	-
+a_jalr_fwd	rcp	2375	48493	28.0	K	20	50.55	-
+a_jalr_fwd	sc	2373	40680	325.0	K	20	30.64	-
+a_jalr_fwd	scp	2373	40680	335.3	K	20	30.03	-
+a_kill_state	abc-scorr	0	0	49.1	K	20	0.01	-
+a_kill_state	base	2882	55284		K	20	2.60	-
+a_kill_state	rc	2378	48382	22.4	K	20	2.95	-
+a_kill_state	rcp	2378	48382	38.0	K	20	2.79	-
+a_kill_state	sc	0	0	281.1	K	20	0.01	-
+a_kill_state	scp	0	0	314.2	K	20	0.01	-
+a_latched_bus_error	abc-scorr	2378	35460	54.5	SAT	7	1.38	ok
+a_latched_bus_error	base	2888	55381		SAT	7	2.58	ok
+a_latched_bus_error	rc	2381	48439	20.7	SAT	7	1.78	ok
+a_latched_bus_error	rcp	2381	48439	33.1	SAT	7	1.76	ok
+a_latched_bus_error	sc	2378	40571	268.8	SAT	7	1.18	ok
+a_latched_bus_error	scp	2375	40560	238.8	SAT	7	1.28	ok
+a_lsu_wb_valid	abc-scorr	2373	35549	45.9	SAT	4	0.32	ok
+a_lsu_wb_valid	base	2879	55305		SAT	4	0.32	ok
+a_lsu_wb_valid	rc	2375	48370	25.8	SAT	4	0.34	ok
+a_lsu_wb_valid	rcp	2374	48364	33.4	SAT	4	0.32	ok
+a_lsu_wb_valid	sc	2373	40544	351.1	SAT	4	0.30	ok
+a_lsu_wb_valid	scp	2372	40539	305.9	SAT	4	0.28	ok
+a_max_seq_len_pop	abc-scorr	2373	35531	51.7	SAT	15	4.79	ok
+a_max_seq_len_pop	base	2879	55276		SAT	15	10.92	ok
+a_max_seq_len_pop	rc	2375	48374	25.8	SAT	15	14.55	ok
+a_max_seq_len_pop	rcp	2375	48374	24.4	SAT	15	11.37	ok
+a_max_seq_len_pop	sc	2373	40548	342.2	SAT	15	6.39	ok
+a_max_seq_len_pop	scp	2373	40548	323.9	SAT	15	5.79	ok
+a_max_seq_len_popret	abc-scorr	2373	35645	44.4	SAT	16	6.02	ok
+a_max_seq_len_popret	base	2879	55278		SAT	16	8.69	ok
+a_max_seq_len_popret	rc	2375	48376	26.0	SAT	16	11.80	ok
+a_max_seq_len_popret	rcp	2375	48376	34.6	SAT	16	10.95	ok
+a_max_seq_len_popret	sc	2373	40544	311.8	SAT	16	8.76	ok
+a_max_seq_len_popret	scp	2373	40544	293.5	SAT	16	8.88	ok
+a_max_seq_len_popretz	abc-scorr	2373	35456	53.0	SAT	16	4.98	ok
+a_max_seq_len_popretz	base	2879	55273		SAT	16	9.20	ok
+a_max_seq_len_popretz	rc	2375	48371	19.7	SAT	16	11.57	ok
+a_max_seq_len_popretz	rcp	2375	48371	34.8	SAT	16	13.28	ok
+a_max_seq_len_popretz	sc	2373	40545	351.9	SAT	16	5.67	ok
+a_max_seq_len_popretz	scp	2373	40545	304.1	SAT	16	5.98	ok
+a_max_seq_len_push	abc-scorr	2373	35585	53.3	SAT	15	5.23	ok
+a_max_seq_len_push	base	2879	55276		SAT	15	12.89	ok
+a_max_seq_len_push	rc	2375	48374	25.6	SAT	15	10.96	ok
+a_max_seq_len_push	rcp	2375	48374	31.4	SAT	15	9.94	ok
+a_max_seq_len_push	sc	2373	40547	296.3	SAT	15	5.11	ok
+a_max_seq_len_push	scp	2373	40547	272.8	SAT	15	4.88	ok
+a_mcontrol6_hit_set	abc-scorr	2376	35454	53.7	SAT	16	21.98	ok
+a_mcontrol6_hit_set	base	2882	55284		SAT	16	28.46	ok
+a_mcontrol6_hit_set	rc	2378	48381	23.9	SAT	16	33.13	ok
+a_mcontrol6_hit_set	rcp	2378	48381	26.5	SAT	16	27.21	ok
+a_mcontrol6_hit_set	sc	2376	40554	306.5	SAT	16	20.81	ok
+a_mcontrol6_hit_set	scp	2376	40554	295.9	SAT	16	23.98	ok
+a_mip_mie_write_disable	abc-scorr	0	0	52.4	K	20	0.01	-
+a_mip_mie_write_disable	base	2914	55506		K	20	1.73	-
+a_mip_mie_write_disable	rc	2410	48539	23.8	K	20	1.55	-
+a_mip_mie_write_disable	rcp	2410	48539	36.2	K	20	1.62	-
+a_mip_mie_write_disable	sc	0	0	277.9	K	20	0.01	-
+a_mip_mie_write_disable	scp	0	0	374.9	K	20	0.01	-
+a_mip_mie_write_enable	abc-scorr	2395	35670	54.7	SAT	6	0.74	ok
+a_mip_mie_write_enable	base	2914	55507		SAT	6	1.19	ok
+a_mip_mie_write_enable	rc	2410	48540	25.1	SAT	6	1.05	ok
+a_mip_mie_write_enable	rcp	2410	48540	26.6	SAT	6	1.05	ok
+a_mip_mie_write_enable	sc	2408	40714	287.8	SAT	6	0.58	ok
+a_mip_mie_write_enable	scp	2408	40714	277.0	SAT	6	0.59	ok
+a_mret_dbg_mode_illegal	abc-scorr	2453	35940	47.1	SAT	13	8.41	ok
+a_mret_dbg_mode_illegal	base	2879	55307		SAT	13	27.89	ok
+a_mret_dbg_mode_illegal	rc	2455	48871	25.8	SAT	13	25.01	ok
+a_mret_dbg_mode_illegal	rcp	2455	48871	30.9	SAT	13	20.88	ok
+a_mret_dbg_mode_illegal	sc	2453	40960	328.1	SAT	13	20.08	ok
+a_mret_dbg_mode_illegal	scp	2453	40960	248.2	SAT	13	14.41	ok
+a_mret_in_wb_csr_restore_mret	abc-scorr	2373	35511	48.5	SAT	12	13.92	ok
+a_mret_in_wb_csr_restore_mret	base	2879	55273		SAT	12	23.51	ok
+a_mret_in_wb_csr_restore_mret	rc	2375	48370	34.2	SAT	12	20.06	ok
+a_mret_in_wb_csr_restore_mret	rcp	2375	48370	37.0	SAT	12	23.63	ok
+a_mret_in_wb_csr_restore_mret	sc	2373	40544	318.7	SAT	12	19.01	ok
+a_mret_in_wb_csr_restore_mret	scp	2373	40544	267.4	SAT	12	18.46	ok
+a_mul_result	abc-scorr	2373	39580	49.6	TO	3	150.02	-
+a_mul_result	base	2879	59405		TO	3	150.03	-
+a_mul_result	rc	2375	52503	26.3	TO	3	150.03	-
+a_mul_result	rcp	2375	52503	33.8	TO	3	150.02	-
+a_mul_result	sc	2373	44676	287.5	TO	3	150.02	-
+a_mul_result	scp	2373	44676	337.0	TO	3	150.03	-
+a_mulh_result	abc-scorr	2373	48586	71.2	TO	6	150.08	-
+a_mulh_result	base	2879	68711		TO	6	150.07	-
+a_mulh_result	rc	2375	61809	27.2	TO	6	150.06	-
+a_mulh_result	rcp	2375	61809	32.4	TO	6	150.08	-
+a_mulh_result	sc	2373	53981	462.6	TO	6	150.07	-
+a_mulh_result	scp	2373	53981	569.9	TO	6	150.06	-
+a_mulhsu_result	abc-scorr	2373	46085	67.2	TO	6	150.07	-
+a_mulhsu_result	base	2879	66223		TO	6	150.05	-
+a_mulhsu_result	rc	2375	59321	27.5	TO	6	150.06	-
+a_mulhsu_result	rcp	2375	59321	45.2	TO	6	150.05	-
+a_mulhsu_result	sc	2373	51494	553.4	TO	6	150.09	-
+a_mulhsu_result	scp	2373	51494	591.4	TO	6	150.07	-
+a_mulhu_result	abc-scorr	2373	43812	69.1	TO	6	150.05	-
+a_mulhu_result	base	2879	63951		TO	6	150.07	-
+a_mulhu_result	rc	2375	57049	26.7	TO	6	150.06	-
+a_mulhu_result	rcp	2375	57049	31.6	TO	6	150.07	-
+a_mulhu_result	sc	2373	49221	474.5	TO	6	150.05	-
+a_mulhu_result	scp	2373	49221	531.5	TO	6	150.06	-
+a_nmi_handler_max_retire	abc-scorr	2376	35581	47.9	SAT	7	1.00	ok
+a_nmi_handler_max_retire	base	2883	55317		SAT	7	1.29	ok
+a_nmi_handler_max_retire	rc	2378	48405	23.7	SAT	7	1.44	ok
+a_nmi_handler_max_retire	rcp	2378	48405	18.8	SAT	7	0.96	ok
+a_nmi_handler_max_retire	sc	2376	40572	323.7	SAT	7	1.01	ok
+a_nmi_handler_max_retire	scp	2376	40572	333.4	SAT	7	0.98	ok
+a_no_back_to_back_branch	abc-scorr	0	0	50.1	K	20	0.01	-
+a_no_back_to_back_branch	base	2882	55282		K	20	3.48	-
+a_no_back_to_back_branch	rc	2378	48380	24.0	K	20	3.52	-
+a_no_back_to_back_branch	rcp	2378	48380	33.9	K	20	2.95	-
+a_no_back_to_back_branch	sc	0	0	347.7	K	20	0.01	-
+a_no_back_to_back_branch	scp	0	0	315.2	K	20	0.01	-
+a_no_context_from_pointer	abc-scorr	2375	35525	46.6	SAT	6	2.98	ok
+a_no_context_from_pointer	base	2879	55289		SAT	6	6.18	ok
+a_no_context_from_pointer	rc	2377	48393	26.4	SAT	6	6.39	ok
+a_no_context_from_pointer	rcp	2377	48393	37.2	SAT	6	6.07	ok
+a_no_context_from_pointer	sc	2375	40563	307.3	SAT	6	4.36	ok
+a_no_context_from_pointer	scp	2375	40563	272.0	SAT	6	4.43	ok
+a_no_event_during_debug_taken_nonstep	abc-scorr	2373	35517	46.5	SAT	16	26.86	ok
+a_no_event_during_debug_taken_nonstep	base	2879	55308		SAT	16	36.32	ok
+a_no_event_during_debug_taken_nonstep	rc	2375	48393	34.2	SAT	16	33.93	ok
+a_no_event_during_debug_taken_nonstep	rcp	2375	48393	25.0	SAT	16	26.15	ok
+a_no_event_during_debug_taken_nonstep	sc	2373	40565	376.4	SAT	16	24.36	ok
+a_no_event_during_debug_taken_nonstep	scp	2373	40565	332.1	SAT	16	29.62	ok
+a_no_event_during_debug_taken_step	abc-scorr	2373	35636	47.0	SAT	9	1.92	ok
+a_no_event_during_debug_taken_step	base	2879	55299		SAT	9	1.96	ok
+a_no_event_during_debug_taken_step	rc	2375	48386	33.6	SAT	9	2.29	ok
+a_no_event_during_debug_taken_step	rcp	2375	48386	19.1	SAT	9	2.17	ok
+a_no_event_during_debug_taken_step	sc	2373	40555	277.8	SAT	9	1.76	ok
+a_no_event_during_debug_taken_step	scp	2373	40555	256.4	SAT	9	1.83	ok
+a_no_exc_no_sequence_debug	abc-scorr	2377	35571	47.3	SAT	9	3.88	ok
+a_no_exc_no_sequence_debug	base	2883	55292		SAT	9	8.57	ok
+a_no_exc_no_sequence_debug	rc	2379	48390	23.0	SAT	9	6.25	ok
+a_no_exc_no_sequence_debug	rcp	2379	48390	22.7	SAT	9	5.67	ok
+a_no_exc_no_sequence_debug	sc	2377	40563	319.5	SAT	9	4.33	ok
+a_no_exc_no_sequence_debug	scp	2377	40563	267.9	SAT	9	4.02	ok
+a_no_irq_write_during_sleep	abc-scorr	2373	35546	50.2	K	20	2.18	-
+a_no_irq_write_during_sleep	base	2879	55271		K	20	32.84	-
+a_no_irq_write_during_sleep	rc	2375	48369	26.1	K	20	11.41	-
+a_no_irq_write_during_sleep	rcp	2375	48369	24.7	K	20	10.64	-
+a_no_irq_write_during_sleep	sc	2373	40543	313.1	K	20	20.89	-
+a_no_irq_write_during_sleep	scp	2373	40542	300.0	K	20	6.01	-
+a_no_sleep_during_debug	abc-scorr	2373	35495	50.2	K	20	31.99	-
+a_no_sleep_during_debug	base	2879	55271		K	20	41.10	-
+a_no_sleep_during_debug	rc	2375	48369	26.0	K	20	29.22	-
+a_no_sleep_during_debug	rcp	2375	48369	25.0	K	20	34.57	-
+a_no_sleep_during_debug	sc	2373	40543	332.1	K	20	26.94	-
+a_no_sleep_during_debug	scp	2373	40538	248.0	K	20	30.64	-
+a_no_transaction_count_overflow_0	abc-scorr	2373	35570	48.7	SAT	2	0.14	ok
+a_no_transaction_count_overflow_0	base	2879	55270		SAT	2	0.17	ok
+a_no_transaction_count_overflow_0	rc	2375	48368	25.8	SAT	2	0.15	ok
+a_no_transaction_count_overflow_0	rcp	2375	48368	26.6	SAT	2	0.15	ok
+a_no_transaction_count_overflow_0	sc	2373	40543	279.7	SAT	2	0.12	ok
+a_no_transaction_count_overflow_0	scp	2373	40543	341.4	SAT	2	0.12	ok
+a_not_busy_during_sleep	abc-scorr	2373	35547	52.6	SAT	6	0.79	ok
+a_not_busy_during_sleep	base	2879	55272		SAT	6	0.85	ok
+a_not_busy_during_sleep	rc	2375	48370	26.3	SAT	6	0.77	ok
+a_not_busy_during_sleep	rcp	2375	48370	27.9	SAT	6	0.49	ok
+a_not_busy_during_sleep	sc	2373	40544	320.0	SAT	6	0.52	ok
+a_not_busy_during_sleep	scp	2373	40544	270.2	SAT	6	0.54	ok
+a_only_wpt_lsu_valid_sticky	abc-scorr	2374	35640	49.1	SAT	5	0.56	ok
+a_only_wpt_lsu_valid_sticky	base	2911	55430		SAT	5	0.50	ok
+a_only_wpt_lsu_valid_sticky	rc	2407	48435	25.6	SAT	5	0.55	ok
+a_only_wpt_lsu_valid_sticky	rcp	2407	48435	32.6	SAT	5	0.54	ok
+a_only_wpt_lsu_valid_sticky	sc	2405	40608	289.5	SAT	5	0.34	ok
+a_only_wpt_lsu_valid_sticky	scp	2405	40608	364.8	SAT	5	0.33	ok
+a_opb_fwd_wb	abc-scorr	2373	35726	46.6	K	20	28.02	-
+a_opb_fwd_wb	base	2879	55401		K	20	36.42	-
+a_opb_fwd_wb	rc	2375	48499	26.0	K	20	40.76	-
+a_opb_fwd_wb	rcp	2375	48499	36.6	K	20	48.55	-
+a_opb_fwd_wb	sc	2373	40674	329.8	K	20	25.15	-
+a_opb_fwd_wb	scp	2373	40674	328.1	K	20	27.34	-
+a_pma_expect_err	abc-scorr	0	0	45.8	K	20	0.01	-
+a_pma_expect_err	base	2879	55315		K	20	1.67	-
+a_pma_expect_err	rc	2375	48381	26.0	K	20	1.56	-
+a_pma_expect_err	rcp	2375	48381	26.0	K	20	1.59	-
+a_pma_expect_err	sc	0	0	311.5	K	20	0.01	-
+a_pma_expect_err	scp	0	0	296.4	K	20	0.01	-
+a_pushpop_atomic_end_sequence_popret	abc-scorr	2412	35744	48.5	SAT	7	0.66	ok
+a_pushpop_atomic_end_sequence_popret	base	2886	55306		SAT	7	1.77	ok
+a_pushpop_atomic_end_sequence_popret	rc	2414	48604	25.0	SAT	7	1.07	ok
+a_pushpop_atomic_end_sequence_popret	rcp	2414	48604	34.7	SAT	7	1.13	ok
+a_pushpop_atomic_end_sequence_popret	sc	2412	40736	297.3	SAT	7	0.73	ok
+a_pushpop_atomic_end_sequence_popret	scp	2412	40736	332.8	SAT	7	0.76	ok
+a_pushpop_atomic_end_sequence_popretz	abc-scorr	2413	35727	45.6	SAT	7	1.64	ok
+a_pushpop_atomic_end_sequence_popretz	base	2886	55342		SAT	7	1.73	ok
+a_pushpop_atomic_end_sequence_popretz	rc	2415	48642	28.1	SAT	7	1.22	ok
+a_pushpop_atomic_end_sequence_popretz	rcp	2415	48642	11.9	SAT	7	1.20	ok
+a_pushpop_atomic_end_sequence_popretz	sc	2413	40774	323.8	SAT	7	1.10	ok
+a_pushpop_atomic_end_sequence_popretz	scp	2413	40774	251.7	SAT	7	1.03	ok
+a_pushpop_sp_update	abc-scorr	2377	35549	47.3	SAT	9	3.72	ok
+a_pushpop_sp_update	base	2880	55283		SAT	9	8.40	ok
+a_pushpop_sp_update	rc	2379	48401	17.7	SAT	9	9.38	ok
+a_pushpop_sp_update	rcp	2379	48401	34.8	SAT	9	8.84	ok
+a_pushpop_sp_update	sc	2377	40566	293.1	SAT	9	6.14	ok
+a_pushpop_sp_update	scp	2377	40566	340.4	SAT	9	5.42	ok
+a_req_after_wake	abc-scorr	2376	35487	45.8	K	20	10.31	-
+a_req_after_wake	base	2882	55284		K	20	29.41	-
+a_req_after_wake	rc	2378	48382	23.4	K	20	30.59	-
+a_req_after_wake	rcp	2378	48382	29.3	K	20	34.70	-
+a_req_after_wake	sc	2376	40553	322.7	K	20	9.51	-
+a_req_after_wake	scp	2376	40553	243.2	K	20	9.12	-
+a_rf_halt_kill	abc-scorr	0	0	42.9	K	20	0.01	-
+a_rf_halt_kill	base	2879	55272		K	20	1.78	-
+a_rf_halt_kill	rc	2375	48370	20.8	K	20	1.60	-
+a_rf_halt_kill	rcp	2375	48370	33.9	K	20	1.68	-
+a_rf_halt_kill	sc	0	0	314.2	K	20	0.01	-
+a_rf_halt_kill	scp	0	0	296.1	K	20	0.01	-
+a_set_clear_dcsr_q	abc-scorr	2383	35635	45.8	SAT	19	60.33	ok
+a_set_clear_dcsr_q	base	2914	55415		SAT	19	78.08	ok
+a_set_clear_dcsr_q	rc	2410	48513	23.6	SAT	19	68.79	ok
+a_set_clear_dcsr_q	rcp	2410	48513	36.6	SAT	19	71.54	ok
+a_set_clear_dcsr_q	sc	2408	40686	292.6	SAT	19	44.64	ok
+a_set_clear_dcsr_q	scp	2408	40686	293.1	SAT	19	55.04	ok
+a_set_clear_dpc_q	abc-scorr	2407	35884	51.7	SAT	19	54.74	ok
+a_set_clear_dpc_q	base	2914	55535		SAT	19	86.80	ok
+a_set_clear_dpc_q	rc	2410	48633	23.4	SAT	19	63.79	ok
+a_set_clear_dpc_q	rcp	2410	48633	29.7	SAT	19	77.41	ok
+a_set_clear_dpc_q	sc	2408	40806	325.6	SAT	19	68.26	ok
+a_set_clear_dpc_q	scp	2408	40806	337.8	SAT	19	57.22	ok
+a_set_clear_dscratch0_q	abc-scorr	2408	35763	46.1	K	20	48.02	-
+a_set_clear_dscratch0_q	base	2914	55540		K	20	88.17	-
+a_set_clear_dscratch0_q	rc	2410	48638	23.3	K	20	98.85	-
+a_set_clear_dscratch0_q	rcp	2410	48638	36.2	K	20	98.94	-
+a_set_clear_dscratch0_q	sc	2408	40811	284.6	K	20	76.96	-
+a_set_clear_dscratch0_q	scp	2408	40811	310.3	K	20	84.28	-
+a_set_clear_dscratch1_q	abc-scorr	2408	35772	45.7	K	20	61.05	-
+a_set_clear_dscratch1_q	base	2914	55540		K	20	71.45	-
+a_set_clear_dscratch1_q	rc	2410	48638	23.1	K	20	99.03	-
+a_set_clear_dscratch1_q	rcp	2410	48638	34.8	K	20	97.66	-
+a_set_clear_dscratch1_q	sc	2408	40811	294.8	K	20	70.73	-
+a_set_clear_dscratch1_q	scp	2408	40811	287.6	K	20	56.25	-
+a_set_clear_jvt_q	abc-scorr	2402	35692	47.5	K	20	56.27	-
+a_set_clear_jvt_q	base	2914	55510		K	20	54.62	-
+a_set_clear_jvt_q	rc	2410	48608	19.6	K	20	73.88	-
+a_set_clear_jvt_q	rcp	2410	48608	28.8	K	20	82.86	-
+a_set_clear_jvt_q	sc	2408	40781	296.8	K	20	52.63	-
+a_set_clear_jvt_q	scp	2408	40781	335.0	K	20	47.83	-
+a_set_clear_mcause_q	abc-scorr	2388	35672	52.1	K	20	54.77	-
+a_set_clear_mcause_q	base	2914	55440		K	20	63.19	-
+a_set_clear_mcause_q	rc	2410	48538	23.1	K	20	68.86	-
+a_set_clear_mcause_q	rcp	2410	48538	35.8	K	20	81.53	-
+a_set_clear_mcause_q	sc	2408	40711	315.9	K	20	64.15	-
+a_set_clear_mcause_q	scp	2408	40711	346.1	K	20	66.42	-
+a_set_clear_mepc_q	abc-scorr	2407	35885	47.7	K	20	47.30	-
+a_set_clear_mepc_q	base	2914	55535		K	20	73.18	-
+a_set_clear_mepc_q	rc	2410	48633	23.4	K	20	81.17	-
+a_set_clear_mepc_q	rcp	2410	48633	25.5	K	20	65.08	-
+a_set_clear_mepc_q	sc	2408	40806	290.9	K	20	63.55	-
+a_set_clear_mepc_q	scp	2408	40806	311.0	K	20	51.03	-
+a_set_clear_mstatus_q	abc-scorr	2378	35517	46.5	K	20	38.21	-
+a_set_clear_mstatus_q	base	2914	55390		K	20	66.83	-
+a_set_clear_mstatus_q	rc	2410	48488	23.7	K	20	62.84	-
+a_set_clear_mstatus_q	rcp	2410	48488	35.8	K	20	64.96	-
+a_set_clear_mstatus_q	sc	2408	40661	282.4	K	20	50.30	-
+a_set_clear_mstatus_q	scp	2408	40661	318.7	K	20	44.27	-
+a_set_clear_tdata1_q	abc-scorr	2389	35658	47.6	K	20	66.88	-
+a_set_clear_tdata1_q	base	2914	55540		K	20	92.74	-
+a_set_clear_tdata1_q	rc	2410	48544	23.4	K	20	91.90	-
+a_set_clear_tdata1_q	rcp	2410	48544	37.6	K	20	86.96	-
+a_set_clear_tdata1_q	sc	2408	40717	287.2	K	20	85.50	-
+a_set_clear_tdata1_q	scp	2408	40717	304.0	K	20	86.39	-
+a_set_clear_tdata2_q	abc-scorr	2408	35736	50.8	K	20	92.25	-
+a_set_clear_tdata2_q	base	2914	55540		K	20	112.48	-
+a_set_clear_tdata2_q	rc	2410	48638	23.9	K	20	133.08	-
+a_set_clear_tdata2_q	rcp	2410	48638	34.7	K	20	111.82	-
+a_set_clear_tdata2_q	sc	2408	40811	323.7	K	20	90.23	-
+a_set_clear_tdata2_q	scp	2408	40811	288.2	K	20	67.63	-
+a_shift_result_hh	abc-scorr	2373	39169	54.2	TO	7	150.28	-
+a_shift_result_hh	base	2879	59172		TO	6	150.07	-
+a_shift_result_hh	rc	2375	52264	26.4	TO	6	150.04	-
+a_shift_result_hh	rcp	2375	52264	27.6	TO	6	150.08	-
+a_shift_result_hh	sc	2373	44422	338.3	TO	6	150.05	-
+a_shift_result_hh	scp	2373	44422	300.3	TO	6	150.06	-
+a_shift_result_hl	abc-scorr	2373	38248	51.0	TO	5	150.05	-
+a_shift_result_hl	base	2879	58344		TO	5	150.06	-
+a_shift_result_hl	rc	2375	51442	26.0	TO	5	150.06	-
+a_shift_result_hl	rcp	2375	51442	37.2	TO	5	150.05	-
+a_shift_result_hl	sc	2373	43555	386.0	TO	5	150.04	-
+a_shift_result_hl	scp	2373	43555	379.1	TO	5	150.04	-
+a_shift_result_lh	abc-scorr	2373	38239	58.6	TO	4	150.06	-
+a_shift_result_lh	base	2879	58327		TO	4	150.04	-
+a_shift_result_lh	rc	2375	51425	26.6	TO	4	150.03	-
+a_shift_result_lh	rcp	2375	51425	35.7	TO	4	150.03	-
+a_shift_result_lh	sc	2373	43538	357.2	TO	4	150.02	-
+a_shift_result_lh	scp	2373	43538	391.1	TO	4	150.04	-
+a_shift_result_ll	abc-scorr	2373	37598	53.5	TO	4	150.05	-
+a_shift_result_ll	base	2879	57571		TO	4	150.04	-
+a_shift_result_ll	rc	2375	50669	22.0	TO	4	150.03	-
+a_shift_result_ll	rcp	2375	50669	35.0	TO	4	150.03	-
+a_shift_result_ll	sc	2373	42842	292.6	TO	4	150.02	-
+a_shift_result_ll	scp	2373	42842	307.9	TO	4	150.06	-
+a_shift_result_ll_lh	abc-scorr	2373	40410	57.4	TO	5	150.06	-
+a_shift_result_ll_lh	base	2879	60803		TO	5	150.06	-
+a_shift_result_ll_lh	rc	2375	53901	26.7	TO	5	150.04	-
+a_shift_result_ll_lh	rcp	2375	53901	32.5	TO	5	150.04	-
+a_shift_result_ll_lh	sc	2373	46015	355.6	TO	5	150.04	-
+a_shift_result_ll_lh	scp	2373	46015	380.5	TO	5	150.04	-
+a_shift_result_ll_lh_hl_shift	abc-scorr	2373	43319	66.8	TO	6	150.06	-
+a_shift_result_ll_lh_hl_shift	base	2879	64266		TO	6	150.06	-
+a_shift_result_ll_lh_hl_shift	rc	2375	57364	26.4	TO	6	150.05	-
+a_shift_result_ll_lh_hl_shift	rcp	2375	57364	34.7	TO	6	150.06	-
+a_shift_result_ll_lh_hl_shift	sc	2373	49360	503.3	TO	6	150.06	-
+a_shift_result_ll_lh_hl_shift	scp	2373	49362	531.1	TO	6	150.04	-
+a_shift_result_ll_shift	abc-scorr	2373	37658	48.0	TO	5	150.04	-
+a_shift_result_ll_shift	base	2879	57478		TO	5	150.05	-
+a_shift_result_ll_shift	rc	2375	50576	27.0	TO	5	150.04	-
+a_shift_result_ll_shift	rcp	2375	50576	22.2	TO	5	150.04	-
+a_shift_result_ll_shift	sc	2373	42749	281.8	TO	5	150.03	-
+a_shift_result_ll_shift	scp	2373	42749	264.4	TO	5	150.03	-
+a_single_step_no_irq_id	abc-scorr	2407	35773	81.9	SAT	9	2.09	ok
+a_single_step_no_irq_id	base	2914	55692		SAT	9	3.12	ok
+a_single_step_no_irq_id	rc	2410	48788	25.8	SAT	9	3.35	ok
+a_single_step_no_irq_id	rcp	2410	48788	21.7	SAT	9	3.35	ok
+a_single_step_no_irq_id	sc	2408	40855	272.5	SAT	9	1.59	ok
+a_single_step_no_irq_id	scp	2408	40855	248.7	SAT	9	1.33	ok
+a_single_step_no_irq_if	abc-scorr	2407	35799	79.8	SAT	9	2.14	ok
+a_single_step_no_irq_if	base	2914	55692		SAT	9	3.35	ok
+a_single_step_no_irq_if	rc	2410	48788	24.4	SAT	9	3.96	ok
+a_single_step_no_irq_if	rcp	2410	48788	30.1	SAT	9	3.58	ok
+a_single_step_no_irq_if	sc	2408	40855	306.4	SAT	9	2.33	ok
+a_single_step_no_irq_if	scp	2408	40855	268.5	SAT	9	1.78	ok
+a_single_step_pipecheck	abc-scorr	2373	35615	47.2	K	20	59.05	-
+a_single_step_pipecheck	base	2879	55284		K	20	70.84	-
+a_single_step_pipecheck	rc	2375	48382	26.2	K	20	50.80	-
+a_single_step_pipecheck	rcp	2375	48382	27.9	K	20	57.56	-
+a_single_step_pipecheck	sc	2373	40553	312.9	K	20	38.06	-
+a_single_step_pipecheck	scp	2373	40553	353.0	K	20	39.92	-
+a_sleep_to_irq	abc-scorr	2376	35602	50.3	SAT	8	1.68	ok
+a_sleep_to_irq	base	2882	55287		SAT	8	2.12	ok
+a_sleep_to_irq	rc	2378	48385	19.4	SAT	8	2.96	ok
+a_sleep_to_irq	rcp	2378	48385	33.4	SAT	8	2.95	ok
+a_sleep_to_irq	sc	2376	40554	319.2	SAT	8	1.25	ok
+a_sleep_to_irq	scp	2376	40554	296.6	SAT	8	1.33	ok
+a_sleep_to_nmi	abc-scorr	2376	35688	51.4	SAT	6	0.76	ok
+a_sleep_to_nmi	base	2882	55284		SAT	6	0.57	ok
+a_sleep_to_nmi	rc	2378	48382	23.4	SAT	6	1.53	ok
+a_sleep_to_nmi	rcp	2378	48382	26.9	SAT	6	1.15	ok
+a_sleep_to_nmi	sc	2376	40552	308.4	SAT	6	0.69	ok
+a_sleep_to_nmi	scp	2376	40552	292.4	SAT	6	0.67	ok
+a_stable_id_sleep	abc-scorr	2515	36437	60.1	TO	17	150.18	-
+a_stable_id_sleep	base	3073	56626		TO	18	150.29	-
+a_stable_id_sleep	rc	2587	49480	25.9	TO	15	150.24	-
+a_stable_id_sleep	rcp	2587	49480	27.6	TO	17	150.11	-
+a_stable_id_sleep	sc	2585	41611	276.9	TO	16	150.23	-
+a_stable_id_sleep	scp	2585	41611	339.3	TO	19	150.27	-
+a_suppress_csr_xif_illegal_pipeline_illegal	abc-scorr	0	0	47.6	K	20	0.01	-
+a_suppress_csr_xif_illegal_pipeline_illegal	base	2882	55283		K	20	3.11	-
+a_suppress_csr_xif_illegal_pipeline_illegal	rc	2378	48381	24.0	K	20	2.28	-
+a_suppress_csr_xif_illegal_pipeline_illegal	rcp	2378	48381	34.1	K	20	2.53	-
+a_suppress_csr_xif_illegal_pipeline_illegal	sc	0	0	360.5	K	20	0.01	-
+a_suppress_csr_xif_illegal_pipeline_illegal	scp	0	0	310.4	K	20	0.01	-
+a_tdata1_writes_unique	abc-scorr	2373	35637	44.4	SAT	18	27.93	ok
+a_tdata1_writes_unique	base	2879	55275		SAT	18	37.69	ok
+a_tdata1_writes_unique	rc	2375	48373	25.3	SAT	18	37.69	ok
+a_tdata1_writes_unique	rcp	2375	48373	33.5	SAT	18	38.30	ok
+a_tdata1_writes_unique	sc	2373	40545	339.1	SAT	18	27.77	ok
+a_tdata1_writes_unique	scp	2373	40545	275.6	SAT	18	27.86	ok
+a_trigger_match_in_debug	abc-scorr	2373	35533	45.6	SAT	14	9.82	ok
+a_trigger_match_in_debug	base	2879	55271		SAT	14	11.36	ok
+a_trigger_match_in_debug	rc	2375	48369	25.5	SAT	14	7.95	ok
+a_trigger_match_in_debug	rcp	2375	48369	34.7	SAT	14	7.90	ok
+a_trigger_match_in_debug	sc	2373	40543	289.7	SAT	14	8.28	ok
+a_trigger_match_in_debug	scp	2373	40541	233.1	SAT	14	5.56	ok
+a_valid_jump	abc-scorr	0	0	47.2	K	20	0.01	-
+a_valid_jump	base	2879	55273		K	20	1.58	-
+a_valid_jump	rc	2375	48371	23.9	K	20	1.65	-
+a_valid_jump	rcp	2375	48371	14.5	K	20	1.71	-
+a_valid_jump	sc	0	0	270.8	K	20	0.01	-
+a_valid_jump	scp	0	0	301.3	K	20	0.01	-
+a_valid_o	abc-scorr	0	0	49.7	K	20	0.01	-
+a_valid_o	base	2879	55268		K	20	1.71	-
+a_valid_o	rc	2375	48366	18.6	K	20	1.17	-
+a_valid_o	rcp	2375	48366	30.3	K	20	1.53	-
+a_valid_o	sc	0	0	320.8	K	20	0.01	-
+a_valid_o	scp	0	0	277.9	K	20	0.01	-
+a_wakeup_interruptible	abc-scorr	2376	35526	44.1	SAT	6	0.54	ok
+a_wakeup_interruptible	base	2882	55283		SAT	6	0.91	ok
+a_wakeup_interruptible	rc	2378	48381	24.2	SAT	6	0.72	ok
+a_wakeup_interruptible	rcp	2378	48381	25.7	SAT	6	0.74	ok
+a_wakeup_interruptible	sc	2376	40551	367.7	SAT	6	0.40	ok
+a_wakeup_interruptible	scp	2376	40551	315.8	SAT	6	0.51	ok
+a_wb_interruptible_abort	abc-scorr	0	0	46.6	K	20	0.01	-
+a_wb_interruptible_abort	base	2882	55281		K	20	5.91	-
+a_wb_interruptible_abort	rc	2378	48379	27.6	K	20	2.88	-
+a_wb_interruptible_abort	rcp	2378	48379	33.9	K	20	2.87	-
+a_wb_interruptible_abort	sc	0	0	266.6	K	20	0.01	-
+a_wb_interruptible_abort	scp	0	0	255.1	K	20	0.01	-
+a_wb_ready_exception	abc-scorr	2377	35547	45.0	SAT	13	9.69	ok
+a_wb_ready_exception	base	2883	55287		SAT	13	23.56	ok
+a_wb_ready_exception	rc	2379	48385	28.0	SAT	13	15.15	ok
+a_wb_ready_exception	rcp	2379	48385	26.6	SAT	13	20.14	ok
+a_wb_ready_exception	sc	2377	40559	348.3	SAT	13	14.57	ok
+a_wb_ready_exception	scp	2377	40559	260.4	SAT	13	12.93	ok
+a_woke_to_debug_single_cycle	abc-scorr	2375	35624	52.0	K	20	33.25	-
+a_woke_to_debug_single_cycle	base	2882	55280		K	20	42.32	-
+a_woke_to_debug_single_cycle	rc	2378	48378	22.8	K	20	28.84	-
+a_woke_to_debug_single_cycle	rcp	2378	48378	23.9	K	20	36.52	-
+a_woke_to_debug_single_cycle	sc	2375	40549	265.3	K	20	29.84	-
+a_woke_to_debug_single_cycle	scp	2375	40549	249.6	K	20	30.20	-
+a_wpt_debug_entry	abc-scorr	2373	35435	53.2	SAT	15	16.06	ok
+a_wpt_debug_entry	base	2879	55275		SAT	15	24.58	ok
+a_wpt_debug_entry	rc	2375	48373	25.6	SAT	15	15.85	ok
+a_wpt_debug_entry	rcp	2375	48373	33.3	SAT	15	14.64	ok
+a_wpt_debug_entry	sc	2373	40546	306.6	SAT	15	15.64	ok
+a_wpt_debug_entry	scp	2373	40546	232.0	SAT	15	17.53	ok
+a_wpt_mpu_cnt_share	abc-scorr	0	0	52.2	K	20	0.01	-
+a_wpt_mpu_cnt_share	base	2879	55277		K	20	1.72	-
+a_wpt_mpu_cnt_share	rc	2375	48366	26.3	K	20	1.55	-
+a_wpt_mpu_cnt_share	rcp	2375	48366	34.1	K	20	1.64	-
+a_wpt_mpu_cnt_share	sc	0	0	283.8	K	20	0.01	-
+a_wpt_mpu_cnt_share	scp	0	0	211.3	K	20	0.01	-
+a_wpt_wb_halt	abc-scorr	2373	35514	48.0	SAT	15	21.35	ok
+a_wpt_wb_halt	base	2879	55303		SAT	15	32.58	ok
+a_wpt_wb_halt	rc	2375	48370	26.1	SAT	15	31.50	ok
+a_wpt_wb_halt	rcp	2375	48370	11.8	SAT	15	28.56	ok
+a_wpt_wb_halt	sc	2373	40542	239.8	SAT	15	30.39	ok
+a_wpt_wb_halt	scp	2373	40542	202.3	SAT	15	29.04	ok
+a_wpt_wb_valid	abc-scorr	2376	35597	47.6	SAT	16	18.97	ok
+a_wpt_wb_valid	base	2882	55312		SAT	16	29.60	ok
+a_wpt_wb_valid	rc	2378	48379	23.1	SAT	16	26.08	ok
+a_wpt_wb_valid	rcp	2378	48379	11.9	SAT	16	21.37	ok
+a_wpt_wb_valid	sc	2376	40552	218.6	SAT	16	24.20	ok
+a_wpt_wb_valid	scp	2376	40552	217.2	SAT	16	22.87	ok

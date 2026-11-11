@@ -651,3 +651,51 @@ is small. The pass now creates its solvers without lucky phases
 Checking the pairs of a speculatively reduced round in chunks (as ABC
 does, no hypothesis assumptions) did not help: sc had not finished after
 540 s (one solver per round, many rounds); rc 13-17 s.
+
+## Property-directed correspondence (results-core-rbmc-pd.tsv)
+
+`synth-register-correspondence{property-directed bad-outputs conjunction}`
+(configurations `rcp`, `scp`): the inductive step may assume that the
+property held in the cycle before, and simulation ignores the cycles after
+a failure. The module is unchanged up to the first failure (same
+counterexample depth); this is the property x reachable cell of the
+simplification layers. The CV32E40X models have two outputs, `bad` and the
+false-cycle obligation (proved 0 separately), hence `conjunction`; without
+it the pass assumes nothing (a warning) on all 97 models.
+
+Same 97 models, 12 exports in parallel, binary with CaDiCaL lucky phases
+off (rc and sc again, for comparable pass times):
+
+| config | latches | ANDs | merged regs / gates (sum) | pass (s, mean / max) |
+|---|---|---|---|---|
+| base | 2891 | 56070 | | |
+| rc | 2389 | 49162 | 40491 / 0 | 25 / 34 |
+| rcp | 2389 | 49162 | 40492 / 0 | 30 / 45 |
+| sc | 2019 | 35042 | 40492 / 1049837 | 316 / 553 |
+| scp | 2019 | 35041 | 40493 / 1049877 | 308 / 591 |
+| abc-scorr | 2016 | 30758 | | 51 / 82 |
+
+rBMC (bound 20, 150 s; rcp and scp in a second batch):
+
+| config | SAT | K | TO | PAR-2 (s) | ratio |
+|---|---|---|---|---|---|
+| base | 44 | 39 | 14 | 67.3 | 1.00 |
+| rc | 44 | 38 | 15 | 66.6 | 0.89 |
+| rcp | 44 | 40 | 13 | 63.7 | 0.90 |
+| sc | 44 | 40 | 13 | 57.5 | 0.35 |
+| scp | 44 | 40 | 13 | 56.8 | 0.33 |
+| abc-scorr | 44 | 40 | 13 | 56.2 | 0.33 |
+
+- On CV32E40X the assumption hardly helps: 7 models merge 1-34 more gates,
+  one model one more register. The properties are SVA monitors that the
+  core does not read, so the states reached before a failure are almost
+  all reachable states; the assumption can only help where the design's
+  behavior after a violation differs (e.g. error handling on the same
+  condition).
+- Soundness: same counterexample lengths in all configurations, all
+  witnesses pass `aigsim -c`. rc vs rcp: two assertions reach bound 20 with
+  rcp and time out at 19 with rc, on models of the same size (timing noise
+  between the two batches).
+- Without lucky phases the passes are much faster than in the first run
+  (same load): sc 1039 -> 316 s, rc 477 -> 25 s per model on average, same
+  models.
