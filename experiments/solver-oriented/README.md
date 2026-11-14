@@ -101,3 +101,41 @@ Questions for this target:
 - Which back ends gain: BMC gains 2.8x on CV32E40X; rIC3 with its
   preprocessing does its own (weaker) scorr; IC3 without preprocessing is
   not measured yet.
+
+## Results so far (2026-11-14)
+
+Raw data is in `results/`; all times are from a shared machine and noisy.
+
+**scorr on HWMCC25** (`results/hwmcc25-scorr-parts.tsv`, `scorr_parts.sh`,
+307 bit-level safety models under 4 MB, 238 complete, 65 time out in
+`scorr` at 100 s). Total AND reduction: scleanup 27%, +fraig 38%, lcorr
+40%, scorr 53%. The share that needs induction is concentrated: median
+1.4% of ANDs per model; 51 models gain more than 20%, almost all miters.
+
+**sc across backends** (`results/core-env-matrix.tsv`, `run_matrix.sh`, 97
+CV32E40X properties with environment constraints, depth 20, 150 s). No
+model becomes constant. Geometric mean sc/base time on properties both
+solve: rBMC 0.67, rIC3 bmc 0.85, ABC bmc3 0.65, rIC3 ic3 0.46 without and
+0.58 with its preprocessing, ABC pdr 0.50. ABC's own `scorr; fraig; dc2`
+before solving costs more than it saves at this size.
+
+**Register-file cut** (`results/core-env-rfcut.tsv`): removing a third of
+the latches gives at most 14% on BMC and no trend on IC3. Size is not
+difficulty.
+
+**Hard set.** 19 properties are solved by no backend with base or sc; 11
+are checks of the multiplier (`cv32e40x_mult_sva.sv`): the property has
+its own `*`, the design has one shared multiplier behind muxes.
+
+**Operator unsharing** (`unshare.py`, a prototype on MLIR text, not yet a
+pass): Shannon-expand each `comb.mul` over the muxes on its operands so
+every multiplier has mux-free operands and merges with the property's.
+Exact; the model grows about 13%. `results/mult-hard-unshare.tsv`
+(300 s): `a_mul_result` and `a_shift_result_{ll,lh,hl,hh}` go from
+timeout on every backend to solved on every backend tried. Still
+unsolved: the three `a_mulh*_result` (64-bit product against a four-cycle
+16x16 accumulation) and three `a_shift_result_*` that relate products
+across cycles through the accumulator register.
+
+Open: a principled criterion for which muxes to expand; width narrowing
+of the expanded multipliers; effect on the properties already solved.

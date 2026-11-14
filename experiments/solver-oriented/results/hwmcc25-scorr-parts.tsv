@@ -1,0 +1,1861 @@
+model	step	latches	ands	seconds
+brp2.3.prop3-func-interl	strash	227	2526	0.1
+bakery.3.prop1-func-interl	strash	112	1472	0.1
+collision.1.prop1-func-interl	strash	131	6673	0.1
+brp2.3.prop3-func-interl	scl	131	1787	0.0
+bakery.3.prop1-func-interl	scl	91	1283	0.0
+collision.1.prop1-func-interl	scl	109	6529	0.0
+brp2.3.prop3-func-interl	scl+fraig	131	1260	0.1
+bakery.3.prop1-func-interl	scl+fraig	91	1226	0.0
+collision.1.prop1-func-interl	scl+fraig	109	2513	0.1
+bakery.3.prop1-func-interl	lcorr+fraig	88	1220	0.0
+brp2.3.prop3-func-interl	lcorr+fraig	76	855	0.1
+bakery.3.prop1-func-interl	scorr	88	1214	0.1
+brp2.3.prop3-func-interl	scorr	76	776	0.1
+bakery.3.prop1-func-interl	scorr+fraig	88	1214	0.1
+collision.1.prop1-func-interl	lcorr+fraig	65	1278	0.1
+brp2.3.prop3-func-interl	scorr+fraig	76	776	0.1
+exit.3.prop1-back-serstep	strash	227	4328	0.1
+exit.3.prop1-back-serstep	scl	227	4328	0.0
+collision.1.prop1-func-interl	scorr	62	713	0.1
+pgm_protocol.8.prop6-func-interl	strash	1056	19565	0.1
+pgm_protocol.8.prop6-func-interl	scl	947	19248	0.1
+collision.1.prop1-func-interl	scorr+fraig	62	713	0.1
+exit.3.prop1-back-serstep	scl+fraig	227	4294	0.1
+cal100	strash	718	25885	0.1
+pgm_protocol.8.prop6-func-interl	scl+fraig	947	18939	0.2
+exit.3.prop1-back-serstep	lcorr+fraig	227	4294	0.1
+cal100	scl	525	20856	0.1
+exit.3.prop1-back-serstep	scorr	227	4225	0.2
+exit.3.prop1-back-serstep	scorr+fraig	227	4225	0.2
+cal103	strash	718	27585	0.1
+cal103	scl	525	22556	0.1
+cal100	scl+fraig	525	16214	0.6
+pgm_protocol.8.prop6-func-interl	lcorr+fraig	947	18939	0.9
+cal103	scl+fraig	525	16953	0.7
+cal100	lcorr+fraig	525	16214	0.7
+cal103	lcorr+fraig	525	16953	0.8
+cal100	scorr	493	15605	1.8
+pgm_protocol.8.prop6-func-interl	scorr	947	18768	2.9
+cal103	scorr	493	16355	1.9
+cal100	scorr+fraig	493	15605	1.9
+cal122	strash	718	25987	0.1
+cal122	scl	469	19302	0.1
+cal122	scl+fraig	469	14899	0.6
+cal103	scorr+fraig	493	16355	2.0
+cal135	strash	718	26893	0.1
+cal135	scl	469	20054	0.1
+cal122	lcorr+fraig	469	14899	0.6
+cal135	scl+fraig	469	15130	0.6
+pgm_protocol.8.prop6-func-interl	scorr+fraig	947	18768	3.0
+cal143	strash	718	26156	0.1
+cal143	scl	469	19317	0.1
+cal135	lcorr+fraig	469	15130	0.6
+cal143	scl+fraig	469	14753	0.6
+cal143	lcorr+fraig	469	14753	0.6
+cal122	scorr	464	14644	1.8
+cal135	scorr	467	14881	1.9
+cal143	scorr	436	14132	1.9
+cal122	scorr+fraig	464	14644	1.8
+cal14	strash	23	687	0.0
+cal14	scl	23	687	0.0
+cal14	scl+fraig	23	541	0.0
+cal14	lcorr+fraig	23	541	0.0
+cal14	scorr	0	0	0.0
+cal14	scorr+fraig	0	0	0.0
+cal154	strash	718	25729	0.1
+cal154	scl	469	18890	0.1
+cal154	scl+fraig	469	14611	0.6
+cal135	scorr+fraig	467	14881	2.0
+cal157	strash	1009	94106	0.2
+cal154	lcorr+fraig	469	14611	0.6
+cal157	scl	676	44544	0.2
+cal143	scorr+fraig	436	14132	2.0
+cal188	strash	1009	94101	0.2
+cal188	scl	676	48488	0.2
+cal154	scorr	434	13958	2.1
+cal157	scl+fraig	676	33894	2.0
+cal188	scl+fraig	676	37192	2.0
+cal157	lcorr+fraig	676	33894	2.2
+cal154	scorr+fraig	434	13958	2.2
+cal191	strash	1009	94164	0.2
+cal191	scl	676	48551	0.2
+cal188	lcorr+fraig	676	37192	2.3
+cal191	scl+fraig	676	37091	2.4
+cal191	lcorr+fraig	676	37091	2.6
+cal191	scorr	659	39713	64.5
+cal157	scorr			100.0
+cal188	scorr			100.0
+cal191	scorr+fraig	659	39709	64.3
+cal206	strash	1009	94164	0.2
+cal206	scl	676	42517	0.2
+cal206	scl+fraig	676	32553	1.8
+cal206	lcorr+fraig	676	32553	1.9
+cal157	scorr+fraig			100.0
+cal211	strash	1065	95021	0.2
+cal211	scl	864	89464	0.2
+cal188	scorr+fraig			100.0
+cal222	strash	3844	93572	0.2
+cal222	scl	2890	77964	0.3
+cal222	scl+fraig	2890	73695	3.4
+cal211	scl+fraig	864	67256	5.4
+cal222	lcorr+fraig	2890	73695	3.6
+cal211	lcorr+fraig	864	67256	5.8
+cal206	scorr			100.0
+cal222	scorr	0	0	30.7
+cal222	scorr+fraig	0	0	28.8
+cal28	strash	165	4077	0.0
+cal28	scl	51	1745	0.0
+cal28	scl+fraig	51	1305	0.0
+cal28	lcorr+fraig	51	1305	0.1
+cal28	scorr	0	0	0.1
+cal28	scorr+fraig	0	0	0.1
+cal40	strash	143	3535	0.1
+cal40	scl	91	2625	0.0
+cal40	scl+fraig	91	2076	0.1
+cal40	lcorr+fraig	91	2076	0.1
+cal40	scorr	85	1973	0.1
+cal40	scorr+fraig	85	1973	0.1
+cal42	strash	79	2039	0.1
+cal42	scl	47	1447	0.0
+cal42	scl+fraig	47	1072	0.0
+cal42	lcorr+fraig	47	1072	0.0
+cal42	scorr	47	1071	0.1
+cal42	scorr+fraig	47	1071	0.1
+cal49	strash	149	2914	0.0
+cal49	scl	12	152	0.0
+cal49	scl+fraig	12	147	0.0
+cal49	lcorr+fraig	12	147	0.0
+cal49	scorr	0	0	0.0
+cal49	scorr+fraig	0	0	0.0
+cal75	strash	163	3333	0.1
+cal75	scl	26	569	0.0
+cal75	scl+fraig	26	540	0.0
+cal75	lcorr+fraig	26	540	0.0
+cal75	scorr	0	0	0.0
+cal75	scorr+fraig	0	0	0.1
+cal76	strash	143	2822	0.1
+cal76	scl	6	57	0.0
+cal76	scl+fraig	6	51	0.0
+cal76	lcorr+fraig	6	51	0.0
+cal76	scorr	0	0	0.0
+cal76	scorr+fraig	0	0	0.1
+cal78	strash	482	43270	0.1
+cal78	scl	106	2045	0.1
+cal78	scl+fraig	106	1832	0.1
+cal78	lcorr+fraig	106	1832	0.2
+cal78	scorr	0	0	7.7
+cal78	scorr+fraig	0	0	7.2
+cal86	strash	660	22759	0.1
+cal86	scl	477	18526	0.1
+cal86	scl+fraig	477	14219	0.6
+cal86	lcorr+fraig	477	14219	0.6
+cal86	scorr	472	13950	1.6
+cal86	scorr+fraig	472	13950	1.6
+cal90	strash	660	22738	0.1
+cal90	scl	477	18505	0.1
+cal90	scl+fraig	477	14199	0.6
+cal90	lcorr+fraig	477	14199	0.6
+cal90	scorr	441	13540	1.7
+cal90	scorr+fraig	441	13540	1.8
+gen119	strash	931	4855	0.0
+gen119	scl	931	4855	0.0
+gen119	scl+fraig	931	4855	0.1
+gen119	lcorr+fraig	931	4855	0.1
+gen119	scorr	931	4855	0.2
+gen119	scorr+fraig	931	4855	0.2
+gen18	strash	530	5117	0.0
+gen18	scl	16	362	0.0
+gen18	scl+fraig	16	346	0.0
+gen18	lcorr+fraig	16	346	0.1
+gen18	scorr	0	0	0.1
+gen18	scorr+fraig	0	0	0.1
+gen22	strash	773	7145	0.1
+gen22	scl	264	2435	0.0
+gen22	scl+fraig	264	2431	0.1
+gen22	lcorr+fraig	264	2431	0.1
+gen22	scorr	0	0	0.2
+gen22	scorr+fraig	0	0	0.2
+gen26	strash	520	4871	0.0
+gen26	scl	11	161	0.0
+gen26	scl+fraig	11	156	0.0
+gen26	lcorr+fraig	11	156	0.0
+gen26	scorr	0	0	0.0
+gen26	scorr+fraig	0	0	0.1
+gen56	strash	931	5236	0.1
+gen56	scl	931	5236	0.0
+gen56	scl+fraig	931	5236	0.1
+gen56	lcorr+fraig	931	5236	0.1
+gen56	scorr	931	5236	0.3
+gen56	scorr+fraig	931	5236	0.4
+gen68	strash	931	5236	0.1
+gen68	scl	931	5236	0.1
+gen68	scl+fraig	931	5236	0.1
+gen68	lcorr+fraig	931	5236	0.1
+gen68	scorr	931	5236	0.3
+gen68	scorr+fraig	931	5236	0.4
+gen76	strash	931	5249	0.1
+gen76	scl	931	5249	0.0
+gen76	scl+fraig	931	5249	0.1
+gen76	lcorr+fraig	931	5249	0.1
+gen76	scorr	931	5249	0.3
+gen76	scorr+fraig	931	5249	0.4
+gen93	strash	931	4855	0.1
+gen93	scl	931	4855	0.0
+gen93	scl+fraig	931	4855	0.1
+gen93	lcorr+fraig	931	4855	0.1
+gen93	scorr	931	4855	0.2
+gen93	scorr+fraig	931	4855	0.3
+gen97	strash	931	4855	0.1
+gen97	scl	931	4855	0.0
+gen97	scl+fraig	931	4855	0.1
+gen97	lcorr+fraig	931	4855	0.1
+gen97	scorr	931	4855	0.2
+gen97	scorr+fraig	931	4855	0.2
+mul1	strash	258	16706	0.1
+mul1	scl	258	16706	0.0
+mul1	scl+fraig	258	16706	0.1
+mul1	lcorr+fraig	194	8674	0.1
+mul1	scorr	182	8609	9.2
+cal211	scorr			100.0
+mul1	scorr+fraig	182	8609	9.1
+vis_arrays_am2910_p3	strash	112	967	0.0
+vis_arrays_am2910_p3	scl	112	967	0.0
+vis_arrays_am2910_p3	scl+fraig	112	916	0.0
+vis_arrays_am2910_p3	lcorr+fraig	112	916	0.0
+vis_arrays_am2910_p3	scorr	0	0	0.0
+vis_arrays_am2910_p3	scorr+fraig	0	0	0.0
+vis_QF_BV_bcuvis32	strash	11	67	0.1
+vis_QF_BV_bcuvis32	scl	11	67	0.0
+vis_QF_BV_bcuvis32	scl+fraig	11	59	0.0
+vis_QF_BV_bcuvis32	lcorr+fraig	11	59	0.0
+vis_QF_BV_bcuvis32	scorr	0	0	0.0
+vis_QF_BV_bcuvis32	scorr+fraig	0	0	0.1
+vis_QF_BV_vlunc	strash	20	69	0.1
+vis_QF_BV_vlunc	scl	20	69	0.0
+vis_QF_BV_vlunc	scl+fraig	20	68	0.0
+vis_QF_BV_vlunc	lcorr+fraig	20	68	0.0
+vis_QF_BV_vlunc	scorr	0	0	0.0
+vis_QF_BV_vlunc	scorr+fraig	0	0	0.0
+arbitrated_top_n2_w64_d32_e0	strash	4218	22077	0.1
+arbitrated_top_n2_w64_d32_e0	scl	119	5606	0.1
+arbitrated_top_n2_w64_d32_e0	scl+fraig	119	1222	0.1
+arbitrated_top_n2_w64_d32_e0	lcorr+fraig	119	1222	0.2
+arbitrated_top_n2_w64_d32_e0	scorr	119	1221	0.4
+arbitrated_top_n2_w64_d32_e0	scorr+fraig	119	1221	0.4
+arbitrated_top_n2_w8_d128_e0	strash	2132	12867	0.1
+arbitrated_top_n2_w8_d128_e0	scl	329	5636	0.1
+arbitrated_top_n2_w8_d128_e0	scl+fraig	329	3686	0.1
+arbitrated_top_n2_w8_d128_e0	lcorr+fraig	329	3686	0.2
+arbitrated_top_n2_w8_d128_e0	scorr	329	3685	1.0
+arbitrated_top_n2_w8_d128_e0	scorr+fraig	329	3685	0.9
+arbitrated_top_n2_w8_d32_e0	strash	578	3654	0.1
+arbitrated_top_n2_w8_d32_e0	scl	119	1799	0.0
+arbitrated_top_n2_w8_d32_e0	scl+fraig	119	1223	0.0
+arbitrated_top_n2_w8_d32_e0	lcorr+fraig	119	1223	0.1
+arbitrated_top_n2_w8_d32_e0	scorr	119	1222	0.1
+arbitrated_top_n2_w8_d32_e0	scorr+fraig	119	1222	0.1
+arbitrated_top_n3_w128_d16_e0	strash	6341	33127	0.2
+arbitrated_top_n3_w128_d16_e0	scl	112	8066	0.1
+arbitrated_top_n3_w128_d16_e0	scl+fraig	112	1097	0.1
+arbitrated_top_n3_w128_d16_e0	lcorr+fraig	112	1097	0.2
+arbitrated_top_n3_w128_d16_e0	scorr	112	1096	0.5
+arbitrated_top_n3_w128_d16_e0	scorr+fraig	112	1096	0.5
+arbitrated_top_n3_w128_d8_e0	strash	3256	17464	0.1
+arbitrated_top_n3_w128_d8_e0	scl	75	4595	0.1
+arbitrated_top_n3_w128_d8_e0	scl+fraig	75	695	0.1
+arbitrated_top_n3_w128_d8_e0	lcorr+fraig	75	695	0.1
+arbitrated_top_n3_w128_d8_e0	scorr	75	694	0.2
+arbitrated_top_n3_w128_d8_e0	scorr+fraig	75	694	0.2
+arbitrated_top_n3_w16_d128_e0	strash	6268	34648	0.2
+arbitrated_top_n3_w16_d128_e0	scl	487	11491	0.1
+arbitrated_top_n3_w16_d128_e0	scl+fraig	487	5463	0.2
+arbitrated_top_n3_w16_d128_e0	lcorr+fraig	487	5463	0.8
+arbitrated_top_n3_w16_d128_e0	scorr	487	5462	3.5
+arbitrated_top_n3_w16_d128_e0	scorr+fraig	487	5462	3.4
+arbitrated_top_n3_w32_d128_e0	strash	12428	65544	0.3
+arbitrated_top_n3_w32_d128_e0	scl	487	17731	0.3
+arbitrated_top_n3_w32_d128_e0	scl+fraig	487	5465	0.4
+cal206	scorr+fraig			100.0
+arbitrated_top_n3_w64_d8_e0	strash	1656	9080	0.1
+arbitrated_top_n3_w64_d8_e0	scl	75	2675	0.1
+arbitrated_top_n3_w64_d8_e0	scl+fraig	75	697	0.1
+arbitrated_top_n3_w64_d8_e0	lcorr+fraig	75	697	0.1
+arbitrated_top_n3_w64_d8_e0	scorr	75	696	0.1
+arbitrated_top_n3_w64_d8_e0	scorr+fraig	75	696	0.1
+arbitrated_top_n3_w8_d128_e0	strash	3188	19200	0.1
+arbitrated_top_n3_w8_d128_e0	scl	487	8371	0.1
+arbitrated_top_n3_w32_d128_e0	lcorr+fraig	487	5465	1.3
+arbitrated_top_n3_w8_d128_e0	scl+fraig	487	5464	0.1
+arbitrated_top_n3_w8_d128_e0	lcorr+fraig	487	5464	0.4
+arbitrated_top_n3_w8_d128_e0	scorr	487	5463	2.3
+arbitrated_top_n3_w8_d128_e0	scorr+fraig	487	5463	2.3
+arbitrated_top_n3_w8_d16_e0	strash	461	3007	0.0
+arbitrated_top_n3_w8_d16_e0	scl	112	1586	0.0
+arbitrated_top_n3_w8_d16_e0	scl+fraig	112	1097	0.0
+arbitrated_top_n3_w8_d16_e0	lcorr+fraig	112	1097	0.1
+arbitrated_top_n3_w8_d16_e0	scorr	112	1096	0.1
+arbitrated_top_n3_w8_d16_e0	scorr+fraig	112	1096	0.1
+arbitrated_top_n3_w8_d32_e0	strash	858	5397	0.1
+arbitrated_top_n3_w8_d32_e0	scl	173	2632	0.1
+arbitrated_top_n3_w8_d32_e0	scl+fraig	173	1784	0.1
+arbitrated_top_n3_w8_d32_e0	lcorr+fraig	173	1784	0.1
+arbitrated_top_n3_w8_d32_e0	scorr	173	1783	0.2
+arbitrated_top_n3_w8_d32_e0	scorr+fraig	173	1783	0.2
+arbitrated_top_n4_w128_d16_e0	strash	8409	43917	0.2
+arbitrated_top_n4_w128_d16_e0	scl	146	10714	0.2
+arbitrated_top_n3_w32_d128_e0	scorr	487	5464	6.9
+arbitrated_top_n4_w128_d16_e0	scl+fraig	146	1431	0.2
+arbitrated_top_n4_w128_d16_e0	lcorr+fraig	146	1431	0.4
+arbitrated_top_n4_w128_d16_e0	scorr	146	1430	0.9
+arbitrated_top_n4_w128_d16_e0	scorr+fraig	146	1430	0.8
+arbitrated_top_n4_w128_d8_e0	strash	4296	23039	0.1
+arbitrated_top_n4_w128_d8_e0	scl	97	6092	0.1
+arbitrated_top_n4_w128_d8_e0	scl+fraig	97	901	0.1
+arbitrated_top_n4_w128_d8_e0	lcorr+fraig	97	901	0.2
+arbitrated_top_n4_w128_d8_e0	scorr	97	900	0.3
+arbitrated_top_n4_w128_d8_e0	scorr+fraig	97	900	0.3
+arbitrated_top_n4_w16_d32_e0	strash	2170	12361	0.1
+arbitrated_top_n4_w16_d32_e0	scl	227	4550	0.1
+arbitrated_top_n4_w16_d32_e0	scl+fraig	227	2343	0.1
+arbitrated_top_n4_w16_d32_e0	lcorr+fraig	227	2343	0.2
+arbitrated_top_n4_w16_d32_e0	scorr	227	2342	0.5
+arbitrated_top_n4_w16_d32_e0	scorr+fraig	227	2342	0.5
+arbitrated_top_n4_w16_d8_e0	strash	600	3663	0.1
+arbitrated_top_n4_w16_d8_e0	scl	97	1612	0.0
+arbitrated_top_n4_w16_d8_e0	scl+fraig	97	900	0.0
+arbitrated_top_n4_w16_d8_e0	lcorr+fraig	97	900	0.1
+arbitrated_top_n4_w16_d8_e0	scorr	97	899	0.1
+arbitrated_top_n4_w16_d8_e0	scorr+fraig	97	899	0.1
+arbitrated_top_n4_w32_d16_e0	strash	2169	11949	0.1
+arbitrated_top_n4_w32_d16_e0	scl	146	3802	0.1
+arbitrated_top_n4_w32_d16_e0	scl+fraig	146	1430	0.1
+arbitrated_top_n4_w32_d16_e0	lcorr+fraig	146	1430	0.1
+arbitrated_top_n4_w32_d16_e0	scorr	146	1429	0.2
+arbitrated_top_n4_w32_d16_e0	scorr+fraig	146	1429	0.2
+arbitrated_top_n4_w64_d128_e0	strash	32972	169620	0.7
+arbitrated_top_n3_w32_d128_e0	scorr+fraig	487	5464	7.1
+arbitrated_top_n4_w64_d32_e0	strash	8362	43705	0.2
+arbitrated_top_n4_w64_d128_e0	scl	645	40225	0.7
+arbitrated_top_n4_w64_d32_e0	scl	227	11078	0.2
+arbitrated_top_n4_w64_d32_e0	scl+fraig	227	2343	0.2
+arbitrated_top_n4_w64_d32_e0	lcorr+fraig	227	2343	0.5
+arbitrated_top_n4_w64_d128_e0	scl+fraig	645	7241	0.9
+arbitrated_top_n4_w64_d32_e0	scorr	227	2342	1.5
+arbitrated_top_n4_w64_d32_e0	scorr+fraig	227	2342	1.6
+arbitrated_top_n4_w8_d32_e0	strash	1138	7137	0.1
+arbitrated_top_n4_w8_d32_e0	scl	227	3462	0.0
+arbitrated_top_n4_w8_d32_e0	scl+fraig	227	2343	0.1
+arbitrated_top_n4_w8_d32_e0	lcorr+fraig	227	2343	0.1
+arbitrated_top_n4_w8_d32_e0	scorr	227	2342	0.3
+arbitrated_top_n4_w8_d32_e0	scorr+fraig	227	2342	0.3
+arbitrated_top_n5_w16_d64_e0	strash	5287	29534	0.2
+arbitrated_top_n5_w16_d64_e0	scl	462	10189	0.1
+arbitrated_top_n5_w16_d64_e0	scl+fraig	462	5004	0.2
+arbitrated_top_n4_w64_d128_e0	lcorr+fraig	645	7241	5.0
+arbitrated_top_n5_w16_d64_e0	lcorr+fraig	462	5004	0.7
+arbitrated_top_n5_w16_d64_e0	scorr	462	5003	2.6
+arbitrated_top_n5_w16_d64_e0	scorr+fraig	462	5003	2.7
+arbitrated_top_n5_w32_d16_e0	strash	2701	14869	0.1
+arbitrated_top_n5_w32_d16_e0	scl	180	4724	0.1
+arbitrated_top_n5_w32_d16_e0	scl+fraig	180	1767	0.1
+arbitrated_top_n5_w32_d16_e0	lcorr+fraig	180	1767	0.1
+arbitrated_top_n5_w32_d16_e0	scorr	180	1766	0.4
+arbitrated_top_n5_w32_d16_e0	scorr+fraig	180	1766	0.4
+circular_pointer_top_w128_d16_e0	strash	2331	16614	0.1
+circular_pointer_top_w128_d16_e0	scl	2329	16600	0.1
+circular_pointer_top_w128_d16_e0	scl+fraig	2329	16540	0.4
+circular_pointer_top_w128_d16_e0	lcorr+fraig	2329	16540	1.8
+circular_pointer_top_w128_d16_e0	scorr	2329	16539	5.3
+circular_pointer_top_w128_d16_e0	scorr+fraig	2329	16539	5.4
+circular_pointer_top_w128_d32_e0	strash	4383	31077	0.1
+circular_pointer_top_w128_d32_e0	scl	4381	31063	0.1
+circular_pointer_top_w128_d32_e0	scl+fraig	4381	30993	0.9
+arbitrated_top_n4_w64_d128_e0	scorr	645	7240	23.2
+circular_pointer_top_w128_d32_e0	lcorr+fraig	4381	30993	7.2
+arbitrated_top_n4_w64_d128_e0	scorr+fraig	645	7240	23.9
+circular_pointer_top_w128_d8_e0	strash	1303	9360	0.1
+circular_pointer_top_w128_d8_e0	scl	1301	9346	0.1
+circular_pointer_top_w128_d8_e0	scl+fraig	1301	9296	0.2
+circular_pointer_top_w128_d8_e0	lcorr+fraig	1301	9296	0.5
+circular_pointer_top_w128_d8_e0	scorr	1301	9295	2.0
+circular_pointer_top_w128_d8_e0	scorr+fraig	1301	9295	2.2
+circular_pointer_top_w32_d16_e0	strash	603	4422	0.1
+circular_pointer_top_w32_d16_e0	scl	601	4408	0.0
+circular_pointer_top_w32_d16_e0	scl+fraig	601	4348	0.1
+cal211	scorr+fraig			100.0
+circular_pointer_top_w64_d16_e0	strash	1179	8486	0.1
+circular_pointer_top_w32_d16_e0	lcorr+fraig	601	4348	0.1
+circular_pointer_top_w64_d16_e0	scl	1177	8472	0.1
+circular_pointer_top_w64_d16_e0	scl+fraig	1177	8412	0.1
+circular_pointer_top_w32_d16_e0	scorr	601	4347	0.3
+circular_pointer_top_w32_d16_e0	scorr+fraig	601	4347	0.3
+circular_pointer_top_w64_d16_e0	lcorr+fraig	1177	8412	0.4
+circular_pointer_top_w8_d16_e0	strash	171	1374	0.1
+circular_pointer_top_w8_d16_e0	scl	169	1360	0.0
+circular_pointer_top_w8_d16_e0	scl+fraig	169	1300	0.0
+circular_pointer_top_w8_d16_e0	lcorr+fraig	169	1300	0.1
+circular_pointer_top_w8_d16_e0	scorr	169	1299	0.1
+circular_pointer_top_w8_d16_e0	scorr+fraig	169	1299	0.1
+circular_pointer_top_w8_d32_e0	strash	303	2397	0.1
+circular_pointer_top_w8_d32_e0	scl	301	2383	0.0
+circular_pointer_top_w8_d32_e0	scl+fraig	301	2313	0.0
+circular_pointer_top_w8_d32_e0	lcorr+fraig	301	2313	0.1
+circular_pointer_top_w8_d32_e0	scorr	301	2312	0.1
+circular_pointer_top_w8_d32_e0	scorr+fraig	301	2312	0.1
+shift_register_top_w128_d16_e0	strash	2189	17163	0.1
+circular_pointer_top_w128_d32_e0	scorr	4381	30992	25.9
+shift_register_top_w128_d16_e0	scl	2189	17163	0.1
+shift_register_top_w128_d16_e0	scl+fraig	2189	15217	0.3
+circular_pointer_top_w64_d16_e0	scorr	1177	8411	1.4
+shift_register_top_w128_d16_e0	lcorr+fraig	2189	15217	0.8
+circular_pointer_top_w64_d16_e0	scorr+fraig	1177	8411	1.5
+shift_register_top_w128_d32_e0	strash	4239	33688	0.1
+shift_register_top_w128_d32_e0	scl	4239	33688	0.1
+shift_register_top_w128_d32_e0	scl+fraig	4239	29690	0.9
+shift_register_top_w128_d16_e0	scorr	2189	15216	3.2
+shift_register_top_w128_d32_e0	lcorr+fraig	4239	29690	2.0
+shift_register_top_w128_d16_e0	scorr+fraig	2189	15216	3.2
+shift_register_top_w16_d16_e0	strash	285	2379	0.0
+shift_register_top_w16_d16_e0	scl	285	2379	0.0
+shift_register_top_w16_d16_e0	scl+fraig	285	2113	0.0
+shift_register_top_w16_d16_e0	lcorr+fraig	285	2113	0.1
+shift_register_top_w16_d16_e0	scorr	285	2112	0.1
+shift_register_top_w16_d16_e0	scorr+fraig	285	2112	0.1
+shift_register_top_w32_d32_e0	strash	1071	8728	0.0
+shift_register_top_w32_d32_e0	scl	1071	8728	0.0
+shift_register_top_w32_d32_e0	scl+fraig	1071	7706	0.1
+shift_register_top_w32_d32_e0	lcorr+fraig	1071	7706	0.2
+shift_register_top_w32_d32_e0	scorr	1071	7705	1.1
+shift_register_top_w32_d32_e0	scorr+fraig	1071	7705	1.1
+shift_register_top_w8_d128_e0	strash	1051	9365	0.1
+shift_register_top_w8_d128_e0	scl	1051	9365	0.1
+shift_register_top_w8_d128_e0	scl+fraig	1051	8311	0.2
+shift_register_top_w8_d128_e0	lcorr+fraig	1051	8311	0.3
+shift_register_top_w8_d128_e0	scorr	1051	8310	1.2
+shift_register_top_w8_d128_e0	scorr+fraig	1051	8310	1.2
+ponylink-slaveTXlen-sat	strash	2868	20161	0.1
+ponylink-slaveTXlen-sat	scl	2839	19989	0.1
+ponylink-slaveTXlen-sat	scl+fraig	2839	19717	0.6
+ponylink-slaveTXlen-sat	lcorr+fraig	2834	19586	5.0
+circular_pointer_top_w128_d32_e0	scorr+fraig	4381	30992	24.7
+zipcpu-zipmmu-p15	strash	383	2291	0.1
+zipcpu-zipmmu-p15	scl	362	2219	0.0
+zipcpu-zipmmu-p15	scl+fraig	362	2219	0.1
+zipcpu-zipmmu-p15	lcorr+fraig	362	2219	0.1
+zipcpu-zipmmu-p15	scorr	362	2192	0.1
+zipcpu-zipmmu-p15	scorr+fraig	362	2192	0.1
+zipcpu-zipmmu-p44	strash	475	2947	0.0
+zipcpu-zipmmu-p44	scl	454	2875	0.0
+zipcpu-zipmmu-p44	scl+fraig	454	2875	0.1
+zipcpu-zipmmu-p44	lcorr+fraig	454	2875	0.1
+zipcpu-zipmmu-p44	scorr	362	2192	0.1
+zipcpu-zipmmu-p44	scorr+fraig	362	2192	0.1
+dblclockfft_butterfly_ck1-p119	strash	324	2199	0.0
+dblclockfft_butterfly_ck1-p119	scl	291	2049	0.0
+dblclockfft_butterfly_ck1-p119	scl+fraig	291	2037	0.1
+dblclockfft_butterfly_ck1-p119	lcorr+fraig	291	2037	0.1
+dblclockfft_butterfly_ck1-p119	scorr	288	2013	0.1
+dblclockfft_butterfly_ck1-p119	scorr+fraig	288	2013	0.1
+dblclockfft_butterfly_ck1-p131	strash	366	2908	0.1
+dblclockfft_butterfly_ck1-p131	scl	323	2719	0.0
+dblclockfft_butterfly_ck1-p131	scl+fraig	323	2703	0.0
+dblclockfft_butterfly_ck1-p131	lcorr+fraig	323	2703	0.1
+dblclockfft_butterfly_ck1-p131	scorr	317	2646	0.1
+dblclockfft_butterfly_ck1-p131	scorr+fraig	317	2646	0.1
+dblclockfft_butterfly_ck1-p160	strash	1093	7456	0.1
+dblclockfft_butterfly_ck1-p160	scl	954	6758	0.0
+dblclockfft_butterfly_ck1-p160	scl+fraig	954	6730	0.1
+dblclockfft_butterfly_ck1-p160	lcorr+fraig	840	6407	0.1
+dblclockfft_butterfly_ck1-p160	scorr	818	6070	0.3
+dblclockfft_butterfly_ck1-p160	scorr+fraig	818	6070	0.3
+dblclockfft_butterfly_ck1-p227	strash	348	2269	0.1
+dblclockfft_butterfly_ck1-p227	scl	316	2135	0.0
+dblclockfft_butterfly_ck1-p227	scl+fraig	316	2123	0.0
+dblclockfft_butterfly_ck1-p227	lcorr+fraig	296	2062	0.1
+dblclockfft_butterfly_ck1-p227	scorr	256	1902	0.1
+dblclockfft_butterfly_ck1-p227	scorr+fraig	256	1902	0.1
+dblclockfft_butterfly_ck1-p428	strash	1098	7137	0.1
+dblclockfft_butterfly_ck1-p428	scl	959	6462	0.0
+dblclockfft_butterfly_ck1-p428	scl+fraig	959	6436	0.1
+dblclockfft_butterfly_ck1-p428	lcorr+fraig	834	6090	0.1
+dblclockfft_butterfly_ck1-p428	scorr	815	5965	0.3
+dblclockfft_butterfly_ck1-p428	scorr+fraig	815	5965	0.3
+dblclockfft_butterfly_ck1-p46	strash	301	2127	0.0
+dblclockfft_butterfly_ck1-p46	scl	273	1993	0.0
+dblclockfft_butterfly_ck1-p46	scl+fraig	273	1981	0.0
+dblclockfft_butterfly_ck1-p46	lcorr+fraig	273	1981	0.1
+dblclockfft_butterfly_ck1-p46	scorr	269	1953	0.1
+dblclockfft_butterfly_ck1-p46	scorr+fraig	269	1953	0.1
+dblclockfft_butterfly_ck2_r0-p229	strash	1183	7572	0.1
+dblclockfft_butterfly_ck2_r0-p229	scl	1130	7350	0.0
+dblclockfft_butterfly_ck2_r0-p229	scl+fraig	1130	7319	0.1
+dblclockfft_butterfly_ck2_r0-p229	lcorr+fraig	995	6945	0.1
+dblclockfft_butterfly_ck2_r0-p229	scorr	987	6870	0.3
+dblclockfft_butterfly_ck2_r0-p229	scorr+fraig	987	6870	0.4
+dblclockfft_butterfly_ck2_r0-p83	strash	380	2182	0.0
+dblclockfft_butterfly_ck2_r0-p83	scl	365	2113	0.0
+dblclockfft_butterfly_ck2_r0-p83	scl+fraig	365	2098	0.0
+dblclockfft_butterfly_ck2_r0-p83	lcorr+fraig	349	2049	0.1
+dblclockfft_butterfly_ck2_r0-p83	scorr	316	1923	0.0
+dblclockfft_butterfly_ck2_r0-p83	scorr+fraig	316	1923	0.1
+dblclockfft_butterfly_ck3_r0-p100	strash	592	2871	0.0
+dblclockfft_butterfly_ck3_r0-p100	scl	589	2852	0.0
+dblclockfft_butterfly_ck3_r0-p100	scl+fraig	589	2798	0.0
+dblclockfft_butterfly_ck3_r0-p100	lcorr+fraig	564	2742	0.1
+dblclockfft_butterfly_ck3_r0-p100	scorr	564	2742	0.1
+shift_register_top_w128_d32_e0	scorr	4239	29689	25.5
+dblclockfft_butterfly_ck3_r0-p100	scorr+fraig	564	2742	0.1
+dblclockfft_butterfly_ck3_r0-p76	strash	1143	6817	0.1
+dblclockfft_butterfly_ck3_r0-p76	scl	1098	6637	0.1
+dblclockfft_butterfly_ck3_r0-p76	scl+fraig	1098	6572	0.1
+dblclockfft_butterfly_ck3_r0-p76	lcorr+fraig	1041	6435	0.1
+dblclockfft_butterfly_ck3_r0-p76	scorr	1034	6361	0.3
+dblclockfft_butterfly_ck3_r0-p76	scorr+fraig	1034	6361	0.3
+dblclockfft_butterfly_ck3_r0-p82	strash	305	1781	0.0
+dblclockfft_butterfly_ck3_r0-p82	scl	293	1725	0.0
+dblclockfft_butterfly_ck3_r0-p82	scl+fraig	293	1677	0.0
+dblclockfft_butterfly_ck3_r0-p82	lcorr+fraig	292	1669	0.0
+dblclockfft_butterfly_ck3_r0-p82	scorr	292	1669	0.0
+dblclockfft_butterfly_ck3_r0-p82	scorr+fraig	292	1669	0.0
+dblclockfft_butterfly_ck3_r1-p125	strash	702	4460	0.1
+dblclockfft_butterfly_ck3_r1-p125	scl	657	4290	0.0
+dblclockfft_butterfly_ck3_r1-p125	scl+fraig	657	4230	0.1
+dblclockfft_butterfly_ck3_r1-p125	lcorr+fraig	612	4113	0.1
+dblclockfft_butterfly_ck3_r1-p125	scorr	606	4061	0.1
+dblclockfft_butterfly_ck3_r1-p125	scorr+fraig	606	4061	0.1
+dblclockfft_butterfly_ck3_r1-p50	strash	402	2198	0.0
+dblclockfft_butterfly_ck3_r1-p50	scl	381	2115	0.0
+dblclockfft_butterfly_ck3_r1-p50	scl+fraig	381	2063	0.0
+dblclockfft_butterfly_ck3_r1-p50	lcorr+fraig	380	2055	0.1
+dblclockfft_butterfly_ck3_r1-p50	scorr	380	2055	0.1
+dblclockfft_butterfly_ck3_r1-p50	scorr+fraig	380	2055	0.1
+dblclockfft_butterfly_ck3_r1-p73	strash	421	2248	0.0
+dblclockfft_butterfly_ck3_r1-p73	scl	394	2169	0.0
+dblclockfft_butterfly_ck3_r1-p73	scl+fraig	394	2117	0.0
+dblclockfft_butterfly_ck3_r1-p73	lcorr+fraig	369	2036	0.1
+dblclockfft_butterfly_ck3_r1-p73	scorr	300	1800	0.1
+dblclockfft_butterfly_ck3_r1-p73	scorr+fraig	300	1800	0.1
+dspfilters_fastfir_second-p10	strash	1103	27128	0.1
+dspfilters_fastfir_second-p10	scl	1094	24829	0.1
+dspfilters_fastfir_second-p10	scl+fraig	1094	22858	0.5
+dspfilters_fastfir_second-p10	lcorr+fraig	818	20975	0.6
+ponylink-slaveTXlen-sat	scorr	2807	19062	18.6
+dspfilters_fastfir_second-p10	scorr	773	20637	14.6
+shift_register_top_w128_d32_e0	scorr+fraig	4239	29689	25.0
+dspfilters_fastfir_second-p45	strash	1103	27140	0.1
+dspfilters_fastfir_second-p45	scl	1094	23841	0.1
+dspfilters_fastfir_second-p45	scl+fraig	1094	22265	0.4
+ponylink-slaveTXlen-sat	scorr+fraig	2807	19062	18.4
+dspfilters_fastfir_second-p50	strash	1103	27122	0.1
+dspfilters_fastfir_second-p50	scl	1094	23841	0.1
+dspfilters_fastfir_second-p45	lcorr+fraig	818	20975	0.5
+dspfilters_fastfir_second-p50	scl+fraig	1094	22248	0.4
+dspfilters_fastfir_second-p50	lcorr+fraig	818	20975	0.5
+dspfilters_fastfir_second-p10	scorr+fraig	773	20637	14.1
+qspiflash_dualflexpress_divfive-p121	strash	214	1281	0.0
+qspiflash_dualflexpress_divfive-p121	scl	206	1250	0.0
+qspiflash_dualflexpress_divfive-p121	scl+fraig	206	1236	0.0
+qspiflash_dualflexpress_divfive-p121	lcorr+fraig	206	1236	0.1
+qspiflash_dualflexpress_divfive-p121	scorr	205	1216	0.1
+qspiflash_dualflexpress_divfive-p121	scorr+fraig	205	1216	0.1
+qspiflash_dualflexpress_divfive-p130	strash	157	1047	0.0
+qspiflash_dualflexpress_divfive-p130	scl	149	1016	0.0
+qspiflash_dualflexpress_divfive-p130	scl+fraig	149	1002	0.0
+qspiflash_dualflexpress_divfive-p130	lcorr+fraig	149	1002	0.0
+qspiflash_dualflexpress_divfive-p130	scorr	149	980	0.1
+qspiflash_dualflexpress_divfive-p130	scorr+fraig	149	980	0.1
+qspiflash_dualflexpress_divfive-p133	strash	197	1204	0.0
+qspiflash_dualflexpress_divfive-p133	scl	166	1083	0.0
+qspiflash_dualflexpress_divfive-p133	scl+fraig	166	1069	0.0
+qspiflash_dualflexpress_divfive-p133	lcorr+fraig	166	1069	0.1
+qspiflash_dualflexpress_divfive-p133	scorr	165	1049	0.1
+qspiflash_dualflexpress_divfive-p133	scorr+fraig	165	1049	0.1
+qspiflash_dualflexpress_divfive-p162	strash	195	1232	0.0
+qspiflash_dualflexpress_divfive-p162	scl	187	1201	0.0
+qspiflash_dualflexpress_divfive-p162	scl+fraig	187	1187	0.0
+qspiflash_dualflexpress_divfive-p162	lcorr+fraig	187	1187	0.1
+qspiflash_dualflexpress_divfive-p162	scorr	187	1168	0.1
+qspiflash_dualflexpress_divfive-p162	scorr+fraig	187	1168	0.1
+qspiflash_dualflexpress_divfive-p41	strash	169	1094	0.0
+qspiflash_dualflexpress_divfive-p41	scl	159	1057	0.0
+qspiflash_dualflexpress_divfive-p41	scl+fraig	159	1035	0.0
+qspiflash_dualflexpress_divfive-p41	lcorr+fraig	159	1035	0.0
+qspiflash_dualflexpress_divfive-p41	scorr	156	1007	0.1
+qspiflash_dualflexpress_divfive-p41	scorr+fraig	156	1007	0.1
+qspiflash_dualflexpress_divfive-p80	strash	219	1276	0.0
+qspiflash_dualflexpress_divfive-p80	scl	161	1067	0.0
+qspiflash_dualflexpress_divfive-p80	scl+fraig	161	1047	0.0
+qspiflash_dualflexpress_divfive-p80	lcorr+fraig	161	1047	0.1
+qspiflash_dualflexpress_divfive-p80	scorr	156	1011	0.1
+qspiflash_dualflexpress_divfive-p80	scorr+fraig	156	1011	0.1
+qspiflash_dualflexpress_divthree-p120	strash	196	1157	0.0
+qspiflash_dualflexpress_divthree-p120	scl	156	1030	0.0
+qspiflash_dualflexpress_divthree-p120	scl+fraig	156	1020	0.0
+qspiflash_dualflexpress_divthree-p120	lcorr+fraig	156	1020	0.0
+qspiflash_dualflexpress_divthree-p120	scorr	155	1002	0.1
+qspiflash_dualflexpress_divthree-p120	scorr+fraig	155	1002	0.1
+qspiflash_dualflexpress_divthree-p151	strash	194	1216	0.1
+qspiflash_dualflexpress_divthree-p151	scl	186	1185	0.0
+qspiflash_dualflexpress_divthree-p151	scl+fraig	186	1175	0.0
+qspiflash_dualflexpress_divthree-p151	lcorr+fraig	186	1175	0.1
+qspiflash_dualflexpress_divthree-p151	scorr	186	1158	0.1
+qspiflash_dualflexpress_divthree-p151	scorr+fraig	186	1158	0.1
+qspiflash_dualflexpress_divthree-p161	strash	218	1260	0.0
+qspiflash_dualflexpress_divthree-p161	scl	162	1059	0.0
+qspiflash_dualflexpress_divthree-p161	scl+fraig	162	1049	0.0
+qspiflash_dualflexpress_divthree-p161	lcorr+fraig	162	1049	0.1
+qspiflash_dualflexpress_divthree-p161	scorr	161	1031	0.1
+qspiflash_dualflexpress_divthree-p161	scorr+fraig	161	1031	0.1
+qspiflash_dualflexpress_divthree-p46	strash	168	1067	0.0
+qspiflash_dualflexpress_divthree-p46	scl	158	1030	0.0
+qspiflash_dualflexpress_divthree-p46	scl+fraig	158	1020	0.0
+qspiflash_dualflexpress_divthree-p46	lcorr+fraig	158	1020	0.1
+qspiflash_dualflexpress_divthree-p46	scorr	157	1002	0.1
+qspiflash_dualflexpress_divthree-p46	scorr+fraig	157	1002	0.1
+qspiflash_qflexpress_divfive-p128	strash	174	1088	0.1
+qspiflash_qflexpress_divfive-p128	scl	169	1069	0.0
+qspiflash_qflexpress_divfive-p128	scl+fraig	169	1054	0.0
+qspiflash_qflexpress_divfive-p128	lcorr+fraig	168	1051	0.0
+qspiflash_qflexpress_divfive-p128	scorr	168	1035	0.1
+qspiflash_qflexpress_divfive-p128	scorr+fraig	168	1035	0.1
+qspiflash_qflexpress_divfive-p20	strash	152	981	0.0
+qspiflash_qflexpress_divfive-p20	scl	147	962	0.0
+qspiflash_qflexpress_divfive-p20	scl+fraig	147	947	0.0
+qspiflash_qflexpress_divfive-p20	lcorr+fraig	146	944	0.0
+qspiflash_qflexpress_divfive-p20	scorr	146	927	0.0
+qspiflash_qflexpress_divfive-p20	scorr+fraig	146	927	0.1
+qspiflash_qflexpress_divfive-p39	strash	164	1027	0.0
+qspiflash_qflexpress_divfive-p39	scl	158	1006	0.0
+qspiflash_qflexpress_divfive-p39	scl+fraig	158	991	0.0
+qspiflash_qflexpress_divfive-p39	lcorr+fraig	157	988	0.1
+qspiflash_qflexpress_divfive-p39	scorr	156	971	0.1
+qspiflash_qflexpress_divfive-p39	scorr+fraig	156	971	0.1
+qspiflash_qflexpress_divfive-p65	strash	193	1178	0.0
+qspiflash_qflexpress_divfive-p65	scl	188	1159	0.0
+qspiflash_qflexpress_divfive-p65	scl+fraig	188	1144	0.0
+qspiflash_qflexpress_divfive-p65	lcorr+fraig	187	1141	0.1
+qspiflash_qflexpress_divfive-p65	scorr	187	1125	0.1
+qspiflash_qflexpress_divfive-p65	scorr+fraig	187	1125	0.1
+qspiflash_qflexpress_divfive-p85	strash	154	982	0.0
+qspiflash_qflexpress_divfive-p85	scl	149	963	0.0
+qspiflash_qflexpress_divfive-p85	scl+fraig	149	949	0.0
+qspiflash_qflexpress_divfive-p85	lcorr+fraig	148	946	0.0
+qspiflash_qflexpress_divfive-p85	scorr	146	928	0.0
+qspiflash_qflexpress_divfive-p85	scorr+fraig	146	928	0.1
+fifo-p0	strash	1067	18052	0.1
+fifo-p0	scl	1067	18052	0.1
+fifo-p0	scl+fraig	1067	14482	0.3
+fifo-p0	lcorr+fraig	1067	14482	0.3
+fifo-p0	scorr	1066	14480	0.8
+dspfilters_fastfir_second-p45	scorr	773	20637	13.6
+fifo-p0	scorr+fraig	1066	14480	0.9
+rast-p0	strash	442	4259	0.1
+rast-p0	scl	410	4138	0.0
+rast-p0	scl+fraig	410	3652	0.1
+rast-p0	lcorr+fraig	306	3145	0.1
+rast-p0	scorr	306	2979	0.3
+dspfilters_fastfir_second-p50	scorr	773	20637	13.9
+rast-p0	scorr+fraig	306	2979	0.3
+rast-p12	strash	442	4259	0.0
+rast-p12	scl	410	4138	0.0
+rast-p12	scl+fraig	410	3652	0.1
+rast-p12	lcorr+fraig	306	3145	0.1
+rast-p12	scorr	306	2979	0.3
+rast-p12	scorr+fraig	306	2979	0.3
+rast-p14	strash	442	4259	0.0
+rast-p14	scl	410	4138	0.0
+rast-p14	scl+fraig	410	3652	0.1
+rast-p14	lcorr+fraig	306	3148	0.1
+rast-p14	scorr	306	2982	0.3
+rast-p14	scorr+fraig	306	2982	0.3
+rast-p16	strash	442	4259	0.0
+rast-p16	scl	410	4138	0.0
+rast-p16	scl+fraig	410	3652	0.1
+rast-p16	lcorr+fraig	306	3148	0.1
+rast-p16	scorr	306	2982	0.3
+rast-p16	scorr+fraig	306	2982	0.3
+rast-p17	strash	442	4259	0.0
+rast-p17	scl	410	4138	0.0
+rast-p17	scl+fraig	410	3651	0.1
+rast-p17	lcorr+fraig	306	3144	0.1
+rast-p17	scorr	306	2978	0.3
+rast-p17	scorr+fraig	306	2978	0.3
+rast-p20	strash	442	4259	0.0
+rast-p20	scl	410	4138	0.0
+rast-p20	scl+fraig	410	3651	0.1
+rast-p20	lcorr+fraig	306	3144	0.1
+rast-p20	scorr	306	2978	0.3
+rast-p20	scorr+fraig	306	2978	0.3
+simple_alu	strash	21	176	0.0
+simple_alu	scl	16	62	0.0
+simple_alu	scl+fraig	16	45	0.0
+simple_alu	lcorr+fraig	16	45	0.0
+simple_alu	scorr	0	0	0.0
+simple_alu	scorr+fraig	0	0	0.0
+stack-p0	strash	1032	14431	0.1
+stack-p0	scl	1032	14431	0.1
+stack-p0	scl+fraig	1032	14053	0.1
+stack-p0	lcorr+fraig	1032	14053	0.2
+stack-p0	scorr	1031	14051	0.8
+stack-p0	scorr+fraig	1031	14051	0.9
+stack-p2	strash	2060	17531	0.1
+stack-p2	scl	12	89	0.1
+stack-p2	scl+fraig	12	89	0.1
+stack-p2	lcorr+fraig	0	0	0.6
+stack-p2	scorr	0	0	0.2
+stack-p2	scorr+fraig	0	0	0.2
+77.c	strash	45	250	0.0
+77.c	scl	15	131	0.0
+77.c	scl+fraig	15	80	0.0
+77.c	lcorr+fraig	9	68	0.0
+77.c	scorr	0	0	0.0
+77.c	scorr+fraig	0	0	0.0
+fib_05	strash	64	726	0.0
+fib_05	scl	64	726	0.0
+fib_05	scl+fraig	64	712	0.0
+fib_05	lcorr+fraig	48	648	0.1
+fib_05	scorr	35	452	0.3
+fib_05	scorr+fraig	35	452	0.2
+fib_23	strash	57	391	0.0
+fib_23	scl	38	316	0.0
+fib_23	scl+fraig	38	281	0.0
+fib_23	lcorr+fraig	26	213	0.0
+fib_23	scorr	0	0	0.0
+fib_23	scorr+fraig	0	0	0.0
+ILA_AES_LOAD_problem	strash	1317	11820	0.1
+ILA_AES_LOAD_problem	scl	1293	11596	0.1
+ILA_AES_LOAD_problem	scl+fraig	1293	11543	0.2
+ILA_AES_LOAD_problem	lcorr+fraig	1292	11541	0.7
+dspfilters_fastfir_second-p45	scorr+fraig	773	20637	12.5
+ILA_Piccolo_ADD_problem	strash	8099	85450	0.3
+ILA_Piccolo_ADD_problem	scl	4759	61789	0.4
+ILA_AES_LOAD_problem	scorr	1292	11491	2.0
+dspfilters_fastfir_second-p50	scorr+fraig	773	20637	13.6
+ILA_Piccolo_BGEU_problem	strash	8099	82361	0.2
+ILA_Piccolo_BGEU_problem	scl	4759	58700	0.3
+ILA_AES_LOAD_problem	scorr+fraig	1292	11491	2.6
+ILA_Piccolo_LUI_sanity	strash	8099	83119	0.3
+ILA_Piccolo_LUI_sanity	scl	5884	62842	0.4
+ILA_Piccolo_ADD_problem	scl+fraig	4759	56216	11.7
+ILA_Piccolo_BGEU_problem	scl+fraig	4759	49127	11.1
+ILA_Piccolo_LUI_sanity	scl+fraig	5884	55060	15.5
+ILA_Piccolo_BGEU_problem	lcorr+fraig	4667	47990	46.7
+ILA_Piccolo_ADD_problem	lcorr+fraig	4667	55084	50.1
+ILA_Piccolo_LUI_sanity	lcorr+fraig	5790	53804	45.2
+ILA_Piccolo_BGEU_problem	scorr			100.0
+ILA_Piccolo_ADD_problem	scorr			100.0
+ILA_Piccolo_LUI_sanity	scorr			100.0
+ILA_Piccolo_BGEU_problem	scorr+fraig			100.0
+ILA_Piccolo_SUB_problem	strash	8099	85543	0.3
+ILA_Piccolo_SUB_problem	scl	4759	61882	0.4
+ILA_Piccolo_ADD_problem	scorr+fraig			100.0
+ILA_Ridecore_BNE_sanity	strash	23592	437661	1.0
+ILA_Piccolo_LUI_sanity	scorr+fraig			100.0
+ILA_Ridecore_BNE_sanity	scl	18451	411241	1.9
+ILA_Ridecore_JAL_problem	strash	23551	419982	1.0
+ILA_Ridecore_JAL_problem	scl	17085	389639	1.6
+ILA_Piccolo_SUB_problem	scl+fraig	4759	56308	12.0
+ILA_Piccolo_SUB_problem	lcorr+fraig	4667	55176	53.8
+ILA_Ridecore_BNE_sanity	scl+fraig			100.1
+ILA_Ridecore_JAL_problem	scl+fraig			100.1
+ILA_Piccolo_SUB_problem	scorr			100.0
+ILA_Ridecore_BNE_sanity	lcorr+fraig			100.0
+ILA_Ridecore_JAL_problem	lcorr+fraig			100.0
+ILA_Piccolo_SUB_problem	scorr+fraig			100.0
+ILA_Ridecore_SLL_problem	strash	23551	423680	1.4
+ILA_Ridecore_SLL_problem	scl	17085	393337	2.0
+ILA_Ridecore_BNE_sanity	scorr			100.0
+ILA_Ridecore_JAL_problem	scorr			100.1
+ILA_Ridecore_SLL_problem	scl+fraig			100.1
+ILA_Ridecore_BNE_sanity	scorr+fraig			100.0
+ILA_Rocket_AND_problem	strash	8568	73262	0.4
+ILA_Rocket_AND_problem	scl	5635	64181	0.5
+ILA_Ridecore_JAL_problem	scorr+fraig			100.0
+counter_bit_width_small	strash	58	467	0.1
+counter_bit_width_small	scl	58	467	0.1
+counter_bit_width_small	scl+fraig	58	462	0.1
+counter_bit_width_small	lcorr+fraig	57	445	0.1
+counter_bit_width_small	scorr	57	405	0.1
+counter_bit_width_small	scorr+fraig	57	405	0.1
+diffeq	strash	73	682	0.1
+diffeq	scl	73	682	0.1
+diffeq	scl+fraig	73	674	0.1
+diffeq	lcorr+fraig	62	629	0.1
+diffeq	scorr	62	588	0.1
+diffeq	scorr+fraig	62	588	0.1
+gcd_bit_width_large	strash	130	1441	0.1
+gcd_bit_width_large	scl	130	1441	0.1
+gcd_bit_width_large	scl+fraig	130	1439	0.1
+gcd_bit_width_large	lcorr+fraig	50	519	0.1
+gcd_bit_width_large	scorr	50	475	0.1
+gcd_bit_width_large	scorr+fraig	50	475	0.1
+gcd_bit_width_large	strash	180	2167	0.1
+gcd_bit_width_large	scl	180	2167	0.1
+gcd_bit_width_large	scl+fraig	180	2166	0.1
+gcd_bit_width_large	lcorr+fraig	180	2166	0.1
+gcd_bit_width_large	scorr	180	2084	0.1
+gcd_bit_width_large	scorr+fraig	180	2084	0.1
+a16-p114	strash	499	5171	0.1
+a16-p114	scl	226	2793	0.1
+a16-p114	scl+fraig	226	2662	0.1
+a16-p114	lcorr+fraig	222	2610	0.3
+a16-p114	scorr	220	2575	0.8
+a16-p114	scorr+fraig	220	2575	0.7
+a16-p13	strash	559	5668	0.1
+a16-p13	scl	288	3298	0.1
+a16-p13	scl+fraig	288	3073	0.1
+a16-p13	lcorr+fraig	284	3018	0.2
+ILA_Rocket_AND_problem	scl+fraig	5635	61136	7.0
+a16-p13	scorr	282	2983	0.9
+a16-p13	scorr+fraig	282	2983	0.9
+a16-p1	strash	531	5323	0.1
+a16-p1	scl	258	2945	0.1
+a16-p1	scl+fraig	258	2814	0.1
+a16-p1	lcorr+fraig	254	2762	0.2
+a16-p1	scorr	252	2727	0.8
+a16-p1	scorr+fraig	252	2727	0.8
+a16-p32	strash	499	5182	0.1
+a16-p32	scl	226	2804	0.1
+a16-p32	scl+fraig	226	2670	0.1
+a16-p32	lcorr+fraig	222	2618	0.2
+a16-p32	scorr	220	2583	0.7
+a16-p32	scorr+fraig	220	2583	1.0
+a16-p38	strash	499	5174	0.1
+a16-p38	scl	226	2796	0.1
+a16-p38	scl+fraig	226	2665	0.1
+a16-p38	lcorr+fraig	222	2611	0.2
+a16-p38	scorr	219	2570	0.8
+a16-p38	scorr+fraig	219	2570	0.7
+a16-p47	strash	499	5167	0.1
+a16-p47	scl	226	2789	0.1
+a16-p47	scl+fraig	226	2658	0.1
+a16-p47	lcorr+fraig	222	2606	0.2
+a16-p47	scorr	220	2571	0.7
+a16-p47	scorr+fraig	220	2571	0.9
+a16-p75	strash	624	6190	0.1
+a16-p75	scl	372	4042	0.1
+a16-p75	scl+fraig	372	3786	0.1
+a16-p75	lcorr+fraig	368	3734	0.3
+a16-p75	scorr	366	3695	1.2
+a16-p75	scorr+fraig	366	3695	1.0
+a16-p76	strash	499	5182	0.1
+a16-p76	scl	226	2804	0.1
+a16-p76	scl+fraig	226	2670	0.1
+a16-p76	lcorr+fraig	222	2618	0.3
+a16-p76	scorr	220	2583	0.8
+a16-p76	scorr+fraig	220	2583	0.6
+a16-p89	strash	499	5166	0.1
+a16-p89	scl	226	2788	0.1
+a16-p89	scl+fraig	226	2657	0.1
+a16-p89	lcorr+fraig	221	2605	0.3
+a16-p89	scorr	219	2570	0.9
+a16-p89	scorr+fraig	219	2570	0.7
+a19-p13	strash	1914	26769	0.1
+a19-p13	scl	1820	25055	0.3
+a19-p13	scl+fraig	1820	23639	0.9
+a19-p13	lcorr+fraig	1770	23517	5.8
+ILA_Rocket_AND_problem	lcorr+fraig	5523	60463	38.1
+a19-p13	scorr	1767	23259	24.3
+ILA_Ridecore_SLL_problem	lcorr+fraig			100.0
+a19-p13	scorr+fraig	1767	23259	24.7
+xepic_a12	strash	1137	11592	0.1
+xepic_a12	scl	674	6952	0.1
+xepic_a12	scl+fraig	674	6701	0.2
+xepic_a12	lcorr+fraig	670	6648	0.7
+xepic_a12	scorr	668	6310	15.6
+xepic_a12	scorr+fraig	668	6310	16.3
+xepic_a17-p0	strash	1996	28145	0.2
+xepic_a17-p0	scl	1870	26237	0.4
+xepic_a17-p0	scl+fraig	1870	22777	1.2
+xepic_a17-p0	lcorr+fraig	1852	22719	5.9
+ILA_Rocket_AND_problem	scorr			100.0
+xepic_a17-p0	scorr	1849	22459	28.0
+ILA_Ridecore_SLL_problem	scorr			100.0
+xepic_a17-p0	scorr+fraig	1849	22459	28.1
+xepic_a17-p6	strash	1834	25945	0.1
+xepic_a17-p6	scl	1693	24139	0.2
+xepic_a17-p6	scl+fraig	1693	20876	1.0
+xepic_a17-p6	lcorr+fraig	1675	20818	5.0
+xepic_a17-p6	scorr	1674	20566	26.2
+xepic_a17-p6	scorr+fraig	1674	20566	25.7
+xepic_a18-p1	strash	500	5429	0.1
+xepic_a18-p1	scl	258	3321	0.1
+xepic_a18-p1	scl+fraig	258	3150	0.1
+xepic_a18-p1	lcorr+fraig	254	3098	0.2
+xepic_a18-p1	scorr	252	3057	1.1
+xepic_a18-p1	scorr+fraig	252	3057	1.1
+pc_sfifo_2.cil-2+token_ring.09.cil-1	strash	2278	82021	0.4
+pc_sfifo_2.cil-2+token_ring.09.cil-1	scl	2278	82021	0.4
+ILA_Rocket_AND_problem	scorr+fraig			100.0
+pc_sfifo_3.cil+token_ring.09.cil-2	strash	2374	85651	0.3
+pc_sfifo_3.cil+token_ring.09.cil-2	scl	2374	85651	0.4
+ILA_Ridecore_SLL_problem	scorr+fraig			100.0
+pc_sfifo_3.cil+token_ring.10.cil-1	strash	2534	94599	0.4
+pc_sfifo_3.cil+token_ring.10.cil-1	scl	2534	94599	0.4
+pc_sfifo_2.cil-2+token_ring.09.cil-1	scl+fraig			100.1
+pc_sfifo_3.cil+token_ring.09.cil-2	scl+fraig			100.1
+pc_sfifo_3.cil+token_ring.10.cil-1	scl+fraig			100.1
+pc_sfifo_2.cil-2+token_ring.09.cil-1	lcorr+fraig			100.1
+pc_sfifo_3.cil+token_ring.09.cil-2	lcorr+fraig			100.1
+pc_sfifo_3.cil+token_ring.10.cil-1	lcorr+fraig			100.1
+pc_sfifo_2.cil-2+token_ring.09.cil-1	scorr			100.0
+pc_sfifo_3.cil+token_ring.09.cil-2	scorr			100.0
+pc_sfifo_3.cil+token_ring.10.cil-1	scorr			100.0
+pc_sfifo_2.cil-2+token_ring.09.cil-1	scorr+fraig			100.0
+Problem05_label42+token_ring.04.cil-2	strash	1190	239794	0.6
+Problem05_label42+token_ring.04.cil-2	scl	1190	239794	0.7
+pc_sfifo_3.cil+token_ring.09.cil-2	scorr+fraig			100.0
+Problem05_label43+token_ring.03.cil-1	strash	1030	233310	0.6
+Problem05_label43+token_ring.03.cil-1	scl	1030	233310	0.8
+pc_sfifo_3.cil+token_ring.10.cil-1	scorr+fraig			100.0
+Problem05_label49+token_ring.06.cil-2	strash	1509	253884	0.6
+Problem05_label49+token_ring.06.cil-2	scl	1509	253884	0.9
+Problem05_label42+token_ring.04.cil-2	scl+fraig			100.1
+Problem05_label43+token_ring.03.cil-1	scl+fraig			100.1
+Problem05_label49+token_ring.06.cil-2	scl+fraig			100.1
+Problem05_label42+token_ring.04.cil-2	lcorr+fraig			100.1
+Problem05_label43+token_ring.03.cil-1	lcorr+fraig			100.1
+Problem05_label49+token_ring.06.cil-2	lcorr+fraig			100.1
+Problem05_label42+token_ring.04.cil-2	scorr			100.0
+Problem05_label43+token_ring.03.cil-1	scorr			100.0
+Problem05_label49+token_ring.06.cil-2	scorr			100.0
+Problem05_label42+token_ring.04.cil-2	scorr+fraig			100.0
+Problem02_label43	strash	229	7164	0.1
+Problem02_label43	scl	229	7164	0.1
+Problem02_label43	scl+fraig	229	4300	1.0
+Problem02_label43	lcorr+fraig	229	4300	0.8
+Problem02_label43	scorr	229	4300	1.1
+Problem02_label43	scorr+fraig	229	4300	1.4
+Problem03_label05	strash	997	30585	0.2
+Problem03_label05	scl	997	30585	0.2
+Problem05_label43+token_ring.03.cil-1	scorr+fraig			100.0
+Problem03_label32	strash	997	30616	0.2
+Problem03_label32	scl	997	30616	0.1
+Problem05_label49+token_ring.06.cil-2	scorr+fraig			100.0
+Problem11_label08	strash	261	399295	0.8
+Problem11_label08	scl	261	399295	1.1
+Problem03_label05	scl+fraig	997	21065	44.4
+Problem03_label32	scl+fraig	997	21067	45.4
+Problem11_label08	scl+fraig	261	129207	65.5
+Problem03_label05	lcorr+fraig	997	21065	47.7
+Problem03_label32	lcorr+fraig	997	21067	46.0
+Problem03_label05	scorr	997	21065	26.9
+Problem03_label32	scorr	997	21067	29.2
+Problem11_label08	lcorr+fraig	261	129207	63.4
+Problem03_label05	scorr+fraig	997	21065	65.3
+Problem15_label37	strash	197	1121253	2.3
+Problem03_label32	scorr+fraig	997	21067	67.4
+Problem15_label37	scl	197	1121253	4.0
+Problem15_label58	strash	197	1121283	2.4
+Problem15_label58	scl	197	1121283	3.8
+Problem11_label08	scorr			100.0
+Problem15_label37	scl+fraig			100.1
+Problem15_label58	scl+fraig			100.1
+Problem11_label08	scorr+fraig			100.0
+sqrt_Newton_pseudoconstant	strash	453	434861	1.0
+sqrt_Newton_pseudoconstant	scl	453	434861	1.7
+Problem15_label37	lcorr+fraig			100.1
+Problem15_label58	lcorr+fraig			100.1
+sqrt_Newton_pseudoconstant	scl+fraig			100.0
+Problem15_label37	scorr			100.1
+Problem15_label58	scorr			100.1
+sqrt_Newton_pseudoconstant	lcorr+fraig			100.0
+Problem15_label37	scorr+fraig			100.1
+Float_div.i.p+cfa-reducer	strash	101	19199	0.1
+Float_div.i.p+cfa-reducer	scl	101	19199	0.1
+Float_div.i.p+cfa-reducer	scl+fraig	101	9098	0.7
+Float_div.i.p+cfa-reducer	lcorr+fraig	101	9098	0.7
+Float_div.i.p+cfa-reducer	scorr	101	9028	1.1
+Float_div.i.p+cfa-reducer	scorr+fraig	101	9028	1.5
+id_build.i.p+nlh-reducer	strash	166	61462	0.2
+id_build.i.p+nlh-reducer	scl	166	61462	0.2
+Problem15_label58	scorr+fraig			100.1
+Mono6_1	strash	101	1486	0.0
+Mono6_1	scl	101	1486	0.0
+Mono6_1	scl+fraig	101	1486	0.1
+Mono6_1	lcorr+fraig	101	1486	0.1
+Mono6_1	scorr	101	1486	0.1
+Mono6_1	scorr+fraig	101	1486	0.1
+sumt3	strash	197	6320	0.1
+sumt3	scl	197	6320	0.0
+sumt3	scl+fraig	197	4055	0.1
+sumt3	lcorr+fraig	197	4055	0.1
+sumt3	scorr	197	4055	0.2
+sumt3	scorr+fraig	197	4055	0.3
+prodbin-ll_unwindbound10	strash	293	33878	0.1
+prodbin-ll_unwindbound10	scl	293	33878	0.1
+prodbin-ll_unwindbound10	scl+fraig	293	33592	4.7
+prodbin-ll_unwindbound10	lcorr+fraig	293	33592	4.8
+prodbin-ll_unwindbound10	scorr	293	33592	7.8
+prodbin-ll_unwindbound10	scorr+fraig	293	33592	11.8
+minepump_spec1_product38.cil	strash	229	14465	0.1
+minepump_spec1_product38.cil	scl	229	14465	0.1
+minepump_spec1_product38.cil	scl+fraig	229	13242	1.4
+minepump_spec1_product38.cil	lcorr+fraig	229	13242	1.4
+minepump_spec1_product38.cil	scorr	229	13242	2.0
+minepump_spec1_product38.cil	scorr+fraig	229	13242	3.1
+minepump_spec2_product21.cil	strash	261	14126	0.1
+minepump_spec2_product21.cil	scl	261	14126	0.1
+minepump_spec2_product21.cil	scl+fraig	261	12815	1.3
+minepump_spec2_product21.cil	lcorr+fraig	261	12815	1.2
+minepump_spec2_product21.cil	scorr	261	12815	1.7
+minepump_spec2_product21.cil	scorr+fraig	261	12815	2.7
+minepump_spec2_product25.cil	strash	261	9375	0.1
+minepump_spec2_product25.cil	scl	261	9375	0.0
+minepump_spec2_product25.cil	scl+fraig	261	9342	0.5
+minepump_spec2_product25.cil	lcorr+fraig	261	9342	0.5
+minepump_spec2_product25.cil	scorr	261	9342	0.7
+minepump_spec2_product25.cil	scorr+fraig	261	9342	1.1
+minepump_spec3_product38.cil	strash	229	16466	0.1
+minepump_spec3_product38.cil	scl	229	16466	0.1
+minepump_spec3_product38.cil	scl+fraig	229	15243	1.7
+minepump_spec3_product38.cil	lcorr+fraig	229	15243	1.8
+minepump_spec3_product38.cil	scorr	229	15243	2.7
+sqrt_Newton_pseudoconstant	scorr			100.0
+minepump_spec3_product38.cil	scorr+fraig	229	15243	4.3
+minepump_spec4_product24.cil	strash	229	14373	0.1
+minepump_spec4_product24.cil	scl	229	14373	0.1
+minepump_spec4_product24.cil	scl+fraig	229	13059	1.2
+minepump_spec4_product24.cil	lcorr+fraig	229	13059	1.4
+minepump_spec4_product24.cil	scorr	229	13059	2.0
+minepump_spec4_product24.cil	scorr+fraig	229	13059	3.1
+minepump_spec4_product39.cil	strash	229	14856	0.1
+minepump_spec4_product39.cil	scl	229	14856	0.1
+minepump_spec4_product39.cil	scl+fraig	229	13630	1.7
+minepump_spec4_product39.cil	lcorr+fraig	229	13630	2.0
+minepump_spec4_product39.cil	scorr	229	13630	2.3
+minepump_spec4_product39.cil	scorr+fraig	229	13630	3.7
+pals_lcr-var-start-time.6.1.ufo.UNBOUNDED.pals	strash	273	8007	0.1
+pals_lcr-var-start-time.6.1.ufo.UNBOUNDED.pals	scl	273	8007	0.0
+pals_lcr-var-start-time.6.1.ufo.UNBOUNDED.pals	scl+fraig	273	7624	0.2
+pals_lcr-var-start-time.6.1.ufo.UNBOUNDED.pals	lcorr+fraig	273	7624	0.3
+pals_lcr-var-start-time.6.1.ufo.UNBOUNDED.pals	scorr	273	7624	0.3
+pals_lcr-var-start-time.6.1.ufo.UNBOUNDED.pals	scorr+fraig	273	7624	0.5
+token_ring.12.cil-1	strash	2149	95626	0.3
+token_ring.12.cil-1	scl	2149	95626	0.3
+id_build.i.p+nlh-reducer	scl+fraig			100.1
+sqrt_Newton_pseudoconstant	scorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p114	strash	105145	486372	2.0
+yosyshq_appnote_123_cv32e40x-p114	scl	9887	96715	2.4
+yosyshq_appnote_123_cv32e40x-p114	scl+fraig	9887	86059	15.5
+token_ring.12.cil-1	scl+fraig			100.1
+id_build.i.p+nlh-reducer	lcorr+fraig			100.1
+yosyshq_appnote_123_cv32e40x-p114	lcorr+fraig			100.0
+token_ring.12.cil-1	lcorr+fraig			100.1
+id_build.i.p+nlh-reducer	scorr	166	57176	96.6
+yosyshq_appnote_123_cv32e40x-p114	scorr			100.1
+token_ring.12.cil-1	scorr			100.0
+id_build.i.p+nlh-reducer	scorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p129	strash	6573	60701	0.2
+yosyshq_appnote_123_cv32e40x-p129	scl	5377	52457	0.3
+yosyshq_appnote_123_cv32e40x-p129	scl+fraig	5377	48460	5.2
+yosyshq_appnote_123_cv32e40x-p129	lcorr+fraig	5238	47505	39.2
+yosyshq_appnote_123_cv32e40x-p114	scorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p131	strash	6836	62390	0.2
+yosyshq_appnote_123_cv32e40x-p131	scl	5735	54950	0.3
+token_ring.12.cil-1	scorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p144	strash	76017	249411	1.1
+yosyshq_appnote_123_cv32e40x-p144	scl	6231	57159	1.2
+yosyshq_appnote_123_cv32e40x-p131	scl+fraig	5735	50879	5.5
+yosyshq_appnote_123_cv32e40x-p144	scl+fraig	6231	52756	6.9
+yosyshq_appnote_123_cv32e40x-p131	lcorr+fraig	5596	49923	38.0
+yosyshq_appnote_123_cv32e40x-p129	scorr			100.0
+yosyshq_appnote_123_cv32e40x-p144	lcorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p131	scorr			100.0
+yosyshq_appnote_123_cv32e40x-p129	scorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p151	strash	6633	61021	0.2
+yosyshq_appnote_123_cv32e40x-p151	scl	5435	52769	0.3
+yosyshq_appnote_123_cv32e40x-p151	scl+fraig	5435	48736	5.1
+yosyshq_appnote_123_cv32e40x-p151	lcorr+fraig	5288	47735	35.2
+yosyshq_appnote_123_cv32e40x-p144	scorr			100.0
+yosyshq_appnote_123_cv32e40x-p131	scorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p161	strash	6573	60703	0.2
+yosyshq_appnote_123_cv32e40x-p161	scl	5377	52459	0.3
+yosyshq_appnote_123_cv32e40x-p161	scl+fraig	5377	48459	5.0
+yosyshq_appnote_123_cv32e40x-p161	lcorr+fraig	5234	47493	36.2
+yosyshq_appnote_123_cv32e40x-p151	scorr			100.0
+yosyshq_appnote_123_cv32e40x-p144	scorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p179	strash	6607	60850	0.2
+yosyshq_appnote_123_cv32e40x-p179	scl	5401	52583	0.3
+yosyshq_appnote_123_cv32e40x-p179	scl+fraig	5401	48558	4.8
+yosyshq_appnote_123_cv32e40x-p179	lcorr+fraig	5255	47603	34.4
+yosyshq_appnote_123_cv32e40x-p161	scorr			100.0
+yosyshq_appnote_123_cv32e40x-p151	scorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p189	strash	102895	474884	1.6
+yosyshq_appnote_123_cv32e40x-p189	scl	9635	93218	1.9
+yosyshq_appnote_123_cv32e40x-p189	scl+fraig	9635	83132	11.8
+yosyshq_appnote_123_cv32e40x-p179	scorr			100.0
+yosyshq_appnote_123_cv32e40x-p161	scorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p18	strash	6765	61634	0.2
+yosyshq_appnote_123_cv32e40x-p18	scl	5625	53653	0.3
+yosyshq_appnote_123_cv32e40x-p18	scl+fraig	5625	49610	5.8
+yosyshq_appnote_123_cv32e40x-p189	lcorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p18	lcorr+fraig	5432	48381	38.7
+yosyshq_appnote_123_cv32e40x-p179	scorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p193	strash	102895	475242	1.8
+yosyshq_appnote_123_cv32e40x-p193	scl	5375	52454	2.2
+yosyshq_appnote_123_cv32e40x-p193	scl+fraig	5375	48456	6.8
+yosyshq_appnote_123_cv32e40x-p189	scorr			100.0
+yosyshq_appnote_123_cv32e40x-p18	scorr			100.0
+yosyshq_appnote_123_cv32e40x-p193	lcorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p189	scorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p228	strash	102895	482841	1.8
+yosyshq_appnote_123_cv32e40x-p228	scl	12191	114568	2.2
+yosyshq_appnote_123_cv32e40x-p18	scorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p256	strash	6575	60709	0.2
+yosyshq_appnote_123_cv32e40x-p256	scl	5379	52464	0.3
+yosyshq_appnote_123_cv32e40x-p256	scl+fraig	5379	48468	5.3
+yosyshq_appnote_123_cv32e40x-p228	scl+fraig	12191	104307	16.5
+yosyshq_appnote_123_cv32e40x-p193	scorr			100.0
+yosyshq_appnote_123_cv32e40x-p256	lcorr+fraig	5240	47513	41.7
+yosyshq_appnote_123_cv32e40x-p228	lcorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p193	scorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p312	strash	6573	60752	0.2
+yosyshq_appnote_123_cv32e40x-p312	scl	5377	52508	0.3
+yosyshq_appnote_123_cv32e40x-p256	scorr	5189	46477	84.5
+yosyshq_appnote_123_cv32e40x-p312	scl+fraig	5377	48458	4.8
+yosyshq_appnote_123_cv32e40x-p312	lcorr+fraig	5234	47492	37.8
+yosyshq_appnote_123_cv32e40x-p228	scorr			100.0
+yosyshq_appnote_123_cv32e40x-p256	scorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p318	strash	6573	60700	0.2
+yosyshq_appnote_123_cv32e40x-p318	scl	5377	52456	0.3
+yosyshq_appnote_123_cv32e40x-p318	scl+fraig	5377	48454	5.3
+yosyshq_appnote_123_cv32e40x-p312	scorr			100.0
+yosyshq_appnote_123_cv32e40x-p318	lcorr+fraig	5234	47492	37.7
+yosyshq_appnote_123_cv32e40x-p228	scorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p368	strash	6575	60706	0.2
+yosyshq_appnote_123_cv32e40x-p368	scl	5378	52462	0.3
+yosyshq_appnote_123_cv32e40x-p368	scl+fraig	5378	48464	4.7
+yosyshq_appnote_123_cv32e40x-p368	lcorr+fraig	5239	47509	34.5
+yosyshq_appnote_123_cv32e40x-p312	scorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p472	strash	6626	60860	0.3
+yosyshq_appnote_123_cv32e40x-p472	scl	5416	52594	0.3
+yosyshq_appnote_123_cv32e40x-p318	scorr			100.0
+yosyshq_appnote_123_cv32e40x-p472	scl+fraig	5416	48593	4.9
+yosyshq_appnote_123_cv32e40x-p472	lcorr+fraig	5247	47581	36.0
+yosyshq_appnote_123_cv32e40x-p368	scorr			100.0
+yosyshq_appnote_123_cv32e40x-p318	scorr+fraig	5185	46464	99.1
+yosyshq_appnote_123_cv32e40x-p524	strash	6573	60709	0.2
+yosyshq_appnote_123_cv32e40x-p524	scl	5377	52465	0.2
+yosyshq_appnote_123_cv32e40x-p524	scl+fraig	5377	48468	4.4
+yosyshq_appnote_123_cv32e40x-p524	lcorr+fraig	5238	47513	33.4
+yosyshq_appnote_123_cv32e40x-p472	scorr			100.0
+yosyshq_appnote_123_cv32e40x-p368	scorr+fraig	5188	46473	99.5
+yosyshq_appnote_123_cv32e40x-p530	strash	6573	60701	0.2
+yosyshq_appnote_123_cv32e40x-p530	scl	5377	52457	0.2
+yosyshq_appnote_123_cv32e40x-p530	scl+fraig	5377	48462	5.0
+yosyshq_appnote_123_cv32e40x-p530	lcorr+fraig	5238	47507	33.4
+yosyshq_appnote_123_cv32e40x-p472	scorr+fraig	5193	46532	85.9
+yosyshq_appnote_123_cv32e40x-p567	strash	6573	60841	0.2
+yosyshq_appnote_123_cv32e40x-p567	scl	5377	52597	0.3
+yosyshq_appnote_123_cv32e40x-p567	scl+fraig	5377	48600	5.4
+yosyshq_appnote_123_cv32e40x-p524	scorr	5187	46478	99.0
+yosyshq_appnote_123_cv32e40x-p567	lcorr+fraig	5238	47645	34.8
+yosyshq_appnote_123_cv32e40x-p530	scorr	5187	46472	93.8
+yosyshq_appnote_123_cv32e40x-p524	scorr+fraig	5187	46478	99.2
+yosyshq_appnote_123_cv32e40x-p568	strash	6573	60831	0.2
+yosyshq_appnote_123_cv32e40x-p568	scl	5377	52587	0.3
+yosyshq_appnote_123_cv32e40x-p568	scl+fraig	5377	48586	5.4
+yosyshq_appnote_123_cv32e40x-p567	scorr	5187	46610	100.0
+yosyshq_appnote_123_cv32e40x-p568	lcorr+fraig	5238	47631	36.2
+yosyshq_appnote_123_cv32e40x-p530	scorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p581	strash	6573	60703	0.2
+yosyshq_appnote_123_cv32e40x-p581	scl	5377	52459	0.3
+yosyshq_appnote_123_cv32e40x-p581	scl+fraig	5377	48461	5.1
+yosyshq_appnote_123_cv32e40x-p581	lcorr+fraig	5238	47506	34.0
+yosyshq_appnote_123_cv32e40x-p567	scorr+fraig	5187	46610	87.4
+yosyshq_appnote_123_cv32e40x-p585	strash	6573	60701	0.2
+yosyshq_appnote_123_cv32e40x-p585	scl	5377	52457	0.3
+yosyshq_appnote_123_cv32e40x-p585	scl+fraig	5377	48461	4.6
+yosyshq_appnote_123_cv32e40x-p568	scorr	5187	46596	94.1
+yosyshq_appnote_123_cv32e40x-p585	lcorr+fraig	5238	47506	32.7
+yosyshq_appnote_123_cv32e40x-p581	scorr	5187	46471	88.0
+yosyshq_appnote_123_cv32e40x-p568	scorr+fraig	5187	46596	99.7
+yosyshq_appnote_123_cv32e40x-p608	strash	6707	61281	0.2
+yosyshq_appnote_123_cv32e40x-p608	scl	5483	52997	0.3
+yosyshq_appnote_123_cv32e40x-p608	scl+fraig	5483	48970	4.8
+yosyshq_appnote_123_cv32e40x-p585	scorr			100.0
+yosyshq_appnote_123_cv32e40x-p608	lcorr+fraig	5324	47905	32.2
+yosyshq_appnote_123_cv32e40x-p581	scorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p664	strash	41201	146510	0.6
+yosyshq_appnote_123_cv32e40x-p664	scl	5507	52886	0.7
+yosyshq_appnote_123_cv32e40x-p664	scl+fraig	5507	48889	5.7
+yosyshq_appnote_123_cv32e40x-p585	scorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p667	strash	75377	246260	1.1
+yosyshq_appnote_123_cv32e40x-p667	scl	5515	53132	1.3
+yosyshq_appnote_123_cv32e40x-p667	scl+fraig	5515	49045	5.5
+yosyshq_appnote_123_cv32e40x-p608	scorr			100.0
+yosyshq_appnote_123_cv32e40x-p664	lcorr+fraig	5234	47493	91.9
+yosyshq_appnote_123_cv32e40x-p667	lcorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p608	scorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p697	strash	6573	60759	0.2
+yosyshq_appnote_123_cv32e40x-p697	scl	5375	52454	0.3
+yosyshq_appnote_123_cv32e40x-p697	scl+fraig	5375	48457	4.4
+yosyshq_appnote_123_cv32e40x-p664	scorr			100.0
+yosyshq_appnote_123_cv32e40x-p697	lcorr+fraig	5234	47492	39.7
+yosyshq_appnote_123_cv32e40x-p667	scorr			100.0
+yosyshq_appnote_123_cv32e40x-p664	scorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p724	strash	6632	61026	0.2
+yosyshq_appnote_123_cv32e40x-p724	scl	5384	52508	0.3
+yosyshq_appnote_123_cv32e40x-p724	scl+fraig	5384	48495	5.1
+yosyshq_appnote_123_cv32e40x-p697	scorr			100.0
+yosyshq_appnote_123_cv32e40x-p724	lcorr+fraig	5245	47538	37.3
+yosyshq_appnote_123_cv32e40x-p667	scorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p743	strash	26273	117391	0.5
+yosyshq_appnote_123_cv32e40x-p743	scl	5450	52888	0.5
+yosyshq_appnote_123_cv32e40x-p743	scl+fraig	5450	48815	5.6
+yosyshq_appnote_123_cv32e40x-p697	scorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p767	strash	105145	486182	1.5
+yosyshq_appnote_123_cv32e40x-p767	scl	9887	96665	2.2
+yosyshq_appnote_123_cv32e40x-p767	scl+fraig	9887	85885	11.0
+yosyshq_appnote_123_cv32e40x-p724	scorr			100.0
+yosyshq_appnote_123_cv32e40x-p743	lcorr+fraig	5292	47761	79.7
+yosyshq_appnote_123_cv32e40x-p767	lcorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p724	scorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p88	strash	102889	474811	1.8
+yosyshq_appnote_123_cv32e40x-p88	scl	9629	93145	2.3
+yosyshq_appnote_123_cv32e40x-p743	scorr			100.0
+yosyshq_appnote_123_cv32e40x-p88	scl+fraig	9629	83081	13.4
+yosyshq_appnote_123_cv32e40x-p767	scorr			100.0
+yosyshq_appnote_123_cv32e40x-p743	scorr+fraig			100.0
+yosyshq_appnote_123_veer_axi-p62	strash	30271	257099	0.9
+yosyshq_appnote_123_veer_axi-p62	scl	29072	252624	1.9
+yosyshq_appnote_123_cv32e40x-p88	lcorr+fraig			100.1
+yosyshq_appnote_123_cv32e40x-p767	scorr+fraig			100.0
+yosyshq_appnote_123_veer_axi-p71	strash	30237	257013	0.9
+yosyshq_appnote_123_veer_axi-p71	scl	29038	252538	1.9
+yosyshq_appnote_123_veer_axi-p62	scl+fraig			100.1
+yosyshq_appnote_123_cv32e40x-p88	scorr			100.1
+yosyshq_appnote_123_veer_axi-p71	scl+fraig			100.1
+yosyshq_appnote_123_veer_axi-p62	lcorr+fraig			100.0
+yosyshq_appnote_123_cv32e40x-p88	scorr+fraig			100.0
+yosyshq_appnote_123_veer_axi-p73	strash	30241	257011	0.8
+yosyshq_appnote_123_veer_axi-p73	scl	29042	252536	1.8
+yosyshq_appnote_123_veer_axi-p71	lcorr+fraig			100.0
+yosyshq_appnote_123_veer_axi-p62	scorr			100.0
+yosyshq_appnote_123_veer_axi-p73	scl+fraig	29042	239343	100.1
+yosyshq_appnote_123_veer_axi-p71	scorr			100.0
+yosyshq_appnote_123_veer_axi-p62	scorr+fraig			100.0
+yosyshq_appnote_123_veer-p22	strash	29695	254561	0.8
+yosyshq_appnote_123_veer-p22	scl	28673	250272	1.7
+yosyshq_appnote_123_veer_axi-p73	lcorr+fraig			100.0
+yosyshq_appnote_123_veer_axi-p71	scorr+fraig			100.0
+yosyshq_appnote_123_veer-p7	strash	29695	254551	0.8
+yosyshq_appnote_123_veer-p7	scl	28673	250262	1.7
+yosyshq_appnote_123_veer-p22	scl+fraig	28673	237206	97.2
+yosyshq_appnote_123_veer_axi-p73	scorr			100.0
+yosyshq_appnote_123_veer-p7	scl+fraig	28673	237197	98.8
+yosyshq_appnote_123_veer-p22	lcorr+fraig			100.0
+yosyshq_appnote_123_veer_axi-p73	scorr+fraig			100.0
+benchmarks_initial_output_btor2_example_10_miter_miter	strash	6040	68889	0.2
+benchmarks_initial_output_btor2_example_10_miter_miter	scl	4720	65321	0.3
+benchmarks_initial_output_btor2_example_10_miter_miter	scl+fraig	4720	58190	6.9
+benchmarks_initial_output_btor2_example_10_miter_miter	lcorr+fraig	4314	53543	18.2
+benchmarks_initial_output_btor2_example_10_miter_miter	scorr	2745	30932	42.1
+yosyshq_appnote_123_veer-p7	lcorr+fraig			100.0
+yosyshq_appnote_123_veer-p22	scorr			100.0
+benchmarks_initial_output_btor2_example_10_miter_miter	scorr+fraig	2745	30932	42.2
+benchmarks_initial_output_btor2_example_52_miter_miter	strash	5193	61077	0.2
+benchmarks_initial_output_btor2_example_52_miter_miter	scl	4145	58771	0.2
+benchmarks_initial_output_btor2_example_52_miter_miter	scl+fraig	4145	53125	6.4
+benchmarks_initial_output_btor2_example_52_miter_miter	lcorr+fraig	3907	51916	13.7
+benchmarks_initial_output_btor2_example_52_miter_miter	scorr	0	0	29.4
+yosyshq_appnote_123_veer-p7	scorr			100.0
+benchmarks_initial_output_btor2_example_52_miter_miter	scorr+fraig	0	0	30.2
+benchmarks_initial_output_btor2_example_82_miter_miter	strash	5585	70863	0.2
+benchmarks_initial_output_btor2_example_82_miter_miter	scl	4629	68564	0.3
+yosyshq_appnote_123_veer-p22	scorr+fraig			100.0
+benchmarks_initial_output_btor2_example_95_miter_miter	strash	7411	89687	0.3
+benchmarks_initial_output_btor2_example_95_miter_miter	scl	5305	84337	0.4
+benchmarks_initial_output_btor2_example_82_miter_miter	scl+fraig	4629	62376	7.1
+benchmarks_initial_output_btor2_example_95_miter_miter	scl+fraig	5305	76588	9.3
+benchmarks_initial_output_btor2_example_82_miter_miter	lcorr+fraig	4523	62036	16.1
+benchmarks_initial_output_btor2_example_95_miter_miter	lcorr+fraig	4819	73137	26.7
+benchmarks_initial_output_btor2_example_82_miter_miter	scorr	0	0	37.2
+yosyshq_appnote_123_veer-p7	scorr+fraig			100.0
+benchmarks_output_btor2_example_106_miter_miter	strash	264	3607	0.1
+benchmarks_output_btor2_example_106_miter_miter	scl	264	3607	0.0
+benchmarks_output_btor2_example_106_miter_miter	scl+fraig	264	2713	0.1
+benchmarks_output_btor2_example_106_miter_miter	lcorr+fraig	264	2713	0.1
+benchmarks_output_btor2_example_106_miter_miter	scorr	0	0	0.2
+benchmarks_output_btor2_example_106_miter_miter	scorr+fraig	0	0	0.2
+benchmarks_output_btor2_example_110_miter_miter	strash	677	8891	0.1
+benchmarks_output_btor2_example_110_miter_miter	scl	474	8515	0.1
+benchmarks_output_btor2_example_110_miter_miter	scl+fraig	474	8349	0.1
+benchmarks_output_btor2_example_110_miter_miter	lcorr+fraig	420	7875	0.2
+benchmarks_output_btor2_example_110_miter_miter	scorr	0	0	0.3
+benchmarks_output_btor2_example_110_miter_miter	scorr+fraig	0	0	0.3
+benchmarks_output_btor2_example_156_miter_miter	strash	239	3073	0.1
+benchmarks_output_btor2_example_156_miter_miter	scl	239	3073	0.0
+benchmarks_output_btor2_example_156_miter_miter	scl+fraig	239	2968	0.1
+benchmarks_output_btor2_example_156_miter_miter	lcorr+fraig	153	1820	0.1
+benchmarks_output_btor2_example_156_miter_miter	scorr	0	0	0.1
+benchmarks_output_btor2_example_156_miter_miter	scorr+fraig	0	0	0.1
+benchmarks_output_btor2_example_162_miter_miter	strash	678	5779	0.1
+benchmarks_output_btor2_example_162_miter_miter	scl	532	5429	0.0
+benchmarks_output_btor2_example_162_miter_miter	scl+fraig	532	5189	0.1
+benchmarks_output_btor2_example_162_miter_miter	lcorr+fraig	430	3907	0.1
+benchmarks_output_btor2_example_162_miter_miter	scorr	0	0	0.2
+benchmarks_output_btor2_example_162_miter_miter	scorr+fraig	0	0	0.1
+benchmarks_output_btor2_example_186_miter_miter	strash	216	2206	0.0
+benchmarks_output_btor2_example_186_miter_miter	scl	186	2108	0.0
+benchmarks_output_btor2_example_186_miter_miter	scl+fraig	186	1957	0.0
+benchmarks_output_btor2_example_186_miter_miter	lcorr+fraig	150	1799	0.1
+benchmarks_output_btor2_example_186_miter_miter	scorr	0	0	0.1
+benchmarks_output_btor2_example_186_miter_miter	scorr+fraig	0	0	0.1
+benchmarks_output_btor2_example_212_miter_miter	strash	134	1792	0.0
+benchmarks_output_btor2_example_212_miter_miter	scl	129	1777	0.0
+benchmarks_output_btor2_example_212_miter_miter	scl+fraig	129	1615	0.0
+benchmarks_output_btor2_example_212_miter_miter	lcorr+fraig	129	1615	0.1
+benchmarks_output_btor2_example_212_miter_miter	scorr	0	0	0.1
+benchmarks_output_btor2_example_212_miter_miter	scorr+fraig	0	0	0.1
+benchmarks_output_btor2_example_220_miter_miter	strash	316	3589	0.1
+benchmarks_output_btor2_example_220_miter_miter	scl	262	3585	0.0
+benchmarks_output_btor2_example_220_miter_miter	scl+fraig	262	3346	0.1
+benchmarks_output_btor2_example_220_miter_miter	lcorr+fraig	258	3336	0.1
+benchmarks_output_btor2_example_220_miter_miter	scorr	0	0	0.1
+benchmarks_output_btor2_example_220_miter_miter	scorr+fraig	0	0	0.1
+benchmarks_output_btor2_example_227_miter_miter	strash	167	1767	0.0
+benchmarks_output_btor2_example_227_miter_miter	scl	166	1764	0.0
+benchmarks_output_btor2_example_227_miter_miter	scl+fraig	166	1730	0.0
+benchmarks_output_btor2_example_227_miter_miter	lcorr+fraig	164	1716	0.0
+benchmarks_output_btor2_example_227_miter_miter	scorr	0	0	0.1
+benchmarks_output_btor2_example_227_miter_miter	scorr+fraig	0	0	0.1
+benchmarks_output_btor2_example_230_miter_miter	strash	239	2633	0.0
+benchmarks_output_btor2_example_230_miter_miter	scl	211	2549	0.0
+benchmarks_output_btor2_example_230_miter_miter	scl+fraig	211	2247	0.0
+benchmarks_output_btor2_example_230_miter_miter	lcorr+fraig	211	2247	0.1
+benchmarks_output_btor2_example_230_miter_miter	scorr	0	0	0.1
+benchmarks_output_btor2_example_230_miter_miter	scorr+fraig	0	0	0.1
+benchmarks_output_btor2_example_23_miter_miter	strash	275	3465	0.1
+benchmarks_output_btor2_example_23_miter_miter	scl	254	3402	0.0
+benchmarks_output_btor2_example_23_miter_miter	scl+fraig	254	3293	0.1
+benchmarks_output_btor2_example_23_miter_miter	lcorr+fraig	156	1649	0.1
+benchmarks_output_btor2_example_23_miter_miter	scorr	0	0	0.1
+benchmarks_output_btor2_example_23_miter_miter	scorr+fraig	0	0	0.1
+benchmarks_output_btor2_example_246_miter_miter	strash	472	3978	0.1
+benchmarks_output_btor2_example_246_miter_miter	scl	344	3680	0.0
+benchmarks_output_btor2_example_246_miter_miter	scl+fraig	344	3557	0.1
+benchmarks_output_btor2_example_246_miter_miter	lcorr+fraig	264	2935	0.1
+benchmarks_output_btor2_example_246_miter_miter	scorr	0	0	0.1
+benchmarks_output_btor2_example_246_miter_miter	scorr+fraig	0	0	0.1
+benchmarks_output_btor2_example_263_miter_miter	strash	603	11545	0.1
+benchmarks_output_btor2_example_263_miter_miter	scl	481	8769	0.0
+benchmarks_output_btor2_example_263_miter_miter	scl+fraig	481	8220	0.1
+benchmarks_output_btor2_example_263_miter_miter	lcorr+fraig	429	7717	0.6
+benchmarks_initial_output_btor2_example_82_miter_miter	scorr+fraig	0	0	36.3
+benchmarks_output_btor2_example_291_miter_miter	strash	869	7534	0.1
+benchmarks_output_btor2_example_291_miter_miter	scl	573	6906	0.0
+benchmarks_output_btor2_example_291_miter_miter	scl+fraig	573	6669	0.1
+benchmarks_output_btor2_example_291_miter_miter	lcorr+fraig	571	6661	0.2
+benchmarks_output_btor2_example_291_miter_miter	scorr	0	0	0.3
+benchmarks_output_btor2_example_291_miter_miter	scorr+fraig	0	0	0.3
+benchmarks_output_btor2_example_301_miter_miter	strash	401	5414	0.1
+benchmarks_output_btor2_example_301_miter_miter	scl	339	5188	0.0
+benchmarks_output_btor2_example_301_miter_miter	scl+fraig	339	4455	0.1
+benchmarks_output_btor2_example_301_miter_miter	lcorr+fraig	285	3531	0.1
+benchmarks_output_btor2_example_301_miter_miter	scorr	0	0	0.2
+benchmarks_output_btor2_example_301_miter_miter	scorr+fraig	0	0	0.2
+benchmarks_output_btor2_example_309_miter_miter	strash	238	2451	0.1
+benchmarks_output_btor2_example_309_miter_miter	scl	190	2307	0.0
+benchmarks_output_btor2_example_309_miter_miter	scl+fraig	190	2203	0.0
+benchmarks_output_btor2_example_309_miter_miter	lcorr+fraig	120	1427	0.1
+benchmarks_output_btor2_example_309_miter_miter	scorr	0	0	0.1
+benchmarks_output_btor2_example_309_miter_miter	scorr+fraig	0	0	0.1
+benchmarks_output_btor2_example_320_miter_miter	strash	241	2723	0.0
+benchmarks_output_btor2_example_320_miter_miter	scl	235	2471	0.0
+benchmarks_output_btor2_example_320_miter_miter	scl+fraig	235	2358	0.0
+benchmarks_output_btor2_example_320_miter_miter	lcorr+fraig	157	1556	0.1
+benchmarks_output_btor2_example_320_miter_miter	scorr	0	0	0.1
+benchmarks_output_btor2_example_320_miter_miter	scorr+fraig	0	0	0.1
+benchmarks_output_btor2_example_324_miter_miter	strash	638	6200	0.1
+benchmarks_output_btor2_example_324_miter_miter	scl	456	5594	0.0
+benchmarks_output_btor2_example_324_miter_miter	scl+fraig	456	5245	0.1
+benchmarks_output_btor2_example_324_miter_miter	lcorr+fraig	386	5023	0.1
+benchmarks_output_btor2_example_324_miter_miter	scorr	0	0	0.2
+benchmarks_output_btor2_example_324_miter_miter	scorr+fraig	0	0	0.2
+benchmarks_output_btor2_example_349_miter_miter	strash	607	4992	0.0
+benchmarks_output_btor2_example_349_miter_miter	scl	395	4546	0.0
+benchmarks_output_btor2_example_349_miter_miter	scl+fraig	395	4320	0.1
+benchmarks_output_btor2_example_349_miter_miter	lcorr+fraig	385	4210	0.1
+benchmarks_output_btor2_example_349_miter_miter	scorr	0	0	0.1
+benchmarks_output_btor2_example_349_miter_miter	scorr+fraig	0	0	0.1
+benchmarks_output_btor2_example_370_miter_miter	strash	986	17488	0.1
+benchmarks_output_btor2_example_370_miter_miter	scl	674	17016	0.1
+benchmarks_output_btor2_example_370_miter_miter	scl+fraig	674	16551	0.4
+benchmarks_output_btor2_example_370_miter_miter	lcorr+fraig	582	16141	0.8
+benchmarks_output_btor2_example_263_miter_miter	scorr	356	6260	8.9
+benchmarks_output_btor2_example_370_miter_miter	scorr	353	13499	5.4
+benchmarks_output_btor2_example_263_miter_miter	scorr+fraig	356	6260	9.0
+benchmarks_output_btor2_example_401_miter_miter	strash	298	3974	0.1
+benchmarks_output_btor2_example_401_miter_miter	scl	290	3950	0.0
+benchmarks_output_btor2_example_401_miter_miter	scl+fraig	290	3845	0.1
+benchmarks_output_btor2_example_401_miter_miter	lcorr+fraig	170	2173	0.1
+benchmarks_output_btor2_example_401_miter_miter	scorr	0	0	0.1
+benchmarks_output_btor2_example_401_miter_miter	scorr+fraig	0	0	0.1
+benchmarks_output_btor2_example_410_miter_miter	strash	422	5264	0.1
+benchmarks_output_btor2_example_410_miter_miter	scl	350	5104	0.0
+benchmarks_output_btor2_example_410_miter_miter	scl+fraig	350	4629	0.1
+benchmarks_output_btor2_example_410_miter_miter	lcorr+fraig	254	3421	0.1
+benchmarks_output_btor2_example_410_miter_miter	scorr	0	0	0.2
+benchmarks_output_btor2_example_410_miter_miter	scorr+fraig	0	0	0.2
+benchmarks_output_btor2_example_412_miter_miter	strash	467	5096	0.0
+benchmarks_output_btor2_example_412_miter_miter	scl	377	4835	0.0
+benchmarks_output_btor2_example_412_miter_miter	scl+fraig	377	4475	0.1
+benchmarks_output_btor2_example_412_miter_miter	lcorr+fraig	357	4334	0.1
+benchmarks_output_btor2_example_412_miter_miter	scorr	0	0	0.2
+benchmarks_output_btor2_example_412_miter_miter	scorr+fraig	0	0	0.2
+benchmarks_output_btor2_example_437_miter_miter	strash	395	4781	0.1
+benchmarks_output_btor2_example_370_miter_miter	scorr+fraig	353	13499	5.5
+benchmarks_output_btor2_example_437_miter_miter	scl	325	4635	0.0
+benchmarks_output_btor2_example_470_miter_miter	strash	302	2381	0.1
+benchmarks_output_btor2_example_437_miter_miter	scl+fraig	325	4541	0.1
+benchmarks_output_btor2_example_470_miter_miter	scl	212	2167	0.0
+benchmarks_output_btor2_example_470_miter_miter	scl+fraig	212	2007	0.1
+benchmarks_output_btor2_example_437_miter_miter	lcorr+fraig	325	4541	0.1
+benchmarks_output_btor2_example_470_miter_miter	lcorr+fraig	104	969	0.0
+benchmarks_output_btor2_example_470_miter_miter	scorr	0	0	0.1
+benchmarks_output_btor2_example_470_miter_miter	scorr+fraig	0	0	0.1
+benchmarks_output_btor2_example_437_miter_miter	scorr	0	0	0.2
+benchmarks_output_btor2_example_471_miter_miter	strash	249	3928	0.1
+benchmarks_output_btor2_example_471_miter_miter	scl	249	3928	0.0
+benchmarks_output_btor2_example_471_miter_miter	scl+fraig	249	3769	0.1
+benchmarks_output_btor2_example_437_miter_miter	scorr+fraig	0	0	0.2
+benchmarks_output_btor2_example_471_miter_miter	lcorr+fraig	221	3329	0.1
+benchmarks_output_btor2_example_494_miter_miter	strash	1020	20457	0.1
+benchmarks_output_btor2_example_494_miter_miter	scl	629	18423	0.1
+benchmarks_output_btor2_example_471_miter_miter	scorr	0	0	0.1
+benchmarks_output_btor2_example_471_miter_miter	scorr+fraig	0	0	0.1
+benchmarks_output_btor2_example_499_miter_miter	strash	409	4777	0.1
+benchmarks_output_btor2_example_499_miter_miter	scl	334	4049	0.0
+benchmarks_output_btor2_example_499_miter_miter	scl+fraig	334	3882	0.1
+benchmarks_output_btor2_example_499_miter_miter	lcorr+fraig	240	2834	0.1
+benchmarks_output_btor2_example_499_miter_miter	scorr	0	0	0.1
+benchmarks_output_btor2_example_494_miter_miter	scl+fraig	629	17130	0.6
+benchmarks_output_btor2_example_499_miter_miter	scorr+fraig	0	0	0.1
+benchmarks_output_btor2_example_56_miter_miter	strash	221	2918	0.0
+benchmarks_output_btor2_example_56_miter_miter	scl	221	2918	0.0
+benchmarks_output_btor2_example_56_miter_miter	scl+fraig	221	2803	0.1
+benchmarks_output_btor2_example_56_miter_miter	lcorr+fraig	189	2387	0.1
+benchmarks_output_btor2_example_56_miter_miter	scorr	0	0	0.1
+benchmarks_output_btor2_example_56_miter_miter	scorr+fraig	0	0	0.1
+benchmarks_output_btor2_example_57_miter_miter	strash	424	4710	0.0
+benchmarks_output_btor2_example_57_miter_miter	scl	354	4554	0.0
+benchmarks_output_btor2_example_57_miter_miter	scl+fraig	354	4395	0.1
+benchmarks_output_btor2_example_57_miter_miter	lcorr+fraig	292	3763	0.1
+benchmarks_output_btor2_example_57_miter_miter	scorr	0	0	0.1
+benchmarks_output_btor2_example_57_miter_miter	scorr+fraig	0	0	0.1
+benchmarks_output_btor2_example_85_miter_miter	strash	258	3169	0.0
+benchmarks_output_btor2_example_85_miter_miter	scl	230	3103	0.0
+benchmarks_output_btor2_example_85_miter_miter	scl+fraig	230	2802	0.1
+benchmarks_output_btor2_example_85_miter_miter	lcorr+fraig	220	2762	0.1
+benchmarks_output_btor2_example_85_miter_miter	scorr	0	0	0.1
+benchmarks_output_btor2_example_85_miter_miter	scorr+fraig	0	0	0.1
+benchmarks_output_btor2_example_96_miter_miter	strash	485	3904	0.0
+benchmarks_output_btor2_example_96_miter_miter	scl	360	3681	0.0
+benchmarks_output_btor2_example_96_miter_miter	scl+fraig	360	3568	0.1
+benchmarks_output_btor2_example_96_miter_miter	lcorr+fraig	240	2808	0.1
+benchmarks_output_btor2_example_96_miter_miter	scorr	0	0	0.1
+benchmarks_output_btor2_example_96_miter_miter	scorr+fraig	0	0	0.1
+microban_105	strash	90	2708	0.0
+microban_105	scl	90	2708	0.0
+microban_105	scl+fraig	90	2561	0.0
+microban_105	lcorr+fraig	90	2561	0.0
+microban_105	scorr	90	2561	0.1
+microban_105	scorr+fraig	90	2561	0.1
+microban_110	strash	40	650	0.0
+microban_110	scl	40	650	0.0
+microban_110	scl+fraig	40	601	0.0
+microban_110	lcorr+fraig	40	601	0.0
+benchmarks_output_btor2_example_494_miter_miter	lcorr+fraig	503	15369	2.3
+microban_110	scorr	40	601	0.0
+microban_110	scorr+fraig	40	601	0.0
+microban_117	strash	77	1978	0.1
+microban_117	scl	77	1978	0.1
+microban_117	scl+fraig	77	1845	0.0
+microban_117	lcorr+fraig	77	1845	0.0
+microban_117	scorr	77	1845	0.0
+microban_117	scorr+fraig	77	1845	0.0
+microban_118	strash	59	1324	0.1
+microban_118	scl	59	1324	0.0
+microban_118	scl+fraig	59	1231	0.0
+microban_118	lcorr+fraig	59	1231	0.0
+microban_118	scorr	59	1231	0.0
+microban_118	scorr+fraig	59	1231	0.0
+microban_132	strash	44	765	0.1
+microban_132	scl	44	765	0.0
+microban_132	scl+fraig	44	717	0.0
+microban_132	lcorr+fraig	44	717	0.0
+microban_132	scorr	44	717	0.0
+microban_132	scorr+fraig	44	717	0.0
+microban_136	strash	46	826	0.0
+microban_136	scl	46	826	0.0
+microban_136	scl+fraig	46	778	0.0
+microban_136	lcorr+fraig	46	778	0.0
+microban_136	scorr	46	778	0.0
+microban_136	scorr+fraig	46	778	0.0
+microban_138	strash	71	1760	0.1
+microban_138	scl	71	1760	0.0
+microban_138	scl+fraig	71	1642	0.0
+microban_138	lcorr+fraig	71	1642	0.0
+microban_138	scorr	71	1642	0.0
+microban_138	scorr+fraig	71	1642	0.0
+microban_145	strash	84	2300	0.1
+microban_145	scl	84	2300	0.0
+microban_145	scl+fraig	84	2147	0.0
+microban_145	lcorr+fraig	84	2147	0.0
+microban_145	scorr	84	2147	0.0
+microban_145	scorr+fraig	84	2147	0.0
+microban_148	strash	60	1365	0.1
+microban_148	scl	60	1365	0.0
+microban_148	scl+fraig	60	1287	0.0
+microban_148	lcorr+fraig	60	1287	0.0
+microban_148	scorr	60	1287	0.0
+microban_148	scorr+fraig	60	1287	0.0
+microban_149	strash	50	982	0.0
+microban_149	scl	50	982	0.0
+microban_149	scl+fraig	50	909	0.0
+microban_149	lcorr+fraig	50	909	0.0
+microban_149	scorr	50	909	0.0
+microban_149	scorr+fraig	50	909	0.0
+microban_154	strash	233	24247	0.1
+microban_154	scl	233	24247	0.1
+microban_154	scl+fraig	233	24141	0.2
+microban_154	lcorr+fraig	233	24141	0.2
+microban_154	scorr	233	24141	0.2
+microban_154	scorr+fraig	233	24141	0.2
+microban_1	strash	23	278	0.0
+microban_1	scl	23	278	0.0
+microban_1	scl+fraig	23	268	0.0
+microban_1	lcorr+fraig	23	268	0.0
+microban_1	scorr	23	268	0.0
+microban_1	scorr+fraig	23	268	0.0
+microban_24	strash	29	398	0.0
+microban_24	scl	29	398	0.0
+microban_24	scl+fraig	29	379	0.0
+microban_24	lcorr+fraig	29	379	0.0
+microban_24	scorr	29	379	0.0
+microban_24	scorr+fraig	29	379	0.0
+microban_33	strash	35	546	0.1
+microban_33	scl	35	546	0.0
+microban_33	scl+fraig	35	512	0.0
+microban_33	lcorr+fraig	35	512	0.0
+microban_33	scorr	35	512	0.0
+microban_33	scorr+fraig	35	512	0.0
+microban_44	strash	5	19	0.0
+microban_44	scl	5	19	0.0
+microban_44	scl+fraig	5	19	0.0
+microban_44	lcorr+fraig	5	19	0.0
+microban_44	scorr	5	19	0.0
+microban_44	scorr+fraig	5	19	0.0
+microban_48	strash	36	574	0.0
+microban_48	scl	36	574	0.0
+microban_48	scl+fraig	36	550	0.0
+microban_48	lcorr+fraig	36	550	0.0
+microban_48	scorr	36	550	0.0
+microban_48	scorr+fraig	36	550	0.0
+microban_64	strash	40	686	0.0
+microban_64	scl	40	686	0.0
+microban_64	scl+fraig	40	652	0.0
+microban_64	lcorr+fraig	40	652	0.0
+microban_64	scorr	40	652	0.0
+microban_64	scorr+fraig	40	652	0.0
+microban_71	strash	66	1744	0.1
+microban_71	scl	66	1744	0.0
+microban_71	scl+fraig	66	1689	0.0
+microban_71	lcorr+fraig	66	1689	0.0
+microban_71	scorr	66	1689	0.0
+microban_71	scorr+fraig	66	1689	0.0
+microban_77	strash	50	932	0.0
+microban_77	scl	50	932	0.0
+microban_77	scl+fraig	50	878	0.0
+microban_77	lcorr+fraig	50	878	0.0
+microban_77	scorr	50	878	0.0
+microban_77	scorr+fraig	50	878	0.0
+microban_82	strash	35	537	0.1
+microban_82	scl	35	537	0.0
+microban_82	scl+fraig	35	518	0.0
+microban_82	lcorr+fraig	35	518	0.0
+microban_82	scorr	35	518	0.0
+microban_82	scorr+fraig	35	518	0.0
+microban_85	strash	74	1767	0.1
+microban_85	scl	74	1767	0.0
+microban_85	scl+fraig	74	1624	0.0
+microban_85	lcorr+fraig	74	1624	0.0
+microban_85	scorr	74	1624	0.0
+microban_85	scorr+fraig	74	1624	0.0
+microban_89	strash	52	991	0.1
+microban_89	scl	52	991	0.0
+microban_89	scl+fraig	52	935	0.0
+microban_89	lcorr+fraig	52	935	0.0
+microban_89	scorr	52	935	0.0
+microban_89	scorr+fraig	52	935	0.0
+microban_93	strash	105	3479	0.0
+microban_93	scl	105	3479	0.0
+microban_93	scl+fraig	105	3227	0.1
+microban_93	lcorr+fraig	105	3227	0.1
+microban_93	scorr	105	3227	0.1
+microban_93	scorr+fraig	105	3227	0.1
+level_10	strash	288	19337	0.1
+level_10	scl	288	19337	0.1
+level_10	scl+fraig	288	18548	0.2
+level_10	lcorr+fraig	288	18548	0.2
+level_10	scorr	288	18548	0.3
+level_10	scorr+fraig	288	18548	0.3
+level_16	strash	136	5091	0.1
+level_16	scl	136	5091	0.0
+level_16	scl+fraig	136	4764	0.1
+level_16	lcorr+fraig	136	4764	0.1
+level_16	scorr	136	4764	0.1
+level_16	scorr+fraig	136	4764	0.1
+level_20	strash	247	14932	0.1
+level_20	scl	247	14932	0.1
+level_20	scl+fraig	247	14243	0.1
+level_20	lcorr+fraig	247	14243	0.1
+level_20	scorr	247	14243	0.2
+level_20	scorr+fraig	247	14243	0.2
+level_27	strash	212	10451	0.1
+level_27	scl	212	10451	0.1
+level_27	scl+fraig	212	10030	0.1
+level_27	lcorr+fraig	212	10030	0.1
+level_27	scorr	212	10030	0.1
+level_27	scorr+fraig	212	10030	0.2
+level_48	strash	166	6673	0.1
+level_48	scl	166	6673	0.0
+level_48	scl+fraig	166	6273	0.1
+level_48	lcorr+fraig	166	6273	0.1
+level_48	scorr	166	6273	0.1
+level_48	scorr+fraig	166	6273	0.1
+level_5	strash	125	4329	0.1
+level_5	scl	125	4329	0.0
+level_5	scl+fraig	125	4007	0.1
+level_5	lcorr+fraig	125	4007	0.1
+level_5	scorr	125	4007	0.1
+level_5	scorr+fraig	125	4007	0.1
+level_66	strash	234	13715	0.1
+level_66	scl	234	13715	0.1
+level_66	scl+fraig	234	13056	0.1
+level_66	lcorr+fraig	234	13056	0.1
+level_66	scorr	234	13056	0.2
+level_66	scorr+fraig	234	13056	0.2
+level_73	strash	227	12840	0.1
+level_73	scl	227	12840	0.1
+level_73	scl+fraig	227	12191	0.1
+level_73	lcorr+fraig	227	12191	0.1
+level_73	scorr	227	12191	0.1
+level_73	scorr+fraig	227	12191	0.2
+level_90	strash	309	20984	0.1
+level_90	scl	309	20984	0.1
+level_90	scl+fraig	309	20161	0.2
+level_90	lcorr+fraig	309	20161	0.2
+level_90	scorr	309	20135	0.3
+level_90	scorr+fraig	309	20135	0.4
+microban_141_2	strash	61	1353	0.0
+microban_141_2	scl	61	1353	0.0
+microban_141_2	scl+fraig	61	1255	0.0
+microban_141_2	lcorr+fraig	61	1255	0.0
+microban_141_2	scorr	61	1255	0.0
+microban_141_2	scorr+fraig	61	1255	0.0
+microban_143_2	strash	73	1784	0.0
+microban_143_2	scl	73	1784	0.0
+microban_143_2	scl+fraig	73	1656	0.0
+microban_143_2	lcorr+fraig	73	1656	0.0
+microban_143_2	scorr	73	1656	0.0
+microban_143_2	scorr+fraig	73	1656	0.0
+microban_1	strash	23	278	0.1
+microban_1	scl	23	278	0.0
+microban_1	scl+fraig	23	268	0.0
+microban_1	lcorr+fraig	23	268	0.0
+microban_1	scorr	23	268	0.0
+microban_1	scorr+fraig	23	268	0.0
+NO_04	strash	467	5678	0.1
+NO_04	scl	397	4655	0.0
+NO_04	scl+fraig	397	3850	0.1
+NO_04	lcorr+fraig	467	4754	0.2
+NO_04	scorr	397	1821	0.2
+NO_04	scorr+fraig	397	1821	0.2
+Problem01_label05	strash	531	15779	0.1
+Problem01_label05	scl	531	15779	0.1
+Problem01_label05	scl+fraig	531	7758	3.7
+benchmarks_initial_output_btor2_example_95_miter_miter	scorr			100.0
+Problem01_label05	lcorr+fraig	531	7758	3.7
+Problem01_label05	scorr	531	7756	4.4
+Problem01_label05	scorr+fraig	531	7756	6.0
+Problem01_label22	strash	531	15779	0.1
+Problem01_label22	scl	531	15779	0.1
+Problem01_label22	scl+fraig	531	7758	3.6
+Problem01_label22	lcorr+fraig	531	7758	3.5
+Problem01_label22	scorr	531	7756	3.9
+benchmarks_output_btor2_example_494_miter_miter	scorr	0	0	44.9
+Problem01_label22	scorr+fraig	531	7756	5.6
+Problem14_label18	strash	403	193575	0.4
+Problem14_label18	scl	403	193575	0.5
+Problem14_label18	scl+fraig	403	79331	25.0
+benchmarks_output_btor2_example_494_miter_miter	scorr+fraig	0	0	46.5
+Problem14_label52	strash	403	193575	0.4
+Problem14_label52	scl	403	193575	0.6
+Problem14_label18	lcorr+fraig	403	79331	24.9
+Problem14_label52	scl+fraig	403	79331	26.5
+benchmarks_initial_output_btor2_example_95_miter_miter	scorr+fraig			100.0
+Problem14_label53	strash	403	193575	0.5
+Problem14_label53	scl	403	193575	0.5
+Problem14_label52	lcorr+fraig	403	79331	26.7
+Problem14_label53	scl+fraig	403	79331	26.3
+Problem14_label53	lcorr+fraig	403	79331	25.8
+Problem14_label18	scorr			100.0
+Problem14_label52	scorr			100.0
+Problem14_label53	scorr			100.0
+Problem14_label18	scorr+fraig			100.0
+Problem14_label54	strash	403	193575	0.4
+Problem14_label54	scl	403	193575	0.5
+Problem14_label54	scl+fraig	403	79331	20.7
+Problem14_label52	scorr+fraig			100.0
+transmitter.10.cil	strash	3469	106998	0.3
+Problem14_label54	lcorr+fraig	403	79331	23.7
+transmitter.10.cil	scl	3469	106998	0.4
+Problem14_label53	scorr+fraig			100.0
+Problem10_label21	strash	229	152722	0.3
+Problem10_label21	scl	104	152284	0.4
+Problem10_label21	scl+fraig	104	55011	14.7
+Problem10_label21	lcorr+fraig	45	54692	17.0
+transmitter.10.cil	scl+fraig	3469	105574	90.3
+Problem14_label54	scorr			100.0
+Problem10_label21	scorr			100.0
+transmitter.10.cil	lcorr+fraig	3469	105574	82.2
+Problem14_label54	scorr+fraig			100.0
+Problem15_label35	strash	197	1126065	2.0
+Problem15_label35	scl	133	1125744	3.0
+Problem10_label21	scorr+fraig			100.0
+fermat1-ll	strash	234	59988	0.2
+fermat1-ll	scl	234	59988	0.2
+transmitter.10.cil	scorr			100.0
+fermat1-ll	scl+fraig	234	58767	27.8
+Problem15_label35	scl+fraig			100.1
+transmitter.10.cil	scorr+fraig			100.0
+geo1-u_valuebound100	strash	262	40435	0.1
+geo1-u_valuebound100	scl	258	38164	0.1
+geo1-u_valuebound100	scl+fraig	258	36996	8.4
+geo1-u_valuebound100	lcorr+fraig	154	17359	4.5
+fermat1-ll	lcorr+fraig			100.0
+Problem15_label35	lcorr+fraig			100.1
+geo1-u_valuebound100	scorr	153	12419	62.3
+fermat1-ll	scorr			100.0
+geo1-u_valuebound100	scorr+fraig	153	12411	57.2
+prodbin-ll_unwindbound50	strash	294	32086	0.0
+Problem15_label35	scorr			100.1
+prodbin-ll_unwindbound50	scl	293	31764	0.1
+prodbin-ll_unwindbound50	scl+fraig	293	31158	4.9
+prodbin-ll_unwindbound50	lcorr+fraig	260	26074	5.2
+fermat1-ll	scorr+fraig			100.0
+sqrt1-ll_valuebound100	strash	234	36708	0.1
+sqrt1-ll_valuebound100	scl	234	36708	0.1
+Problem15_label35	scorr+fraig			100.0
+elevator_spec3_product19.cil	strash	1742	95975	0.3
+elevator_spec3_product19.cil	scl	3	6	0.3
+elevator_spec3_product19.cil	scl+fraig	3	6	0.3
+elevator_spec3_product19.cil	lcorr+fraig	3	6	0.4
+sqrt1-ll_valuebound100	scl+fraig	234	35360	20.2
+prodbin-ll_unwindbound50	scorr			100.0
+sqrt1-ll_valuebound100	lcorr+fraig	146	33863	17.8
+sqrt1-ll_valuebound100	scorr	21	215	0.2
+sqrt1-ll_valuebound100	scorr+fraig	21	215	0.2
+minepump_spec1_product28.cil	strash	232	6066	0.1
+minepump_spec1_product28.cil	scl	4	404	0.0
+minepump_spec1_product28.cil	scl+fraig	4	404	0.0
+minepump_spec1_product28.cil	lcorr+fraig	4	404	0.1
+minepump_spec1_product28.cil	scorr	4	397	0.1
+minepump_spec1_product28.cil	scorr+fraig	4	397	0.1
+minepump_spec4_product33.cil	strash	232	5516	0.1
+minepump_spec4_product33.cil	scl	38	1216	0.0
+minepump_spec4_product33.cil	scl+fraig	38	1171	0.1
+minepump_spec4_product33.cil	lcorr+fraig	8	457	0.1
+minepump_spec4_product33.cil	scorr	7	434	0.1
+minepump_spec4_product33.cil	scorr+fraig	7	434	0.1
+pals_opt-floodmax.5_overflow.ufo.UNBOUNDED.pals	strash	602	12557	0.1
+pals_opt-floodmax.5_overflow.ufo.UNBOUNDED.pals	scl	562	11597	0.1
+pals_opt-floodmax.5_overflow.ufo.UNBOUNDED.pals	scl+fraig	562	10175	1.5
+pals_opt-floodmax.5_overflow.ufo.UNBOUNDED.pals	lcorr+fraig	279	6851	1.0
+pals_opt-floodmax.5_overflow.ufo.UNBOUNDED.pals	scorr	279	6370	3.7
+pals_opt-floodmax.5_overflow.ufo.UNBOUNDED.pals	scorr+fraig	279	6370	4.2
+mem_slave_tlm.4.cil	strash	1965	91659	0.2
+mem_slave_tlm.4.cil	scl	1870	90816	0.3
+elevator_spec3_product19.cil	scorr	3	0	36.2
+elevator_spec3_product19.cil	scorr+fraig	3	0	36.7
+AllInterval-020	strash	4	59817	0.2
+AllInterval-020	scl	4	59817	0.1
+AllInterval-020	scl+fraig	4	59816	15.9
+AllInterval-020	lcorr+fraig	4	59816	16.3
+prodbin-ll_unwindbound50	scorr+fraig			100.0
+jain_4-2	strash	101	1584	0.1
+jain_4-2	scl	101	1584	0.0
+jain_4-2	scl+fraig	101	1584	0.1
+jain_4-2	lcorr+fraig	101	1584	0.1
+jain_4-2	scorr	101	1584	0.0
+jain_4-2	scorr+fraig	101	1584	0.1
+pc_sfifo_3.cil+token_ring.01.cil-2	strash	1094	23601	0.1
+pc_sfifo_3.cil+token_ring.01.cil-2	scl	1094	23601	0.1
+pc_sfifo_3.cil+token_ring.01.cil-2	scl+fraig	1094	22966	5.6
+pc_sfifo_3.cil+token_ring.01.cil-2	lcorr+fraig	1094	22966	5.3
+pc_sfifo_3.cil+token_ring.01.cil-2	scorr	1094	22966	8.1
+AllInterval-020	scorr	4	57444	27.4
+mem_slave_tlm.4.cil	scl+fraig			100.0
+pc_sfifo_3.cil+token_ring.01.cil-2	scorr+fraig	1094	22966	13.1
+Problem10_label27	strash	229	153819	0.3
+Problem10_label27	scl	229	153819	0.3
+Problem10_label27	scl+fraig	229	56963	13.4
+Problem10_label27	lcorr+fraig	229	56963	14.1
+AllInterval-020	scorr+fraig	4	57443	39.9
+Problem15_label46	strash	197	1126546	2.1
+Problem15_label46	scl	197	1126546	3.2
+mem_slave_tlm.4.cil	lcorr+fraig			100.0
+Problem10_label27	scorr			100.0
+Problem15_label46	scl+fraig			100.1
+mem_slave_tlm.4.cil	scorr			100.0
+Problem10_label27	scorr+fraig			100.0
+Problem15_label58	strash	197	1126553	2.2
+Problem15_label58	scl	197	1126553	3.3
+Problem15_label46	lcorr+fraig			100.1
+mem_slave_tlm.4.cil	scorr+fraig			100.0
+jm2006.c.i.v+cfa-reducer	strash	197	2335	0.1
+jm2006.c.i.v+cfa-reducer	scl	197	2335	0.0
+jm2006.c.i.v+cfa-reducer	scl+fraig	197	2335	0.1
+jm2006.c.i.v+cfa-reducer	lcorr+fraig	197	2335	0.1
+jm2006.c.i.v+cfa-reducer	scorr	197	2335	0.1
+jm2006.c.i.v+cfa-reducer	scorr+fraig	197	2335	0.1
+loopv3	strash	69	1196	0.0
+loopv3	scl	69	1196	0.0
+loopv3	scl+fraig	69	728	0.1
+loopv3	lcorr+fraig	69	728	0.1
+loopv3	scorr	69	728	0.1
+loopv3	scorr+fraig	69	728	0.1
+geo2-ll2_unwindbound1	strash	293	28233	0.1
+geo2-ll2_unwindbound1	scl	293	28233	0.1
+geo2-ll2_unwindbound1	scl+fraig	293	27919	2.3
+geo2-ll2_unwindbound1	lcorr+fraig	293	27919	2.3
+geo2-ll2_unwindbound1	scorr	293	27921	15.0
+geo2-ll2_unwindbound1	scorr+fraig	293	27919	18.5
+minepump_spec3_product49.cil	strash	229	8149	0.1
+minepump_spec3_product49.cil	scl	229	8149	0.1
+minepump_spec3_product49.cil	scl+fraig	229	7884	0.4
+minepump_spec3_product49.cil	lcorr+fraig	229	7884	0.4
+minepump_spec3_product49.cil	scorr	229	7884	0.9
+minepump_spec3_product49.cil	scorr+fraig	229	7884	1.2
+minepump_spec5_product10.cil	strash	261	3419	0.0
+minepump_spec5_product10.cil	scl	261	3419	0.0
+Problem15_label58	scl+fraig			100.1
+minepump_spec5_product10.cil	scl+fraig	261	3219	0.1
+minepump_spec5_product10.cil	lcorr+fraig	261	3219	0.1
+minepump_spec5_product10.cil	scorr	0	0	0.2
+minepump_spec5_product10.cil	scorr+fraig	0	0	0.2
+Problem15_label46	scorr			100.0
+pals_opt-floodmax.4.ufo.UNBOUNDED.pals	strash	417	8304	0.1
+pals_opt-floodmax.4.ufo.UNBOUNDED.pals	scl	417	8304	0.0
+pals_opt-floodmax.4.ufo.UNBOUNDED.pals	scl+fraig	417	7593	0.3
+pals_opt-floodmax.4.ufo.UNBOUNDED.pals	lcorr+fraig	417	7593	0.3
+pals_opt-floodmax.4.ufo.UNBOUNDED.pals	scorr	417	7589	0.5
+pals_opt-floodmax.4.ufo.UNBOUNDED.pals	scorr+fraig	417	7589	0.8
+Problem15_label58	lcorr+fraig			100.1
+Problem15_label46	scorr+fraig			100.0
+Problem15_label58	scorr			100.1
+Problem15_label58	scorr+fraig			100.1

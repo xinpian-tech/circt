@@ -1,0 +1,45 @@
+assert	config	backend	result	depth	seconds
+a_mul_result	unshare	ric3-ic3	UNSAT		21.55
+a_mul_result	unshare	ric3-ic3-bare	UNSAT		22.52
+a_mul_result	unshare	abc-bmc3	K	20	210.08
+a_mul_result	unshare	rbmc	K	20	218.25
+a_mulh_result	unshare	ric3-ic3	TO		300.04
+a_mulh_result	unshare	rbmc	TO	7	300.14
+a_mulh_result	unshare	abc-bmc3	TO		300.02
+a_mulh_result	unshare	ric3-ic3-bare	TO		305.01
+a_mulhsu_result	unshare	rbmc	TO	7	300.07
+a_mulhsu_result	unshare	abc-bmc3	TO		300.02
+a_shift_result_hh	unshare	abc-bmc3	K	20	33.34
+a_shift_result_hh	unshare	ric3-ic3-bare	UNSAT		8.71
+a_shift_result_hh	unshare	ric3-ic3	UNSAT		9.49
+a_shift_result_hh	unshare	rbmc	K	20	75.81
+a_shift_result_hl	unshare	abc-bmc3	K	20	18.13
+a_shift_result_hl	unshare	ric3-ic3-bare	UNSAT		9.38
+a_shift_result_hl	unshare	ric3-ic3	UNSAT		13.80
+a_shift_result_hl	unshare	rbmc	K	20	78.60
+a_shift_result_lh	unshare	abc-bmc3	K	20	14.44
+a_shift_result_lh	unshare	ric3-ic3-bare	UNSAT		12.55
+a_shift_result_lh	unshare	ric3-ic3	UNSAT		8.54
+a_shift_result_ll	unshare	rbmc	K	20	8.08
+a_shift_result_ll	unshare	abc-bmc3	K	20	8.76
+a_shift_result_ll	unshare	ric3-ic3-bare	UNSAT		1.38
+a_mulhsu_result	unshare	ric3-ic3-bare	TO		300.33
+a_shift_result_ll	unshare	ric3-ic3	UNSAT		8.22
+a_mulhsu_result	unshare	ric3-ic3	TO		300.04
+a_shift_result_lh	unshare	rbmc	K	20	81.80
+a_mulhu_result	unshare	rbmc	TO	7	300.08
+a_mulhu_result	unshare	abc-bmc3	TO		300.02
+a_mulhu_result	unshare	ric3-ic3-bare	TO		305.01
+a_mulhu_result	unshare	ric3-ic3	TO		305.01
+a_shift_result_ll_lh	unshare	rbmc	TO	6	300.07
+a_shift_result_ll_lh	unshare	abc-bmc3	TO		300.03
+a_shift_result_ll_lh	unshare	ric3-ic3-bare	TO		300.08
+a_shift_result_ll_lh	unshare	ric3-ic3	TO		300.61
+a_shift_result_ll_lh_hl_shift	unshare	rbmc	TO	7	300.07
+a_shift_result_ll_lh_hl_shift	unshare	abc-bmc3	TO		300.03
+a_shift_result_ll_lh_hl_shift	unshare	ric3-ic3-bare	TO		300.10
+a_shift_result_ll_lh_hl_shift	unshare	ric3-ic3	TO		300.04
+a_shift_result_ll_shift	unshare	rbmc	TO	6	300.11
+a_shift_result_ll_shift	unshare	abc-bmc3	TO		300.02
+a_shift_result_ll_shift	unshare	ric3-ic3-bare	TO		300.06
+a_shift_result_ll_shift	unshare	ric3-ic3	TO		300.03

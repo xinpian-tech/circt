@@ -1,0 +1,61 @@
+assert	config	backend	result	depth	seconds
+a_fencei_lsu_busy	full	ric3-ic3	UNSAT		10.59
+a_fencei_lsu_busy	full	ric3-ic3-bare	UNSAT		16.16
+a_fencei_lsu_busy	rfcut	ric3-ic3-bare	UNSAT		13.17
+a_fencei_lsu_busy	rfcut	ric3-ic3	UNSAT		13.09
+a_fencei_lsu_busy	full	rbmc	K	20	44.62
+a_fencei_lsu_busy	rfcut	rbmc	K	20	41.05
+a_tdata1_writes_unique	full	ric3-ic3	UNSAT		37.68
+a_tdata1_writes_unique	full	rbmc	K	20	67.66
+a_tdata1_writes_unique	full	ric3-ic3-bare	UNSAT		70.83
+a_tdata1_writes_unique	rfcut	ric3-ic3	UNSAT		10.77
+a_tdata1_writes_unique	rfcut	rbmc	K	20	58.40
+a_jalr_fwd	full	ric3-ic3-bare	UNSAT		26.15
+a_jalr_fwd	full	ric3-ic3	UNSAT		11.05
+a_jalr_fwd	full	rbmc	K	20	69.65
+a_jalr_fwd	rfcut	ric3-ic3-bare	UNSAT		16.97
+a_jalr_fwd	rfcut	ric3-ic3	UNSAT		35.49
+a_jalr_fwd	rfcut	rbmc	K	20	67.57
+a_tdata1_writes_unique	rfcut	ric3-ic3-bare	TO		150.08
+a_csr_wr_in_wb_no_fetch	full	ric3-ic3	UNSAT		10.50
+a_csr_wr_in_wb_no_fetch	full	ric3-ic3-bare	UNSAT		31.92
+a_csr_wr_in_wb_no_fetch	rfcut	ric3-ic3-bare	UNSAT		52.40
+a_csr_wr_in_wb_no_fetch	rfcut	ric3-ic3	UNSAT		20.35
+a_csr_wr_in_wb_no_fetch	full	rbmc	K	20	118.84
+a_csr_wr_in_wb_no_fetch	rfcut	rbmc	K	20	106.59
+a_set_clear_mepc_q	full	ric3-ic3	UNSAT		16.09
+a_set_clear_mepc_q	full	ric3-ic3-bare	UNSAT		26.28
+a_set_clear_mepc_q	rfcut	ric3-ic3-bare	UNSAT		32.19
+a_set_clear_mepc_q	rfcut	ric3-ic3	UNSAT		17.72
+a_set_clear_mepc_q	full	rbmc	K	20	121.57
+a_set_clear_mepc_q	rfcut	rbmc	K	20	112.32
+a_mret_dbg_mode_illegal	full	rbmc	TO	19	150.37
+a_mret_dbg_mode_illegal	full	ric3-ic3-bare	TO		150.17
+a_mret_dbg_mode_illegal	full	ric3-ic3	TO		150.05
+a_mret_dbg_mode_illegal	rfcut	ric3-ic3	UNSAT		34.01
+a_mret_dbg_mode_illegal	rfcut	rbmc	TO	19	150.18
+a_set_clear_tdata2_q	full	ric3-ic3-bare	UNSAT		32.93
+a_mret_dbg_mode_illegal	rfcut	ric3-ic3-bare	TO		150.08
+a_set_clear_tdata2_q	full	ric3-ic3	UNSAT		13.55
+a_set_clear_tdata2_q	rfcut	ric3-ic3-bare	UNSAT		30.05
+a_set_clear_tdata2_q	rfcut	ric3-ic3	UNSAT		15.01
+a_set_clear_tdata2_q	full	rbmc	TO	19	150.44
+a_set_clear_tdata2_q	rfcut	rbmc	TO	19	150.29
+a_check_result_constant	full	rbmc	TO	7	150.16
+a_check_result_constant	full	ric3-ic3-bare	TO		150.07
+a_check_result_constant	full	ric3-ic3	TO		155.03
+a_check_result_constant	rfcut	rbmc	TO	7	150.25
+a_check_result_constant	rfcut	ric3-ic3-bare	TO		150.06
+a_check_result_constant	rfcut	ric3-ic3	TO		150.03
+a_pushpop_atomic_end_sequence_popretz	full	rbmc	TO	12	150.13
+a_pushpop_atomic_end_sequence_popretz	full	ric3-ic3-bare	TO		150.19
+a_pushpop_atomic_end_sequence_popretz	full	ric3-ic3	TO		150.05
+a_pushpop_atomic_end_sequence_popretz	rfcut	rbmc	TO	13	150.24
+a_pushpop_atomic_end_sequence_popretz	rfcut	ric3-ic3-bare	TO		150.11
+a_pushpop_atomic_end_sequence_popretz	rfcut	ric3-ic3	TO		150.06
+a_no_context_from_pointer	full	rbmc	TO	12	150.29
+a_no_context_from_pointer	full	ric3-ic3-bare	TO		150.07
+a_no_context_from_pointer	full	ric3-ic3	TO		150.07
+a_no_context_from_pointer	rfcut	rbmc	TO	13	150.25
+a_no_context_from_pointer	rfcut	ric3-ic3-bare	TO		150.07
+a_no_context_from_pointer	rfcut	ric3-ic3	TO		150.04
