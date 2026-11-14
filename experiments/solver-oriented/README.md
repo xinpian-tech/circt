@@ -1,0 +1,95 @@
+# A: simplification for solvers
+
+Branch `exp/solver-oriented-simplification`, started 2026-11-14 from
+`exp/synth-for-solver` (300af2c3d). Status: plan under discussion, nothing
+measured on this branch yet.
+
+## Idea
+
+The synthesis passes of CIRCT (circt-synth) optimize area and delay. A model
+checker needs something else: a model that is solved quickly. This branch
+designs and implements simplifications in CIRCT whose objective is solver
+time, and measures them on several solver back ends.
+
+This is a different idea from branch `exp/compile-once-simplify-many` (B),
+which is about when to redo simplifications, not about which ones to do.
+
+## Evidence so far (from exp/synth-for-solver, experiments/synth-solver)
+
+For the idea:
+
+- SOP balancing and the circt-synth `opt` flow make BMC slower (1.18x,
+  1.39x) on 97 CV32E40X assertions; they add 8-19% AND gates.
+- ConvertCombToDatapath makes one assertion 50x slower for IC3 with fewer
+  AND gates.
+- `verif-simplify-odc` proves 20 assertions outright from the SVA structure.
+
+Against, or open:
+
+- The largest gain (signal correspondence, BMC 2.8x faster) is a
+  reimplementation of ABC `scorr` and equals it; the pass is about 6x
+  slower than ABC (316 s against 51 s per model).
+- IC3 with rIC3's own preprocessing is insensitive to most combinational
+  rewrites.
+- There is no cost function yet that says whether a rewrite helps a solver;
+  AND count is not one.
+- The synthetic miter experiments (word-level rewrites decide whether a
+  miter is solved) were removed from the branch on 2026-11-14 (300af2c3d);
+  they are in the history.
+
+## Benchmark plan (2026-11-14)
+
+Two groups of back ends. The question in each cell is the solve time of the
+baseline model against the simplified model.
+
+1. Without preprocessing, to see what a simplification does by itself:
+   rBMC (Tseitin only), rIC3 with `--preproc false` (and its scorr and frts
+   off), CaDiCaL without inprocessing.
+2. With preprocessing, to see whether our simplifications are already
+   covered by the existing ones, and whether they are better: the same
+   tools with their preprocessing on.
+
+To settle:
+
+- What "CaDiCaL" means as a back end. It is a SAT solver, not a model
+  checker; the proposal is rBMC with two CaDiCaL configurations (plain,
+  i.e. no inprocessing, and default).
+- What "rBMC with preprocessing" means: rBMC has none by design. Candidates:
+  rIC3's `bmc` (which runs rIC3's preprocessing first) or ABC `bmc3`.
+- Models: CV32E40X (97 assertions, with the environment constraints) and
+  HWMCC, so that results are not specific to one design.
+- Metrics: time to depth 20 or to the counterexample (BMC), solved and time
+  (IC3), with repetitions; latches and ANDs only as a size note.
+
+## First target: signal correspondence (scorr)
+
+What exists:
+
+- ABC `scorr`: Mishchenko, Case, Brayton, Jang, "Scalable and
+  scalably-verifiable sequential synthesis", ICCAD 2008. Induction over
+  equivalence classes of registers and internal nodes, with speculative
+  reduction (Mony, Baumgartner, Mishchenko, Brayton, "Speculative
+  reduction-based scalable redundancy identification", DATE 2009). Origin:
+  van Eijk, "Sequential equivalence checking based on structural
+  similarities", TCAD 2000; with SAT: Bjesse and Claessen, "SAT-based
+  verification without state space traversal", FMCAD 2000.
+- rIC3 (`src/transys/scorr.rs`, on by default, `--scorr`): latches only,
+  and each pair is checked by itself (x = y implies x' = y', 10 restarts),
+  not by induction over all classes together. It is weaker than ABC's.
+- CIRCT, this branch: `synth-register-correspondence` (registers; with
+  `internal` also AND gates; options `constraints`, `property-directed`).
+  Same registers merged as ABC on CV32E40X, 12% more ANDs left, slower.
+
+Questions for this target:
+
+- Can CIRCT do better than ABC, using what an AIG does not have: word-level
+  registers and operators (classes of words instead of bits), the module
+  hierarchy (instances of the same module as candidates), the assumptions,
+  the property?
+- Can every model use it? AIGER models can go through ImportAIGER and
+  ExportAIGER (initial values, bad states and constraints are supported).
+  Open: registers with unknown initial values, resets and several clocks
+  are treated as free inputs; models of 200k ANDs take over 10 minutes.
+- Which back ends gain: BMC gains 2.8x on CV32E40X; rIC3 with its
+  preprocessing does its own (weaker) scorr; IC3 without preprocessing is
+  not measured yet.
