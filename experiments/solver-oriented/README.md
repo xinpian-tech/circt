@@ -39,27 +39,35 @@ Against, or open:
 
 ## Benchmark plan (2026-11-14)
 
-Two groups of back ends. The question in each cell is the solve time of the
-baseline model against the simplified model.
+Three model checkers, each without and with preprocessing. The question in
+each cell is the solve time of the baseline model against the simplified
+model.
 
-1. Without preprocessing, to see what a simplification does by itself:
-   rBMC (Tseitin only), rIC3 with `--preproc false` (and its scorr and frts
-   off), CaDiCaL without inprocessing.
-2. With preprocessing, to see whether our simplifications are already
-   covered by the existing ones, and whether they are better: the same
-   tools with their preprocessing on.
+| | without preprocessing | with preprocessing |
+|---|---|---|
+| rBMC | as it is (Tseitin only) | none of its own; candidate: the model after rIC3's preprocessing |
+| rIC3 | `ic3 --preproc false`, scorr and frts off | `bmc` and `ic3` with the defaults |
+| ABC | `bmc3`, `pdr` alone | `scorr`, `fraig`, `dc2` first (as `dprove` does) |
 
-To settle:
+- Without preprocessing shows what a simplification does by itself.
+- With preprocessing shows whether our simplifications are already covered
+  by the existing ones, and whether they are better.
 
-- What "CaDiCaL" means as a back end. It is a SAT solver, not a model
-  checker; the proposal is rBMC with two CaDiCaL configurations (plain,
-  i.e. no inprocessing, and default).
-- What "rBMC with preprocessing" means: rBMC has none by design. Candidates:
-  rIC3's `bmc` (which runs rIC3's preprocessing first) or ABC `bmc3`.
+Notes:
+
+- ABC has two roles, back end and simplifier to compare with (`scorr`);
+  they are reported apart.
+- ABC reads latches without an initial value as 0. Models with unknown
+  initial values (CV32E40X) need them made explicit (a free input used in
+  the first cycle) before any back end sees them, the same model for all.
+- ABC `bmc3` propagates constants and hashes while unrolling; its column
+  without preprocessing is less pure than rBMC's.
+- CaDiCaL with and without inprocessing is a secondary dimension of rBMC
+  (do gains only show with a weak SAT solver?), not a back end.
 - Models: CV32E40X (97 assertions, with the environment constraints) and
   HWMCC, so that results are not specific to one design.
 - Metrics: time to depth 20 or to the counterexample (BMC), solved and time
-  (IC3), with repetitions; latches and ANDs only as a size note.
+  (IC3/PDR), with repetitions; latches and ANDs only as a size note.
 
 ## First target: signal correspondence (scorr)
 
