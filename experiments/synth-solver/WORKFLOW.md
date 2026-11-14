@@ -51,7 +51,7 @@ For CV32E40X (cv32e40x/README.md has the details and known gaps):
   explicit initial values (see cv32e40x/README.md). Its PRE pipeline is
   where verif-level passes go (before `lower-ltl-to-core`).
 - `run_configs.sh` lowers each model with several configurations (`raw`,
-  `canon`, `synth`, `synth-area`, `synth-nodp`, `sc`, ...), exports AIGER and
+  `canon`, `synth`, `synth-area`, `synth-nodp`, ...), exports AIGER and
   runs rIC3 with and without its own preprocessing. Output TSV: assert,
   config, engine, latches, ands, result, seconds. Set `CFGS`, `TL`, `P`.
 - `cone.py MODEL.mlir [--print]` shows what is left of an assertion's

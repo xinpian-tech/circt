@@ -20,32 +20,15 @@ hierarchy, meaningful predicates) to do what the solver cannot?
 Tools: upstream CIRCT built locally with cmake (`toolchain.nix`, `env.sh`;
 the repo's nix flake failed on truncated source downloads); rIC3 and ABC.
 
-1. Synthetic miters of the CombRewriter (ASP-DAC 2026) rewrite patterns
-   (`gen.py`, `run.sh`, README runs 1-2):
-   - CIRCT word-level canonicalize decides commutativity/reordering miters
-     (raw TO -> 0.05 s); bit-level passes (dc2, functional reduction) cannot
-     recover them.
-   - Canonicalize's n-ary flattening hurts the shared-product pattern (raw
-     solves, canonicalized TO).
-   - Prototype solver-oriented canonicalizer `solvercanon.py` (mux
-     push-down, associative chains that keep shared sub-terms): 112/112
-     solved vs 94/112 for circt-synth; mux push-down and associativity are
-     the rules that matter; result is larger than area-optimal.
-   - Caveat: models are built from the targeted patterns.
-2. Real design, rocket-chip TinyConfig (`rocket/`, README there):
-   - Chisel -> firtool --lower-to-core -> `prep.py` (CIRCT Python bindings:
-     flatten, reset, memories, asserts -> bad, COI) -> configs -> AIGER.
-   - 40 random asserts, both firtool -O levels, 5 configs, 3 solvers: all
-     UNSAT and consistent; simplification cuts ANDs up to 47% but changes
-     solved counts by <= 3/40 with no consistent direction. Structural
-     hashing is the only necessary step (26.5M ANDs without it).
-   - TileLink protocol properties have no mul/mux datapath, so the word-level
-     rewrites of item 1 have nothing to act on there.
-3. `btor2mlir.py`: BTOR2 (bit-vector) importer, written for HWMCC'24 BV
-   (downloaded to yjh-workspace/hwmcc24-bv), not used after switching to
-   rocket-chip.
+The synthetic miter experiments (CombRewriter rewrite patterns, the
+`solvercanon.py` prototype) and the rocket-chip TinyConfig experiments were
+removed from the branch on 2026-11-14; they are in the history before that
+date.
 
-4. CV32E40X (`cv32e40x/`, README there), 2026-11-06:
+1. `btor2mlir.py`: BTOR2 (bit-vector) importer, written for HWMCC'24 BV
+   (downloaded to yjh-workspace/hwmcc24-bv), not used.
+
+2. CV32E40X (`cv32e40x/`, README there), 2026-11-06:
    - SystemVerilog + SVA -> circt-verilog -> `lower_regs.py` (registers with
      reset semantics, LLHD signals, assertions -> bad) -> AIGER; 24 modules
      export. ex_stage with the mult/div SVA: 12 multiplier checks time out
@@ -87,17 +70,12 @@ the repo's nix flake failed on truncated source downloads); rIC3 and ABC.
 - Sequence operators not yet lowered by verif-assertions-to-output
   (`until`, goto repetition, sequence `or`; 7 core assertions).
 
-- The 3 rocket asserts never solved and the unstable ones (e.g.
-  assert__assert_103#23): find what makes them hard (invariant size vs query
-  hardness); test rIC3 `--inn`. If internal signals help, let CIRCT export
-  word-level predicates as candidate lemma variables.
 - Designs with real datapaths (multipliers, ALU/FPU properties, or
-  equivalence of a design and its rewritten version) for the word-level
-  rewrites; turn `solvercanon.py` into a CIRCT pass if they help.
-- Larger assert sample on rocket; other configs (DefaultConfig).
+  equivalence of a design and its rewritten version) for word-level
+  rewrites.
 
 ## Locations
 
-- Code/results: this directory (`results-run*.tsv`, `rocket/results-run2.tsv`).
-- Data: /var/storage/workspaces/clo91eaf/yjh-workspace/{microexp-data/synth-solver*, rocket-mlir, rocket-chip, hwmcc24-bv}.
+- Code/results: this directory (`cv32e40x/results-*.tsv`).
+- Data: /var/storage/workspaces/clo91eaf/yjh-workspace/{microexp-data/synth-solver*, hwmcc24-bv}.
 - CIRCT build: ../../build (local, not committed).

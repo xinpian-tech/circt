@@ -7,10 +7,9 @@ set -u
 H=$(cd "$(dirname "$0")" && pwd)
 source $H/../env.sh
 RIC3=${RIC3:-/var/storage/workspaces/clo91eaf/yjh-workspace/rIC3-target-rebuild-20261106/release/ric3-bundled}
-SC=$H/../solvercanon.py
 IN=$1; shift
 OUT=${OUT:-$IN/configs}; TL=${TL:-300}; P=${P:-14}
-CFGS=${CFGS:-"raw canon synth synth-area sc sc+synth"}
+CFGS=${CFGS:-"raw canon synth synth-area"}
 ENGS=${ENGS:-"ric3-ic3 ric3-bare"}
 mkdir -p $OUT
 BITS='synth-lower-variadic,synth-lower-word-to-bits'
@@ -19,9 +18,6 @@ RAW="hw.module(hw-aggregate-to-comb,convert-comb-to-synth,$BITS,synth-structural
 # lower MODEL.mlir CONFIG OUT.aig
 lower() {
   local m=$1 c=$2 o=$3
-  case $c in
-    sc|sc+synth) python3 $SC $m $o.sc.mlir || return 1; m=$o.sc.mlir; c=${c#sc}; c=${c#+}; c=${c:-raw} ;;
-  esac
   case $c in
     raw) circt-opt $m --pass-pipeline="builtin.module($RAW)" ;;
     canon) circt-opt $m --pass-pipeline="builtin.module(canonicalize,cse,$RAW)" ;;
@@ -45,7 +41,7 @@ one() {
   printf "%s\t%s\t%s\t%s\t%s\t%.1f\n" $a $c $e "$(head -1 $f | awk '{print $4"\t"$6}')" "${r:-TO}" \
     "$(echo "$(date +%s.%N)-$s" | bc)"
 }
-export -f lower solve one; export RIC3 SC OUT TL RAW
+export -f lower solve one; export RIC3 OUT TL RAW
 
 for a in "$@"; do for c in $CFGS; do echo $a $c; done; done |
   xargs -P $P -L1 bash -c 'lower $0/$1.mlir $2 $OUT/$1.$2.aig 2>$OUT/$1.$2.err || echo "lower failed $1 $2" >&2' "$IN"

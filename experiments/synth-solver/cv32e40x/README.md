@@ -279,10 +279,10 @@ preprocessing off), 300 s, 14 jobs in parallel.
 - circt-synth slows the accumulator properties: a_check_acc_init_zero is
   1-2 s on the raw AIG and 105-140 s after circt-synth (this is the 53 s of
   the baseline, which used circt-synth). Fewer ANDs, much harder for IC3.
-- solvercanon.py removes only 2-5 ANDs on these models, but
-  a_check_acc_mul_value_zero is fastest with it (136 s vs 185 s raw with
-  IC3; with preprocessing off, 190 s vs timeout). One sample per cell, so
-  only a hint.
+- The `sc` and `sc+synth` rows of the TSV used solvercanon.py, a Python
+  prototype of a word-level canonicalizer that has since been removed (with
+  the synthetic miter experiments); `run_configs.sh` no longer has these
+  configurations. It removed only 2-5 ANDs on these models.
 
 ## Which circt-synth pass slows a_check_acc_init_zero
 
