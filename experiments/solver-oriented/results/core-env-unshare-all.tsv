@@ -1,0 +1,292 @@
+assert	config	backend	result	depth	seconds
+a_addr_incr	unshare	ric3-ic3-bare	UNSAT		3.09
+a_branch_taken_ex_flush	unshare	ric3-ic3-bare	UNSAT		5.46
+a_addr_incr	unshare	ric3-ic3	UNSAT		7.52
+a_branch_taken_ex_flush	unshare	ric3-ic3	UNSAT		9.42
+a_check_acc_mul_value_zero	unshare	rbmc	K	20	63.42
+a_branch_taken_ex_flush	unshare	rbmc	K	20	80.70
+a_check_acc_mul_value_zero	unshare	ric3-ic3	UNSAT		17.82
+a_addr_incr	unshare	rbmc	TO	17	150.55
+a_bubble_ex_when_branch_taken_wb	unshare	rbmc	TO	15	150.36
+a_bubble_ex_when_branch_taken_wb	unshare	ric3-ic3-bare	TO		150.05
+a_bubble_ex_when_branch_taken_wb	unshare	ric3-ic3	TO		150.04
+a_clock_en_5	unshare	ric3-ic3-bare	UNSAT		0.57
+a_clock_en_5	unshare	rbmc	K	20	3.27
+a_core_sleep	unshare	rbmc	K	20	2.28
+a_core_sleep	unshare	ric3-ic3-bare	UNSAT		0.59
+a_clock_en_5	unshare	ric3-ic3	UNSAT		7.88
+a_core_sleep	unshare	ric3-ic3	UNSAT		7.60
+a_csr_wr_in_wb_no_fetch	unshare	ric3-ic3-bare	UNSAT		42.64
+a_check_acc_mul_value_zero	unshare	ric3-ic3-bare	TO		150.08
+a_csr_wr_in_wb_no_fetch	unshare	ric3-ic3	UNSAT		16.68
+a_check_result_constant	unshare	rbmc	TO	7	150.38
+a_check_result_constant	unshare	ric3-ic3-bare	TO		150.09
+a_check_result_constant	unshare	ric3-ic3	TO		150.05
+a_csr_wr_in_wb_no_fetch	unshare	rbmc	TO	19	150.43
+a_data_obi_max_2_outstanding_transactions	unshare	ric3-ic3	UNSAT		42.68
+a_data_i_stable_during_waited_addr_ph	unshare	rbmc	TO	15	150.37
+a_data_i_stable_during_waited_addr_ph	unshare	ric3-ic3-bare	TO		150.18
+a_data_obi_max_2_outstanding_transactions	unshare	rbmc	K	20	79.12
+a_data_i_stable_during_waited_addr_ph	unshare	ric3-ic3	TO		150.05
+a_data_obi_max_2_outstanding_transactions	unshare	ric3-ic3-bare	TO		150.36
+a_data_o_stable_during_waited_addr_ph	unshare	rbmc	TO	16	150.35
+a_data_o_stable_during_waited_addr_ph	unshare	ric3-ic3-bare	TO		150.08
+a_enter_sleep_no_lsu	unshare	ric3-ic3-bare	UNSAT		1.17
+a_enter_sleep_no_lsu	unshare	rbmc	K	20	16.16
+a_data_o_stable_during_waited_addr_ph	unshare	ric3-ic3	TO		150.05
+a_debug_taken_rf_write	unshare	rbmc	TO	19	151.18
+a_enter_sleep_no_lsu	unshare	ric3-ic3	UNSAT		7.53
+a_debug_taken_rf_write	unshare	ric3-ic3-bare	TO		150.10
+a_fencei_hndshk_ack_b4_req_clear	unshare	ric3-ic3-bare	UNSAT		26.70
+a_debug_taken_rf_write	unshare	ric3-ic3	UNSAT		141.93
+a_fencei_hndshk_ack_b4_req_clear	unshare	rbmc	K	20	67.61
+a_fencei_hndshk_ack_b4_req_clear	unshare	ric3-ic3	UNSAT		28.16
+a_fencei_hndshk_req_when_fencei_wb	unshare	ric3-ic3	UNSAT		12.99
+a_fencei_hndshk_req_when_fencei_wb	unshare	ric3-ic3-bare	UNSAT		39.42
+a_fencei_lsu_busy	unshare	ric3-ic3-bare	UNSAT		17.88
+a_fencei_lsu_busy	unshare	ric3-ic3	UNSAT		8.58
+a_fencei_lsu_busy	unshare	rbmc	K	20	51.35
+a_exc_no_sequence_debug	unshare	rbmc	TO	16	150.20
+a_fencei_wb_valid	unshare	ric3-ic3-bare	UNSAT		9.98
+a_exc_no_sequence_debug	unshare	ric3-ic3-bare	TO		150.09
+a_functional_unit_enable_onehot_noptr	unshare	ric3-ic3-bare	UNSAT		0.70
+a_exc_no_sequence_debug	unshare	ric3-ic3	TO		150.07
+a_functional_unit_enable_onehot_noptr	unshare	rbmc	K	20	3.10
+a_functional_unit_enable_onehot_noptr	unshare	ric3-ic3	UNSAT		7.45
+a_fencei_wb_valid	unshare	ric3-ic3	UNSAT		19.00
+a_gate_clk_i	unshare	ric3-ic3	UNSAT		9.25
+a_gate_clk_i	unshare	ric3-ic3-bare	UNSAT		15.94
+a_fencei_hndshk_req_when_fencei_wb	unshare	rbmc	K	20	123.77
+a_illegal_2	unshare	rbmc	K	20	2.78
+a_illegal_2	unshare	ric3-ic3-bare	UNSAT		0.69
+a_fencei_wb_valid	unshare	rbmc	K	20	64.07
+a_illegal_2	unshare	ric3-ic3	UNSAT		7.06
+a_if_ex_trig_exclusive	unshare	ric3-ic3-bare	UNSAT		61.39
+a_if_ex_trig_exclusive	unshare	rbmc	K	20	90.62
+a_instr_err_mepc	unshare	ric3-ic3-bare	UNSAT		60.30
+a_instr_err_mepc	unshare	ric3-ic3	UNSAT		47.91
+a_gate_clk_i	unshare	rbmc	TO	16	150.21
+a_if_ex_trig_exclusive	unshare	ric3-ic3	TO		150.13
+a_instr_err_mepc	unshare	rbmc	K	20	128.95
+a_irq_pri	unshare	ric3-ic3	UNSAT		25.69
+a_irq_pri	unshare	ric3-ic3-bare	UNSAT		59.06
+a_interruptible_equivalency	unshare	rbmc	TO	10	150.15
+a_interruptible_equivalency	unshare	ric3-ic3-bare	TO		150.26
+a_jalr_fwd	unshare	ric3-ic3-bare	UNSAT		42.82
+a_jalr_fwd	unshare	ric3-ic3	UNSAT		16.30
+a_interruptible_equivalency	unshare	ric3-ic3	TO		150.04
+a_jalr_fwd	unshare	rbmc	K	20	75.80
+a_kill_state	unshare	ric3-ic3-bare	UNSAT		0.95
+a_kill_state	unshare	rbmc	K	20	7.82
+a_kill_state	unshare	ric3-ic3	UNSAT		7.04
+a_latched_bus_error	unshare	ric3-ic3-bare	UNSAT		12.22
+a_irq_pri	unshare	rbmc	TO	18	150.34
+a_latched_bus_error	unshare	ric3-ic3	UNSAT		9.67
+a_lsu_wb_valid	unshare	ric3-ic3-bare	UNSAT		7.61
+a_lsu_wb_valid	unshare	ric3-ic3	UNSAT		9.49
+a_latched_bus_error	unshare	rbmc	K	20	76.05
+a_lsu_wb_valid	unshare	rbmc	K	20	76.23
+a_jalr_fw_match	unshare	rbmc	TO	13	150.43
+a_jalr_fw_match	unshare	ric3-ic3-bare	TO		150.25
+a_jalr_fw_match	unshare	ric3-ic3	TO		150.07
+a_max_seq_len_pop	unshare	rbmc	TO	18	150.32
+a_max_seq_len_pop	unshare	ric3-ic3-bare	TO		150.08
+a_max_seq_len_pop	unshare	ric3-ic3	TO		150.12
+a_max_seq_len_popret	unshare	rbmc	TO	18	150.21
+a_max_seq_len_popret	unshare	ric3-ic3-bare	TO		150.10
+a_max_seq_len_popret	unshare	ric3-ic3	TO		150.04
+a_max_seq_len_popretz	unshare	rbmc	TO	19	150.41
+a_max_seq_len_popretz	unshare	ric3-ic3-bare	TO		150.14
+a_max_seq_len_popretz	unshare	ric3-ic3	TO		150.13
+a_mcontrol6_hit_set	unshare	ric3-ic3-bare	UNSAT		49.00
+a_mip_mie_write_disable	unshare	rbmc	K	20	2.49
+a_max_seq_len_push	unshare	rbmc	TO	17	150.27
+a_mip_mie_write_disable	unshare	ric3-ic3-bare	UNSAT		0.51
+a_mip_mie_write_disable	unshare	ric3-ic3	UNSAT		6.96
+a_max_seq_len_push	unshare	ric3-ic3-bare	TO		150.08
+a_max_seq_len_push	unshare	ric3-ic3	TO		150.05
+a_mcontrol6_hit_set	unshare	rbmc	K	20	96.36
+a_mip_mie_write_enable	unshare	ric3-ic3	UNSAT		21.11
+a_mcontrol6_hit_set	unshare	ric3-ic3	TO		150.06
+a_mip_mie_write_enable	unshare	ric3-ic3-bare	UNSAT		123.30
+a_mip_mie_write_enable	unshare	rbmc	TO	19	151.12
+a_mret_dbg_mode_illegal	unshare	rbmc	TO	19	150.45
+a_mret_dbg_mode_illegal	unshare	ric3-ic3-bare	TO		150.08
+a_mret_in_wb_csr_restore_mret	unshare	ric3-ic3-bare	UNSAT		36.92
+a_mret_dbg_mode_illegal	unshare	ric3-ic3	TO		150.04
+a_mret_in_wb_csr_restore_mret	unshare	ric3-ic3	UNSAT		105.91
+a_mret_in_wb_csr_restore_mret	unshare	rbmc	TO	18	150.37
+a_mulh_result	unshare	rbmc	TO	7	150.08
+a_mulh_result	unshare	ric3-ic3-bare	TO		150.08
+a_mulh_result	unshare	ric3-ic3	TO		150.05
+a_mulhsu_result	unshare	rbmc	TO	7	150.09
+a_mulhsu_result	unshare	ric3-ic3-bare	TO		150.06
+a_mulhsu_result	unshare	ric3-ic3	TO		150.05
+a_mul_result	unshare	ric3-ic3-bare	UNSAT		9.86
+a_mul_result	unshare	ric3-ic3	UNSAT		9.03
+a_mul_result	unshare	rbmc	K	20	105.99
+a_nmi_handler_max_retire	unshare	ric3-ic3	UNSAT		11.37
+a_no_back_to_back_branch	unshare	rbmc	K	20	4.23
+a_no_back_to_back_branch	unshare	ric3-ic3-bare	UNSAT		0.41
+a_no_back_to_back_branch	unshare	ric3-ic3	UNSAT		2.96
+a_mulhu_result	unshare	rbmc	TO	7	150.06
+a_mulhu_result	unshare	ric3-ic3-bare	TO		150.06
+a_mulhu_result	unshare	ric3-ic3	TO		150.04
+a_nmi_handler_max_retire	unshare	ric3-ic3-bare	UNSAT		67.20
+a_nmi_handler_max_retire	unshare	rbmc	K	20	86.23
+a_no_event_during_debug_taken_nonstep	unshare	ric3-ic3	UNSAT		5.24
+a_no_event_during_debug_taken_nonstep	unshare	ric3-ic3-bare	UNSAT		20.89
+a_no_event_during_debug_taken_nonstep	unshare	rbmc	K	20	56.04
+a_no_event_during_debug_taken_step	unshare	ric3-ic3	UNSAT		12.77
+a_no_event_during_debug_taken_step	unshare	rbmc	K	20	79.13
+a_no_event_during_debug_taken_step	unshare	ric3-ic3-bare	UNSAT		84.14
+a_no_context_from_pointer	unshare	rbmc	TO	15	150.17
+a_no_context_from_pointer	unshare	ric3-ic3-bare	TO		150.05
+a_no_irq_write_during_sleep	unshare	ric3-ic3-bare	UNSAT		0.47
+a_no_context_from_pointer	unshare	ric3-ic3	TO		150.03
+a_no_irq_write_during_sleep	unshare	ric3-ic3	UNSAT		3.22
+a_no_sleep_during_debug	unshare	ric3-ic3-bare	UNSAT		8.88
+a_no_sleep_during_debug	unshare	ric3-ic3	UNSAT		4.10
+a_no_irq_write_during_sleep	unshare	rbmc	K	20	24.78
+a_no_sleep_during_debug	unshare	rbmc	K	20	27.35
+a_not_busy_during_sleep	unshare	ric3-ic3	UNSAT		4.08
+a_not_busy_during_sleep	unshare	ric3-ic3-bare	UNSAT		15.56
+a_no_transaction_count_overflow_0	unshare	ric3-ic3-bare	UNSAT		3.63
+a_no_transaction_count_overflow_0	unshare	ric3-ic3	UNSAT		3.86
+a_no_transaction_count_overflow_0	unshare	rbmc	K	20	25.77
+a_only_wpt_lsu_valid_sticky	unshare	ric3-ic3-bare	UNSAT		2.88
+a_only_wpt_lsu_valid_sticky	unshare	ric3-ic3	UNSAT		5.32
+a_no_exc_no_sequence_debug	unshare	rbmc	TO	15	150.26
+a_only_wpt_lsu_valid_sticky	unshare	rbmc	K	20	38.31
+a_opb_fwd_wb	unshare	ric3-ic3	UNSAT		4.67
+a_opb_fwd_wb	unshare	ric3-ic3-bare	UNSAT		10.16
+a_pma_expect_err	unshare	rbmc	K	20	1.22
+a_pma_expect_err	unshare	ric3-ic3-bare	UNSAT		0.28
+a_pma_expect_err	unshare	ric3-ic3	UNSAT		3.28
+a_not_busy_during_sleep	unshare	rbmc	K	20	80.09
+a_opb_fwd_wb	unshare	rbmc	K	20	42.60
+a_no_exc_no_sequence_debug	unshare	ric3-ic3-bare	TO		150.05
+a_no_exc_no_sequence_debug	unshare	ric3-ic3	TO		150.03
+a_pushpop_atomic_end_sequence_popret	unshare	rbmc	TO	14	150.13
+a_pushpop_atomic_end_sequence_popret	unshare	ric3-ic3-bare	TO		150.05
+a_pushpop_atomic_end_sequence_popret	unshare	ric3-ic3	TO		150.03
+a_pushpop_atomic_end_sequence_popretz	unshare	rbmc	TO	13	150.14
+a_pushpop_atomic_end_sequence_popretz	unshare	ric3-ic3-bare	TO		150.05
+a_req_after_wake	unshare	rbmc	K	20	25.28
+a_pushpop_atomic_end_sequence_popretz	unshare	ric3-ic3	TO		150.02
+a_rf_halt_kill	unshare	rbmc	K	20	1.25
+a_rf_halt_kill	unshare	ric3-ic3-bare	UNSAT		0.29
+a_rf_halt_kill	unshare	ric3-ic3	UNSAT		2.84
+a_pushpop_sp_update	unshare	ric3-ic3	UNSAT		73.20
+a_set_clear_dcsr_q	unshare	rbmc	K	20	53.55
+a_set_clear_dcsr_q	unshare	ric3-ic3	UNSAT		14.83
+a_pushpop_sp_update	unshare	rbmc	TO	19	150.22
+a_pushpop_sp_update	unshare	ric3-ic3-bare	TO		150.06
+a_req_after_wake	unshare	ric3-ic3-bare	TO		150.04
+a_req_after_wake	unshare	ric3-ic3	TO		150.03
+a_set_clear_dpc_q	unshare	rbmc	K	20	77.90
+a_set_clear_dscratch0_q	unshare	ric3-ic3	UNSAT		5.73
+a_set_clear_dscratch0_q	unshare	ric3-ic3-bare	UNSAT		8.24
+a_set_clear_dscratch1_q	unshare	ric3-ic3-bare	UNSAT		9.92
+a_set_clear_dscratch1_q	unshare	ric3-ic3	UNSAT		6.74
+a_set_clear_dcsr_q	unshare	ric3-ic3-bare	TO		150.06
+a_set_clear_dscratch0_q	unshare	rbmc	K	20	49.66
+a_set_clear_jvt_q	unshare	ric3-ic3-bare	UNSAT		11.16
+a_set_clear_jvt_q	unshare	ric3-ic3	UNSAT		6.30
+a_set_clear_dpc_q	unshare	ric3-ic3	UNSAT		100.22
+a_set_clear_mcause_q	unshare	ric3-ic3-bare	UNSAT		6.84
+a_set_clear_dscratch1_q	unshare	rbmc	K	20	51.17
+a_set_clear_mcause_q	unshare	ric3-ic3	UNSAT		6.11
+a_set_clear_jvt_q	unshare	rbmc	K	20	41.92
+a_set_clear_mepc_q	unshare	ric3-ic3	UNSAT		7.63
+a_set_clear_mepc_q	unshare	ric3-ic3-bare	UNSAT		11.11
+a_set_clear_mstatus_q	unshare	ric3-ic3-bare	UNSAT		4.00
+a_set_clear_mstatus_q	unshare	ric3-ic3	UNSAT		4.40
+a_set_clear_dpc_q	unshare	ric3-ic3-bare	TO		150.06
+a_set_clear_mcause_q	unshare	rbmc	K	20	64.82
+a_set_clear_tdata1_q	unshare	ric3-ic3	UNSAT		10.96
+a_set_clear_mepc_q	unshare	rbmc	K	20	63.08
+a_set_clear_mstatus_q	unshare	rbmc	K	20	50.71
+a_set_clear_tdata2_q	unshare	ric3-ic3	UNSAT		7.94
+a_set_clear_tdata1_q	unshare	ric3-ic3-bare	UNSAT		52.42
+a_shift_result_hh	unshare	ric3-ic3-bare	UNSAT		3.49
+a_set_clear_tdata2_q	unshare	ric3-ic3-bare	UNSAT		17.29
+a_shift_result_hh	unshare	ric3-ic3	UNSAT		4.25
+a_shift_result_hl	unshare	ric3-ic3-bare	UNSAT		3.77
+a_shift_result_hl	unshare	ric3-ic3	UNSAT		5.83
+a_shift_result_lh	unshare	ric3-ic3-bare	UNSAT		5.19
+a_shift_result_lh	unshare	ric3-ic3	UNSAT		3.79
+a_shift_result_ll	unshare	rbmc	K	20	4.05
+a_shift_result_ll	unshare	ric3-ic3-bare	UNSAT		0.56
+a_shift_result_hh	unshare	rbmc	K	20	34.53
+a_set_clear_tdata1_q	unshare	rbmc	K	20	80.71
+a_shift_result_ll	unshare	ric3-ic3	UNSAT		3.63
+a_shift_result_hl	unshare	rbmc	K	20	35.65
+a_shift_result_lh	unshare	rbmc	K	20	36.22
+a_set_clear_tdata2_q	unshare	rbmc	K	20	90.29
+a_shift_result_ll_lh	unshare	rbmc	TO	6	150.06
+a_shift_result_ll_lh	unshare	ric3-ic3-bare	TO		150.05
+a_shift_result_ll_lh	unshare	ric3-ic3	TO		150.02
+a_shift_result_ll_lh_hl_shift	unshare	rbmc	TO	7	150.05
+a_shift_result_ll_lh_hl_shift	unshare	ric3-ic3-bare	TO		150.05
+a_shift_result_ll_lh_hl_shift	unshare	ric3-ic3	TO		150.03
+a_shift_result_ll_shift	unshare	rbmc	TO	6	150.05
+a_shift_result_ll_shift	unshare	ric3-ic3-bare	TO		150.04
+a_shift_result_ll_shift	unshare	ric3-ic3	TO		150.03
+a_single_step_no_irq_id	unshare	rbmc	TO	19	150.15
+a_single_step_no_irq_id	unshare	ric3-ic3-bare	TO		150.06
+a_single_step_pipecheck	unshare	ric3-ic3-bare	UNSAT		8.94
+a_single_step_pipecheck	unshare	ric3-ic3	UNSAT		5.75
+a_single_step_no_irq_id	unshare	ric3-ic3	UNSAT		140.90
+a_single_step_pipecheck	unshare	rbmc	K	20	51.30
+a_sleep_to_irq	unshare	rbmc	K	20	79.35
+a_single_step_no_irq_if	unshare	ric3-ic3-bare	TO		150.05
+a_single_step_no_irq_if	unshare	rbmc	TO	18	150.19
+a_single_step_no_irq_if	unshare	ric3-ic3	TO		150.04
+a_sleep_to_nmi	unshare	ric3-ic3	UNSAT		4.80
+a_sleep_to_nmi	unshare	ric3-ic3-bare	UNSAT		16.68
+a_sleep_to_nmi	unshare	rbmc	K	20	64.47
+a_suppress_csr_xif_illegal_pipeline_illegal	unshare	rbmc	K	20	2.09
+a_suppress_csr_xif_illegal_pipeline_illegal	unshare	ric3-ic3-bare	UNSAT		0.35
+a_suppress_csr_xif_illegal_pipeline_illegal	unshare	ric3-ic3	UNSAT		2.93
+a_stable_id_sleep	unshare	ric3-ic3	UNSAT		15.81
+a_sleep_to_irq	unshare	ric3-ic3-bare	TO		150.05
+a_tdata1_writes_unique	unshare	ric3-ic3	UNSAT		12.39
+a_stable_id_sleep	unshare	ric3-ic3-bare	UNSAT		53.41
+a_sleep_to_irq	unshare	ric3-ic3	TO		150.02
+a_trigger_match_in_debug	unshare	ric3-ic3-bare	UNSAT		8.69
+a_valid_jump	unshare	rbmc	K	20	1.26
+a_valid_jump	unshare	ric3-ic3-bare	UNSAT		0.28
+a_tdata1_writes_unique	unshare	rbmc	K	20	38.84
+a_valid_o	unshare	rbmc	K	20	1.22
+a_valid_o	unshare	ric3-ic3-bare	UNSAT		0.28
+a_trigger_match_in_debug	unshare	ric3-ic3	UNSAT		7.73
+a_valid_jump	unshare	ric3-ic3	UNSAT		3.37
+a_valid_o	unshare	ric3-ic3	UNSAT		3.38
+a_wakeup_interruptible	unshare	ric3-ic3	UNSAT		28.26
+a_wb_interruptible_abort	unshare	rbmc	K	20	3.17
+a_wb_interruptible_abort	unshare	ric3-ic3-bare	UNSAT		0.31
+a_wb_interruptible_abort	unshare	ric3-ic3	UNSAT		3.08
+a_trigger_match_in_debug	unshare	rbmc	K	20	64.61
+a_wakeup_interruptible	unshare	ric3-ic3-bare	UNSAT		46.75
+a_wb_ready_exception	unshare	ric3-ic3-bare	UNSAT		5.83
+a_wb_ready_exception	unshare	ric3-ic3	UNSAT		4.07
+a_woke_to_debug_single_cycle	unshare	ric3-ic3-bare	UNSAT		5.04
+a_woke_to_debug_single_cycle	unshare	ric3-ic3	UNSAT		4.93
+a_wakeup_interruptible	unshare	rbmc	K	20	76.98
+a_stable_id_sleep	unshare	rbmc	TO	16	150.12
+a_woke_to_debug_single_cycle	unshare	rbmc	K	20	30.27
+a_wpt_mpu_cnt_share	unshare	rbmc	K	20	1.23
+a_wpt_mpu_cnt_share	unshare	ric3-ic3-bare	UNSAT		0.60
+a_wpt_mpu_cnt_share	unshare	ric3-ic3	UNSAT		3.55
+a_wpt_debug_entry	unshare	ric3-ic3	UNSAT		13.61
+a_wpt_debug_entry	unshare	ric3-ic3-bare	UNSAT		18.72
+a_wb_ready_exception	unshare	rbmc	K	20	59.36
+a_wpt_debug_entry	unshare	rbmc	K	20	41.03
+a_tdata1_writes_unique	unshare	ric3-ic3-bare	TO		150.06
+a_wpt_wb_halt	unshare	ric3-ic3	UNSAT		16.33
+a_wpt_wb_halt	unshare	ric3-ic3-bare	UNSAT		19.65
+a_wpt_wb_valid	unshare	ric3-ic3	UNSAT		19.79
+a_wpt_wb_halt	unshare	rbmc	K	20	48.87
+a_wpt_wb_valid	unshare	rbmc	K	20	49.56
+a_wpt_wb_valid	unshare	ric3-ic3-bare	TO		150.05

@@ -60,7 +60,7 @@ def build(mv,env,budget):
     s=first_sel(a,env,set()) or first_sel(b,env,set())
     if s is None or budget[0]<=0:
         budget[0]-=1; r=fresh()
-        out.append(f'{r} = comb.mul {clone(a,env)}, {clone(b,env)} : {ty}'); return r
+        out.append(f'{r} = comb.mul {clone(a,env)}, {clone(b,env)} {{sv.namehint = "usleaf"}} : {ty}'); return r
     t=build(mv,{**env,s:True},budget); f=build(mv,{**env,s:False},budget)
     r=fresh(); out.append(f'{r} = comb.mux {s}, {t}, {f} : {ty}'); return r
 n=0

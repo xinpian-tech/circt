@@ -139,3 +139,24 @@ across cycles through the accumulator register.
 
 Open: a principled criterion for which muxes to expand; width narrowing
 of the expanded multipliers; effect on the properties already solved.
+
+**Unsharing everywhere costs** (`results/core-env-unshare-all.tsv`, all 97
+properties, 150 s): the five multiplier properties are gained on every
+backend, but properties that do not use the multiplier get a model 19%
+larger; rBMC loses 11 that were near the time limit.
+
+**Criterion** (`ushit.py`): expand a multiplier only if one of the
+resulting multipliers has the operands of a multiplier already in the
+model (also when wider, with extended operands). On the 97 properties it
+fires on 8, all checks of the multiplier, and leaves 89 models unchanged
+(`results/core-env-unshare-hits.tsv`). The simplification therefore
+depends on the property.
+
+**tc + fraig against sc in solve time**
+(`results/core-func-tcfraig-matrix.tsv`, models without environment
+constraints, properties solved in all four configurations and not
+constant after sc). Geometric mean against base: rBMC tc 0.94, tc+fraig
+0.78, sc 0.64 (66 properties); rIC3 ic3 without preprocessing tc 0.41,
+tc+fraig 0.45, sc 0.34 (35 properties). The numbers of solved properties
+barely change: these speed up what is solvable; unsharing changes what
+is solvable.
