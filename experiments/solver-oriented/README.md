@@ -308,3 +308,21 @@ more multiplier per such match (`a_mul_result`: 60150 to 60818 ANDs).
 at 200 s. All five solved properties are now at least as fast with sc as
 without, except `a_shift_result_hl` in rBMC (18 to 40 s), which is
 unexplained.
+
+**Evaluation with isolation and widening** (`results/eval-changed-widen.tsv`:
+us and us+sc for the 9 rewritten properties with the final pass; base and
+sc and the other 88 properties as in the table above). Solved of 97:
+
+| backend | base | us | sc | us+sc |
+|---|---|---|---|---|
+| rBMC | 72 | 77 | 75 | 80 |
+| ABC bmc3 | 77 | 82 | 77 | 82 |
+| rIC3 ic3, no preprocessing | 60 | 64 | 63 | 68 |
+| rIC3 ic3 | 67 | 72 | 65 | 70 |
+
+us+sc now solves the five multiplier properties on all four backends
+(three backend/property pairs timed out before). One regression to
+note: `a_mul_result` under us alone times out on rIC3 ic3 without
+preprocessing (14 s before widening); rIC3 was seed-sensitive on this
+model in the seed runs, so this needs repeated runs before blaming the
+widening.
