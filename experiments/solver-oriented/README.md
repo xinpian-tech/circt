@@ -297,3 +297,14 @@ high bits of the shared multiplier are still read, so it cannot be
 isolated, and its slowdown stays. `hh` is fixed, `hl` mostly (rBMC still
 2x). This supports the hypothesis but the merges themselves were not
 inspected.
+
+**Widening** (`widen`, on by default; `results/sc-after-unshare-widen-seeds.tsv`).
+When the other multiplier is narrower, the high bits now come from a copy
+of the shared multiplier with the operands it has under the assignment
+(mux-free), so the whole result is replaced and isolation applies. One
+more multiplier per such match (`a_mul_result`: 60150 to 60818 ANDs).
+`a_mul_result`, medians in seconds rBMC / rIC3 ic3: us 39 / 7, us+sc
+27 / 8.5 (before: 87 / 39); one of three rIC3 seeds on us+sc timed out
+at 200 s. All five solved properties are now at least as fast with sc as
+without, except `a_shift_result_hl` in rBMC (18 to 40 s), which is
+unexplained.

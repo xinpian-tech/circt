@@ -91,6 +91,10 @@ def UnshareOperators : Pass<"comb-unshare-operators", "hw::HWModuleOp"> {
   let options = [
     Option<"maxPaths", "max-paths", "unsigned", "64",
            "Maximum number of select assignments tried per operator">,
+    Option<"widen", "widen", "bool", "true",
+           "When the other multiplier is narrower, take the high bits from "
+           "a copy of the shared one with mux-free operands, so the whole "
+           "result is replaced">,
     Option<"isolate", "isolate", "bool", "true",
            "Give the shared operator constant operands where its whole "
            "result is taken from another one">
@@ -98,6 +102,8 @@ def UnshareOperators : Pass<"comb-unshare-operators", "hw::HWModuleOp"> {
   let statistics = [
     Statistic<"numUnshared", "num-unshared",
               "Number of operators taking results from another one">,
+    Statistic<"numWidened", "num-widened",
+              "Number of copies made for the high bits of a narrower match">,
     Statistic<"numIsolated", "num-isolated",
               "Number of operators with operands made constant where unused">,
     Statistic<"numConditions", "num-conditions",

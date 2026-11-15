@@ -143,6 +143,42 @@ static void collectBits(Value value, unsigned low, unsigned width,
     bits.push_back({value, low + i});
 }
 
+/// The value of `value` under an assignment of the selects: the muxes with
+/// an assigned select are replaced by the chosen operand, through
+/// concatenations, extracts and replications (rebuilt where they change).
+static Value materialize(Value value, const Assignment &assignment,
+                         OpBuilder &builder, DenseMap<Value, Value> &cache) {
+  auto *def = value.getDefiningOp();
+  if (!def)
+    return value;
+  auto it = cache.find(value);
+  if (it != cache.end())
+    return it->second;
+  Value result = value;
+  if (auto mux = dyn_cast<MuxOp>(def)) {
+    auto select = normalizeSelect(mux.getCond());
+    if (auto isTrue = lookup(assignment, select.base))
+      result = materialize(*isTrue != select.inverted ? mux.getTrueValue()
+                                                      : mux.getFalseValue(),
+                           assignment, builder, cache);
+  } else if (isa<ConcatOp, ExtractOp, ReplicateOp>(def)) {
+    SmallVector<Value> operands;
+    bool changed = false;
+    for (auto operand : def->getOperands()) {
+      operands.push_back(materialize(operand, assignment, builder, cache));
+      changed |= operands.back() != operand;
+    }
+    if (changed) {
+      auto *clone = def->clone();
+      clone->setOperands(operands);
+      builder.insert(clone);
+      result = clone->getResult(0);
+    }
+  }
+  cache[value] = result;
+  return result;
+}
+
 struct UnshareOperatorsPass
     : public comb::impl::UnshareOperatorsBase<UnshareOperatorsPass> {
   using UnshareOperatorsBase::UnshareOperatorsBase;
@@ -304,18 +340,39 @@ bool UnshareOperatorsPass::rewrite(Operation *shared, ArrayRef<Hit> hits) {
                           ? literals.front()
                           : AndOp::create(builder, loc, literals, true));
     }
-    Value condition =
-        terms.size() == 1 ? terms.front() : OrOp::create(builder, loc, terms, true);
-
     unsigned otherWidth = widthOf(hit.other);
     unsigned low = std::min(width, otherWidth);
     Value otherLow = hit.other->getResult(0);
     if (otherWidth > low)
       otherLow = ExtractOp::create(builder, loc, otherLow, 0, low);
     if (low == width) {
+      Value condition = terms.size() == 1
+                            ? terms.front()
+                            : OrOp::create(builder, loc, terms, true);
       result = MuxOp::create(builder, loc, condition, otherLow, result);
       unused.push_back(condition);
+    } else if (widen) {
+      // The other operator gives the low bits only. The high bits come from
+      // a copy of the shared operator with the operands it has under the
+      // assignment, so the whole result is replaced.
+      for (auto [index, assignment] : llvm::enumerate(hit.assignments)) {
+        DenseMap<Value, Value> cache;
+        Value lhs =
+            materialize(shared->getOperand(0), assignment, builder, cache);
+        Value rhs =
+            materialize(shared->getOperand(1), assignment, builder, cache);
+        Value copy = MulOp::create(builder, loc, lhs, rhs);
+        Value high = ExtractOp::create(builder, loc, copy, low, width - low);
+        Value whole =
+            ConcatOp::create(builder, loc, ValueRange{high, otherLow});
+        result = MuxOp::create(builder, loc, terms[index], whole, result);
+        unused.push_back(terms[index]);
+        ++numWidened;
+      }
     } else {
+      Value condition = terms.size() == 1
+                            ? terms.front()
+                            : OrOp::create(builder, loc, terms, true);
       Value high = ExtractOp::create(builder, loc, result, low, width - low);
       Value oldLow = ExtractOp::create(builder, loc, result, 0, low);
       Value newLow = MuxOp::create(builder, loc, condition, otherLow, oldLow);

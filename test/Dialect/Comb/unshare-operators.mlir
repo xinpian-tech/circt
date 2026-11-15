@@ -1,4 +1,4 @@
-// RUN: circt-opt %s --comb-unshare-operators=isolate=false | FileCheck %s
+// RUN: circt-opt %s --comb-unshare-operators='isolate=false widen=false' | FileCheck %s
 // RUN: circt-opt %s --comb-unshare-operators=max-paths=1 | FileCheck %s --check-prefix=LIMIT
 // RUN: circt-opt %s --comb-unshare-operators | FileCheck %s --check-prefix=ISOLATE
 
@@ -170,8 +170,21 @@ hw.module @Variadic(in %a : i8, in %b : i8, in %c : i8, in %sel : i1,
 // ISOLATE: comb.mux %sel, [[SPEC]], [[SHARED]] : i8
 // ISOLATE: [[X]] = comb.mux %sel, %c0_i8, {{%.+}} : i8
 // ISOLATE: [[Y]] = comb.mux %sel, %c0_i8{{.*}}, {{%.+}} : i8
+// The narrower multiplier gives the low 8 bits, a copy of the shared one
+// with the operands of the case (sign extensions of %a and %b) the high 2.
 // ISOLATE-LABEL: hw.module @Wider
-// ISOLATE-NOT: hw.constant 0
+// ISOLATE: [[SPEC:%.+]] = comb.mul %b, %a : i8
+// ISOLATE: [[SHARED:%.+]] = comb.mul [[X:%.+]], [[Y:%.+]] : i10
+// ISOLATE: [[AS:%.+]] = comb.extract %a from 7 : (i8) -> i1
+// ISOLATE: [[AR:%.+]] = comb.replicate [[AS]] : (i1) -> i2
+// ISOLATE: [[AE:%.+]] = comb.concat [[AR]], %a : i2, i8
+// ISOLATE: [[BE:%.+]] = comb.concat {{%.+}}, %b : i2, i8
+// ISOLATE: [[COPY:%.+]] = comb.mul [[AE]], [[BE]] : i10
+// ISOLATE: [[HIGH:%.+]] = comb.extract [[COPY]] from 8 : (i10) -> i2
+// ISOLATE: [[WHOLE:%.+]] = comb.concat [[HIGH]], [[SPEC]] : i2, i8
+// ISOLATE: [[RESULT:%.+]] = comb.mux %nsel, [[WHOLE]], [[SHARED]] : i10
+// ISOLATE: [[X]] = comb.mux %nsel, %c0_i10, {{%.+}} : i10
+// ISOLATE: hw.output [[RESULT]], [[SPEC]]
 // ISOLATE-LABEL: hw.module @TwoSelects
 // ISOLATE-LABEL: hw.module @Division
 // ISOLATE: comb.divu %a, %b : i8
