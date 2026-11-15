@@ -83,3 +83,42 @@ hw.module @NoMatch(in %a : i8, in %b : i8, in %c : i8, in %d : i8,
   %shared = comb.mul %x, %y : i8
   hw.output %shared, %other : i8, i8
 }
+
+// Divisions are not commutative and are only matched at the same width.
+// CHECK-LABEL: hw.module @Division
+hw.module @Division(in %a : i8, in %b : i8, in %c : i8, in %d : i8,
+                    in %sel : i1, out shared : i8, out swapped : i8,
+                    out spec : i8) {
+  // CHECK: [[SPEC:%.+]] = comb.divu %a, %b : i8
+  // CHECK: [[SHARED:%.+]] = comb.divu {{%.+}}, {{%.+}} : i8
+  // CHECK: [[RESULT:%.+]] = comb.mux %sel, [[SPEC]], [[SHARED]] : i8
+  // CHECK: [[SWAPPED:%.+]] = comb.divu {{%.+}}, {{%.+}} : i8
+  // CHECK-NEXT: hw.output [[RESULT]], [[SWAPPED]], [[SPEC]]
+  %spec = comb.divu %a, %b : i8
+  %x = comb.mux %sel, %a, %c : i8
+  %y = comb.mux %sel, %b, %d : i8
+  %shared = comb.divu %x, %y : i8
+  %swapped = comb.divu %y, %x : i8
+  hw.output %shared, %swapped, %spec : i8, i8, i8
+}
+
+// A shift is not taken from a multiplication, nor from a shift of another
+// width.
+// CHECK-LABEL: hw.module @Shift
+hw.module @Shift(in %a : i8, in %b : i8, in %c : i8, in %sel : i1,
+                 out shared : i8, out spec : i8, out narrow : i4) {
+  // CHECK: [[SPEC:%.+]] = comb.shl %a, %b : i8
+  // CHECK: [[SHARED:%.+]] = comb.shl {{%.+}}, {{%.+}} : i8
+  // CHECK: [[RESULT:%.+]] = comb.mux %sel, [[SPEC]], [[SHARED]] : i8
+  // CHECK-NOT: comb.mux
+  // CHECK: hw.output [[RESULT]], [[SPEC]],
+  %spec = comb.shl %a, %b : i8
+  %other = comb.mul %a, %b : i8
+  %al = comb.extract %a from 0 : (i8) -> i4
+  %bl = comb.extract %b from 0 : (i8) -> i4
+  %narrow = comb.shl %al, %bl : i4
+  %x = comb.mux %sel, %a, %c : i8
+  %y = comb.mux %sel, %b, %c : i8
+  %shared = comb.shl %x, %y : i8
+  hw.output %shared, %spec, %narrow : i8, i8, i4
+}

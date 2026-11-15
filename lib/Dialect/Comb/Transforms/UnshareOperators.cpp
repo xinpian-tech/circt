@@ -10,8 +10,8 @@
 // expensive operator between several uses by putting muxes on its operands;
 // a property that states what the operator computes in one of those uses has
 // its own copy of the operator. After bit-blasting, a solver has to prove the
-// two copies equal gate by gate. This pass finds, for a multiplier whose
-// operands go through muxes, the conditions on the mux selects under which
+// two copies equal gate by gate. This pass finds, for a multiplier (or a
+// division, modulo or shift) whose operands go through muxes, the conditions on the mux selects under which
 // its operands are those of another multiplier of the module, and takes the
 // result from that other multiplier under these conditions:
 //
@@ -152,12 +152,16 @@ private:
   /// The conditions under which the low bits of `shared` are those of
   /// another multiplier.
   struct Hit {
-    MulOp other;
+    Operation *other;
     SmallVector<Assignment, 2> assignments;
   };
-  void findHits(MulOp shared, ArrayRef<MulOp> others,
+  void findHits(Operation *shared, ArrayRef<Operation *> others,
                 SmallVectorImpl<Hit> &hits);
-  bool rewrite(MulOp shared, ArrayRef<Hit> hits);
+  bool rewrite(Operation *shared, ArrayRef<Hit> hits);
+
+  /// The (operator, other operator) pairs rewritten, to not also take the
+  /// result of the second from the first.
+  DenseSet<std::pair<Operation *, Operation *>> rewritten;
 };
 
 /// Whether `to` is reached from the result of `from` through ops of the
@@ -187,9 +191,25 @@ static bool reaches(Operation *from, Operation *to) {
 
 } // namespace
 
-void UnshareOperatorsPass::findHits(MulOp shared, ArrayRef<MulOp> others,
+/// The operators handled: two-operand multiplications, divisions, modulos
+/// and shifts.
+static bool isCandidate(Operation *op) {
+  return isa<MulOp, DivUOp, DivSOp, ModUOp, ModSOp, ShlOp, ShrUOp, ShrSOp>(
+             op) &&
+         op->getNumOperands() == 2;
+}
+
+static unsigned widthOf(Operation *op) {
+  return hw::getBitWidth(op->getResult(0).getType());
+}
+
+void UnshareOperatorsPass::findHits(Operation *shared,
+                                    ArrayRef<Operation *> others,
                                     SmallVectorImpl<Hit> &hits) {
-  unsigned width = hw::getBitWidth(shared.getType());
+  unsigned width = widthOf(shared);
+  // Only for a multiplication the low bits of the result depend on the low
+  // bits of the operands alone, and may the operands be swapped.
+  bool isMul = isa<MulOp>(shared);
   std::deque<Assignment> queue;
   queue.push_back({});
   unsigned visited = 0;
@@ -200,30 +220,29 @@ void UnshareOperatorsPass::findHits(MulOp shared, ArrayRef<MulOp> others,
 
     Value pending;
     Bits lhs, rhs;
-    collectBits(shared.getOperand(0), 0, width, assignment, lhs, pending);
-    collectBits(shared.getOperand(1), 0, width, assignment, rhs, pending);
+    collectBits(shared->getOperand(0), 0, width, assignment, lhs, pending);
+    collectBits(shared->getOperand(1), 0, width, assignment, rhs, pending);
 
     // Without an assignment the multiplier is not shared at all.
     bool matched = false;
     if (!assignment.empty()) {
       for (auto other : others) {
-        if (other == shared)
+        if (other == shared || other->getName() != shared->getName())
           continue;
-        // The low bits of a product depend only on the low bits of the
-        // operands.
-        unsigned low =
-            std::min<unsigned>(width, hw::getBitWidth(other.getType()));
+        unsigned low = std::min(width, widthOf(other));
+        if (!isMul && widthOf(other) != width)
+          continue;
         Value ignored;
         Bits otherLhs, otherRhs;
-        collectBits(other.getOperand(0), 0, low, assignment, otherLhs,
+        collectBits(other->getOperand(0), 0, low, assignment, otherLhs,
                     ignored);
-        collectBits(other.getOperand(1), 0, low, assignment, otherRhs,
+        collectBits(other->getOperand(1), 0, low, assignment, otherRhs,
                     ignored);
         auto equal = [&](const Bits &a, const Bits &b) {
           return std::equal(a.begin(), a.begin() + low, b.begin());
         };
         if (!((equal(lhs, otherLhs) && equal(rhs, otherRhs)) ||
-              (equal(lhs, otherRhs) && equal(rhs, otherLhs))))
+              (isMul && equal(lhs, otherRhs) && equal(rhs, otherLhs))))
           continue;
         // Operands that became constants under the assignment (a register
         // in reset, say) match trivially and are not worth a condition.
@@ -254,24 +273,24 @@ void UnshareOperatorsPass::findHits(MulOp shared, ArrayRef<MulOp> others,
   }
 }
 
-bool UnshareOperatorsPass::rewrite(MulOp shared, ArrayRef<Hit> hits) {
+bool UnshareOperatorsPass::rewrite(Operation *shared, ArrayRef<Hit> hits) {
   // Uses to redirect, collected before the new ops use the result.
   SmallVector<OpOperand *> uses;
-  for (auto &use : shared.getResult().getUses())
+  for (auto &use : shared->getResult(0).getUses())
     uses.push_back(&use);
 
-  OpBuilder builder(shared.getContext());
+  OpBuilder builder(shared->getContext());
   builder.setInsertionPointAfter(shared);
-  auto loc = shared.getLoc();
-  unsigned width = hw::getBitWidth(shared.getType());
-  Value result = shared.getResult();
+  auto loc = shared->getLoc();
+  unsigned width = widthOf(shared);
+  Value result = shared->getResult(0);
   bool changed = false;
-  for (const Hit &constHit : hits) {
-    Hit hit = constHit;
+  for (const Hit &hit : hits) {
     // Taking the result from a multiplier that depends on this one would
     // close a combinational cycle.
-    if (reaches(shared, hit.other))
+    if (reaches(shared, hit.other) || rewritten.contains({hit.other, shared}))
       continue;
+    rewritten.insert({shared, hit.other});
     // The condition: one of the assignments holds.
     SmallVector<Value> terms;
     for (auto &assignment : hit.assignments) {
@@ -286,9 +305,9 @@ bool UnshareOperatorsPass::rewrite(MulOp shared, ArrayRef<Hit> hits) {
     Value condition =
         terms.size() == 1 ? terms.front() : OrOp::create(builder, loc, terms, true);
 
-    unsigned otherWidth = hw::getBitWidth(hit.other.getType());
+    unsigned otherWidth = widthOf(hit.other);
     unsigned low = std::min(width, otherWidth);
-    Value otherLow = hit.other.getResult();
+    Value otherLow = hit.other->getResult(0);
     if (otherWidth > low)
       otherLow = ExtractOp::create(builder, loc, otherLow, 0, low);
     if (low == width) {
@@ -310,18 +329,18 @@ bool UnshareOperatorsPass::rewrite(MulOp shared, ArrayRef<Hit> hits) {
 }
 
 void UnshareOperatorsPass::runOnOperation() {
-  SmallVector<MulOp> multipliers;
+  rewritten.clear();
+  SmallVector<Operation *> candidates;
   for (auto &op : *getOperation().getBodyBlock())
-    if (auto mul = dyn_cast<MulOp>(&op))
-      if (mul.getNumOperands() == 2)
-        multipliers.push_back(mul);
-  if (multipliers.size() < 2)
+    if (isCandidate(&op))
+      candidates.push_back(&op);
+  if (candidates.size() < 2)
     return markAllAnalysesPreserved();
 
   bool changed = false;
-  for (auto shared : multipliers) {
+  for (auto *shared : candidates) {
     SmallVector<Hit, 1> hits;
-    findHits(shared, multipliers, hits);
+    findHits(shared, candidates, hits);
     if (hits.empty())
       continue;
     if (rewrite(shared, hits)) {

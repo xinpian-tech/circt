@@ -75,9 +75,10 @@ def SimplifyTruthTable : Pass<"comb-simplify-tt"> {
 }
 
 def UnshareOperators : Pass<"comb-unshare-operators", "hw::HWModuleOp"> {
-  let summary = "Take the result of a shared multiplier from an equal one";
+  let summary = "Take the result of a shared operator from an equal one";
   let description = [{
-    For a multiplier whose operands go through muxes, finds the conditions on
+    For a multiplier (or a division, modulo or shift; these only at equal
+    width and operand order) whose operands go through muxes, finds the conditions on
     the mux selects under which its operands are those of another multiplier
     of the module (typically the one a property is written with), and takes
     the result from that multiplier under these conditions. Operands are
@@ -89,12 +90,12 @@ def UnshareOperators : Pass<"comb-unshare-operators", "hw::HWModuleOp"> {
   let dependentDialects = ["comb::CombDialect", "hw::HWDialect"];
   let options = [Option<
       "maxPaths", "max-paths", "unsigned", "64",
-      "Maximum number of select assignments tried per multiplier">];
+      "Maximum number of select assignments tried per operator">];
   let statistics = [
     Statistic<"numUnshared", "num-unshared",
-              "Number of multipliers taking results from another one">,
+              "Number of operators taking results from another one">,
     Statistic<"numConditions", "num-conditions",
-              "Number of (multiplier, other multiplier) pairs rewritten">,
+              "Number of (operator, other operator) pairs rewritten">,
   ];
 }
 

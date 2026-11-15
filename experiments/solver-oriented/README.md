@@ -206,3 +206,8 @@ took from the shared multiplier. `a_shift_result_ll_shift` is proved by
 IC3 (14-33 s) and reaches depth 20 in BMC; `_ll_lh`, `_ll_lh_hl_shift`
 and `a_check_result_constant` reach depth 20 in BMC (55-160 s, stuck at
 frames 6-7 before) but IC3 still times out at 300 s.
+
+`comb-unshare-operators` now also handles two-operand divisions, modulos
+and shifts (same width and operand order only). On the 97 CV32E40X
+properties the hits are unchanged (the same 9, all multipliers): the
+divider is iterative and no property restates a shift.
