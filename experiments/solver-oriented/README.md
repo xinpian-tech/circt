@@ -272,3 +272,28 @@ all keep the properties solved in 4-69 s on rBMC, ABC bmc3 and rIC3 ic3.
 Only the inductive merging of internal nodes
 (`synth-register-correspondence{internal}`) makes them slower. Until that
 is understood, follow unsharing with `tc + fr` or `rc`, not with sc.
+
+**Why sc slows the unshared properties, and operand isolation**
+(`results/sc-after-unshare-seeds.tsv`, `-isolate-seeds.tsv`: property,
+config, solver, seed, solved, seconds; 200 s). The slowdown is stable
+over solver seeds (2.3-3x in rBMC, 2.5-4x in rIC3 ic3). Hypothesis: the
+rewritten result `cond ? other : shared` equals `shared` in every case,
+so an equivalence-merging pass can prove bits of it equal to the shared
+operator's and merge them back, undoing the rewrite for those bits.
+
+The pass now isolates the shared operator (`isolate`, on by default):
+where its whole result is taken from another operator its operands
+become constants, so the two are no longer equal everywhere. Still
+exact. Medians in seconds, rBMC / rIC3 ic3:
+
+| property | us before | us+sc before | us isolated | us+sc isolated |
+|---|---|---|---|---|
+| a_shift_result_hh | 23 / 4 | 65 / 11 | 24 / 4 | 16 / 4 |
+| a_shift_result_hl | 35 / 4 | 109 / 11 | 18 / 4 | 40 / 5 |
+| a_mul_result (not isolated) | 38 / 7 | 86 / 33 | 37 / 8 | 87 / 39 |
+
+`a_mul_result` is the control: its hit is on the low 32 of 34 bits, the
+high bits of the shared multiplier are still read, so it cannot be
+isolated, and its slowdown stays. `hh` is fixed, `hl` mostly (rBMC still
+2x). This supports the hypothesis but the merges themselves were not
+inspected.

@@ -285,6 +285,8 @@ bool UnshareOperatorsPass::rewrite(Operation *shared, ArrayRef<Hit> hits) {
   unsigned width = widthOf(shared);
   Value result = shared->getResult(0);
   bool changed = false;
+  // Conditions under which the whole result comes from another operator.
+  SmallVector<Value> unused;
   for (const Hit &hit : hits) {
     // Taking the result from a multiplier that depends on this one would
     // close a combinational cycle.
@@ -312,6 +314,7 @@ bool UnshareOperatorsPass::rewrite(Operation *shared, ArrayRef<Hit> hits) {
       otherLow = ExtractOp::create(builder, loc, otherLow, 0, low);
     if (low == width) {
       result = MuxOp::create(builder, loc, condition, otherLow, result);
+      unused.push_back(condition);
     } else {
       Value high = ExtractOp::create(builder, loc, result, low, width - low);
       Value oldLow = ExtractOp::create(builder, loc, result, 0, low);
@@ -325,6 +328,25 @@ bool UnshareOperatorsPass::rewrite(Operation *shared, ArrayRef<Hit> hits) {
     return false;
   for (auto *use : uses)
     use->set(result);
+  // Under these conditions the result of the shared operator is not read
+  // any more: give it constant operands there. Otherwise its result would
+  // still equal the new one in every case, and an equivalence-merging pass
+  // (fraig, signal correspondence) may put it back.
+  if (isolate && !unused.empty()) {
+    Value condition = unused.size() == 1
+                          ? unused.front()
+                          : OrOp::create(builder, loc, unused, true);
+    for (auto &operand : shared->getOpOperands()) {
+      // A zero divisor is avoided: one is as cheap.
+      bool divisor = operand.getOperandNumber() == 1 &&
+                     isa<DivUOp, DivSOp, ModUOp, ModSOp>(shared);
+      Value constant = hw::ConstantOp::create(
+          builder, loc, APInt(width, divisor ? 1 : 0));
+      operand.set(
+          MuxOp::create(builder, loc, condition, constant, operand.get()));
+    }
+    ++numIsolated;
+  }
   return true;
 }
 

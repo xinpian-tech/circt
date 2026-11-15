@@ -1,5 +1,6 @@
-// RUN: circt-opt %s --comb-unshare-operators | FileCheck %s
+// RUN: circt-opt %s --comb-unshare-operators=isolate=false | FileCheck %s
 // RUN: circt-opt %s --comb-unshare-operators=max-paths=1 | FileCheck %s --check-prefix=LIMIT
+// RUN: circt-opt %s --comb-unshare-operators | FileCheck %s --check-prefix=ISOLATE
 
 // With one assignment tried (the empty one) nothing is found.
 // LIMIT-LABEL: hw.module @SameWidth
@@ -160,3 +161,20 @@ hw.module @Variadic(in %a : i8, in %b : i8, in %c : i8, in %sel : i1,
   %n = comb.mul %a, %b, %c : i8
   hw.output %m, %n : i8, i8
 }
+
+// Where the whole result comes from the other operator, the shared one gets
+// constant operands (one for a divisor); not when only the low bits do.
+// ISOLATE-LABEL: hw.module @SameWidth
+// ISOLATE: [[SPEC:%.+]] = comb.mul %a, %b : i8
+// ISOLATE: [[SHARED:%.+]] = comb.mul [[X:%.+]], [[Y:%.+]] : i8
+// ISOLATE: comb.mux %sel, [[SPEC]], [[SHARED]] : i8
+// ISOLATE: [[X]] = comb.mux %sel, %c0_i8, {{%.+}} : i8
+// ISOLATE: [[Y]] = comb.mux %sel, %c0_i8{{.*}}, {{%.+}} : i8
+// ISOLATE-LABEL: hw.module @Wider
+// ISOLATE-NOT: hw.constant 0
+// ISOLATE-LABEL: hw.module @TwoSelects
+// ISOLATE-LABEL: hw.module @Division
+// ISOLATE: comb.divu %a, %b : i8
+// ISOLATE: [[DIV:%.+]] = comb.divu [[N:%.+]], [[D:%.+]] : i8
+// ISOLATE: [[N]] = comb.mux %sel, %c0_i8, {{%.+}} : i8
+// ISOLATE: [[D]] = comb.mux %sel, %c1_i8, {{%.+}} : i8

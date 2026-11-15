@@ -88,12 +88,18 @@ def UnshareOperators : Pass<"comb-unshare-operators", "hw::HWModuleOp"> {
     multipliers become one after bit-blasting.
   }];
   let dependentDialects = ["comb::CombDialect", "hw::HWDialect"];
-  let options = [Option<
-      "maxPaths", "max-paths", "unsigned", "64",
-      "Maximum number of select assignments tried per operator">];
+  let options = [
+    Option<"maxPaths", "max-paths", "unsigned", "64",
+           "Maximum number of select assignments tried per operator">,
+    Option<"isolate", "isolate", "bool", "true",
+           "Give the shared operator constant operands where its whole "
+           "result is taken from another one">
+  ];
   let statistics = [
     Statistic<"numUnshared", "num-unshared",
               "Number of operators taking results from another one">,
+    Statistic<"numIsolated", "num-isolated",
+              "Number of operators with operands made constant where unused">,
     Statistic<"numConditions", "num-conditions",
               "Number of (operator, other operator) pairs rewritten">,
   ];
