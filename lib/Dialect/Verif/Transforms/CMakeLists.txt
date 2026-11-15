@@ -1,4 +1,5 @@
 add_circt_dialect_library(CIRCTVerifTransforms
+  AbstractOperators.cpp
   AssertionsToOutput.cpp
   AssumeInputs.cpp
   CombineAssertLike.cpp

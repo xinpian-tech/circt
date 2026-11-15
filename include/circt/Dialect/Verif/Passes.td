@@ -313,6 +313,41 @@ def StripContractsPass : Pass<"strip-contracts"> {
   }];
 }
 
+def AbstractOperatorsPass
+    : Pass<"verif-abstract-operators", "hw::HWModuleOp"> {
+  let summary = "Replace multipliers by constrained uninterpreted functions";
+  let description = [{
+    The result of each two-operand `comb.mul` (without constant operand)
+    becomes a new input `abstract_mul_N`, constrained by `verif.assume`s that
+    hold for a multiplication: equal operands (in either order) give equal
+    results, between the multipliers of a cycle and, with `history`, against
+    the operands and result of every multiplier in the previous cycle (kept
+    in new registers); and operands zero- or sign-extended from ka and kb
+    bits give a result zero- or sign-extended from ka + kb bits, for the
+    widths found in the operand cones. Multipliers of different widths are
+    compared on their low bits. The module is over-approximated: a proof
+    carries over to the original, a counterexample may be spurious. The new
+    inputs change the port list, so the pass is meant for top-level
+    verification models.
+  }];
+  let dependentDialects = ["comb::CombDialect", "hw::HWDialect",
+                           "seq::SeqDialect", "verif::VerifDialect"];
+  let options = [
+    Option<"history", "history", "bool", "true",
+           "Keep the operands and results of the previous cycle">,
+    Option<"minWidth", "min-width", "unsigned", "8",
+           "Smallest multiplier abstracted">,
+    Option<"maxOperators", "max-operators", "unsigned", "8",
+           "Leave the module alone if it has more multipliers than this">
+  ];
+  let statistics = [
+    Statistic<"numAbstracted", "num-abstracted",
+              "Number of multipliers abstracted">,
+    Statistic<"numAssumptions", "num-assumptions",
+              "Number of assumptions added">,
+  ];
+}
+
 def ShiftTargetPass : Pass<"verif-shift-target", "hw::HWModuleOp"> {
   let summary = "Check the assertions one cycle ahead (target shift)";
   let description = [{

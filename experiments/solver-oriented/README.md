@@ -211,3 +211,14 @@ frames 6-7 before) but IC3 still times out at 300 s.
 and shifts (same width and operand order only). On the 97 CV32E40X
 properties the hits are unchanged (the same 9, all multipliers): the
 divider is iterative and no property restates a shift.
+
+**The abstraction as a pass** (`verif-abstract-operators`,
+`lib/Dialect/Verif/Transforms/AbstractOperators.cpp`, test
+`test/Dialect/Verif/abstract-operators.mlir`): what `ufmul.py` does, with
+the candidate widths of the range assumptions taken from the operand
+cones instead of a fixed list. It abstracts every multiplier of the
+module, so it is only sound to trust its proofs (and bounded proofs);
+counterexamples need to be replayed on the original model, which is not
+automated yet. `results/mult-hard-abstract-pass.tsv` (300 s) matches the
+script: all four cross-cycle checks reach depth 20 in BMC (39-177 s),
+`a_shift_result_ll_shift` is proved by IC3 (19-34 s).

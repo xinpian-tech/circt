@@ -1,0 +1,17 @@
+assert	config	backend	result	depth	seconds
+a_shift_result_ll_shift	abs	ric3-ic3	UNSAT		19.36
+a_shift_result_ll_shift	abs	ric3-ic3-bare	UNSAT		33.76
+a_shift_result_ll_shift	abs	abc-bmc3	K	20	39.08
+a_shift_result_ll_shift	abs	rbmc	K	20	70.51
+a_check_result_constant	abs	abc-bmc3	K	20	78.25
+a_shift_result_ll_lh	abs	abc-bmc3	K	20	92.07
+a_shift_result_ll_lh	abs	rbmc	K	20	105.71
+a_check_result_constant	abs	rbmc	K	20	106.95
+a_shift_result_ll_lh_hl_shift	abs	rbmc	K	20	174.64
+a_shift_result_ll_lh_hl_shift	abs	abc-bmc3	K	20	176.84
+a_shift_result_ll_lh	abs	ric3-ic3	TO		300.06
+a_check_result_constant	abs	ric3-ic3-bare	TO		300.06
+a_shift_result_ll_lh	abs	ric3-ic3-bare	TO		300.06
+a_shift_result_ll_lh_hl_shift	abs	ric3-ic3	TO		300.06
+a_check_result_constant	abs	ric3-ic3	TO		300.06
+a_shift_result_ll_lh_hl_shift	abs	ric3-ic3-bare	TO		300.06
