@@ -263,3 +263,12 @@ none of them. sc after unsharing is not uniformly better on those five:
 `a_shift_result_hh` and `_hl` get slower (11-38 s to 23-147 s) and three
 backend/property pairs time out. Why sc undoes part of the benefit there
 is not understood yet.
+
+Which part of sc does it (`results/eval-sc-parts-after-unshare.tsv`, the
+three properties that got slower, 150 s): after unsharing, register
+correspondence alone (usrc), ternary constants (ustc), ternary constants
+plus functional reduction (ustcfr) and functional reduction alone (usfr)
+all keep the properties solved in 4-69 s on rBMC, ABC bmc3 and rIC3 ic3.
+Only the inductive merging of internal nodes
+(`synth-register-correspondence{internal}`) makes them slower. Until that
+is understood, follow unsharing with `tc + fr` or `rc`, not with sc.

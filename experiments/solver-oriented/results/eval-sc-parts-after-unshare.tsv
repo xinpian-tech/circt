@@ -1,0 +1,37 @@
+assert	config	backend	result	depth	seconds
+a_shift_result_hl	ustc	ric3-ic3	UNSAT		6.28
+a_shift_result_hl	ustc	rbmc	K	20	29.98
+a_shift_result_hl	ustcfr	ric3-ic3	UNSAT		6.19
+a_shift_result_hl	ustcfr	rbmc	K	20	18.89
+a_shift_result_hl	ustcfr	abc-bmc3	K	20	8.06
+a_shift_result_hl	ustc	abc-bmc3	K	20	8.31
+a_shift_result_hl	usrc	ric3-ic3	UNSAT		3.71
+a_shift_result_hl	usrc	rbmc	K	20	25.28
+a_shift_result_hl	usrc	abc-bmc3	K	20	7.74
+a_shift_result_hl	usfr	ric3-ic3	UNSAT		4.93
+a_shift_result_hl	usfr	rbmc	K	20	20.27
+a_shift_result_hl	usfr	abc-bmc3	K	20	6.42
+a_shift_result_hh	ustc	ric3-ic3	UNSAT		6.34
+a_shift_result_hh	ustc	rbmc	K	20	32.78
+a_shift_result_hh	ustcfr	ric3-ic3	UNSAT		5.77
+a_shift_result_hh	ustcfr	rbmc	K	20	22.67
+a_shift_result_hh	ustcfr	abc-bmc3	K	20	12.27
+a_shift_result_hh	ustc	abc-bmc3	K	20	11.79
+a_shift_result_hh	usrc	ric3-ic3	UNSAT		5.45
+a_shift_result_hh	usrc	rbmc	K	20	23.05
+a_shift_result_hh	usrc	abc-bmc3	K	20	29.76
+a_shift_result_hh	usfr	ric3-ic3	UNSAT		7.32
+a_shift_result_hh	usfr	rbmc	K	20	31.27
+a_shift_result_hh	usfr	abc-bmc3	K	20	16.98
+a_mul_result	ustc	ric3-ic3	UNSAT		15.19
+a_mul_result	ustc	rbmc	K	20	51.53
+a_mul_result	ustcfr	ric3-ic3	UNSAT		9.04
+a_mul_result	ustcfr	rbmc	K	20	64.18
+a_mul_result	ustcfr	abc-bmc3	K	20	35.65
+a_mul_result	ustc	abc-bmc3	K	20	22.33
+a_mul_result	usrc	ric3-ic3	UNSAT		4.89
+a_mul_result	usrc	rbmc	K	20	37.25
+a_mul_result	usrc	abc-bmc3	K	20	20.12
+a_mul_result	usfr	ric3-ic3	UNSAT		6.20
+a_mul_result	usfr	rbmc	K	20	69.34
+a_mul_result	usfr	abc-bmc3	K	20	39.86
