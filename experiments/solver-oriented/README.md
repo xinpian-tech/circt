@@ -179,3 +179,18 @@ Build note: `inbuild.sh` runs a command in a namespace that maps this
 worktree, the LLVM checkout and a copy of the old build directory to the
 paths the build was configured with (edit the paths at its top), so only
 CIRCT is rebuilt.
+
+**Cross-cycle multiplier checks: uninterpreted-function abstraction**
+(`ufmul.py`, an experiment on MLIR text; `results/mult-hard-uf.tsv`,
+300 s). Each multiplier result becomes a free input, with assumptions
+for functional consistency within a cycle and against the operands and
+result of the previous cycle. An over-approximation. Outcome:
+`a_check_result_constant` reaches depth 20 in BMC (70-90 s; frame 7
+before), IC3 still times out; the three accumulator checks
+(`a_shift_result_ll_shift`, `_ll_lh`, `_ll_lh_hl_shift`) and the
+full-product checks get spurious counterexamples. The accumulator checks
+rely on arithmetic facts the abstraction drops (the product of two
+zero-extended 16-bit values has zero top bits, so an arithmetic and a
+logical shift agree) and on values two or more cycles back. Making this
+work needs refinement (CEGAR) or partially interpreted multipliers; not
+pursued yet.

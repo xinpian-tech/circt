@@ -1,0 +1,25 @@
+assert	config	backend	result	depth	seconds
+a_shift_result_ll_lh	uf	abc-bmc3	SAT	6	0.20
+a_shift_result_ll_shift	uf	abc-bmc3	SAT	5	0.24
+a_shift_result_ll_lh_hl_shift	uf	abc-bmc3	SAT	7	0.35
+a_shift_result_ll_shift	uf	rbmc	SAT	5	0.62
+a_shift_result_ll_lh	uf	rbmc	SAT	6	1.11
+a_shift_result_ll_lh_hl_shift	uf	rbmc	SAT	7	1.67
+a_mulh_result	uf	rbmc	SAT	7	1.00
+a_mulh_result	uf	abc-bmc3	SAT	7	0.28
+a_shift_result_ll_shift	uf	ric3-ic3	SAT		18.13
+a_mul_result	uf	rbmc	SAT	4	0.39
+a_mul_result	uf	abc-bmc3	SAT	4	0.18
+a_mul_result	uf	ric3-ic3-bare	SAT		24.68
+a_shift_result_ll_shift	uf	ric3-ic3-bare	SAT		52.59
+a_mul_result	uf	ric3-ic3	SAT		11.50
+a_shift_result_ll_lh_hl_shift	uf	ric3-ic3	SAT		62.36
+a_shift_result_ll_lh	uf	ric3-ic3	SAT		66.65
+a_check_result_constant	uf	abc-bmc3	K	20	70.31
+a_check_result_constant	uf	rbmc	K	20	90.76
+a_mulh_result	uf	ric3-ic3	SAT		106.49
+a_shift_result_ll_lh	uf	ric3-ic3-bare	TO		300.03
+a_shift_result_ll_lh_hl_shift	uf	ric3-ic3-bare	TO		300.03
+a_check_result_constant	uf	ric3-ic3	TO		300.02
+a_check_result_constant	uf	ric3-ic3-bare	TO		300.02
+a_mulh_result	uf	ric3-ic3-bare	TO		300.02
