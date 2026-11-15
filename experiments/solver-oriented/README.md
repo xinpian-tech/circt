@@ -238,3 +238,28 @@ The abstraction changes behaviour (it is an over-approximation), which is
 not the kind of simplification this branch is about; it stays here as a
 side experiment and is not developed further. The line of work is the
 exact rewrite, `comb-unshare-operators`.
+
+## Evaluation of comb-unshare-operators with sc (2026-11-15)
+
+`export_cfgs.sh` builds base, us (unsharing), sc and ussc (unsharing, then
+sc) for the 97 properties with one binary; `results/eval-export.log` has
+the sizes. For 88 properties the us model is byte-identical to base
+(checked with `cmp`), so only base and sc were solved for them
+(`results/eval-same.tsv`); the 9 changed ones were solved in all four
+configurations (`results/eval-changed.tsv`). 150 s, depth 20.
+
+Solved of 97:
+
+| backend | base | us | sc | us+sc |
+|---|---|---|---|---|
+| rBMC | 72 | 77 | 75 | 79 |
+| ABC bmc3 | 77 | 82 | 77 | 80 |
+| rIC3 ic3, no preprocessing | 60 | 65 | 63 | 68 |
+| rIC3 ic3 | 67 | 72 | 65 | 70 |
+
+Unsharing adds the same five properties on every backend; sc alone adds
+none of them. sc after unsharing is not uniformly better on those five:
+`a_shift_result_ll` and `_lh` drop to 0-4 s, but `a_mul_result`,
+`a_shift_result_hh` and `_hl` get slower (11-38 s to 23-147 s) and three
+backend/property pairs time out. Why sc undoes part of the benefit there
+is not understood yet.

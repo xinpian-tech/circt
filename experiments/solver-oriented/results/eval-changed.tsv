@@ -1,0 +1,145 @@
+assert	config	backend	result	depth	seconds
+a_mul_result	us	ric3-ic3	UNSAT		11.29
+a_mul_result	us	ric3-ic3-bare	UNSAT		13.81
+a_mul_result	us	abc-bmc3	K	20	16.37
+a_mul_result	us	rbmc	K	20	37.71
+a_mul_result	ussc	ric3-ic3	UNSAT		44.78
+a_mul_result	ussc	rbmc	K	20	135.43
+a_mul_result	base	ric3-ic3	TO		150.04
+a_mul_result	base	ric3-ic3-bare	TO		150.04
+a_mul_result	sc	ric3-ic3	TO		150.03
+a_mul_result	sc	ric3-ic3-bare	TO		150.03
+a_mul_result	sc	rbmc	TO	4	150.03
+a_mul_result	sc	abc-bmc3	TO		150.01
+a_mul_result	base	rbmc	TO	7	150.24
+a_mul_result	base	abc-bmc3	TO		150.01
+a_mul_result	ussc	ric3-ic3-bare	UNSAT		147.31
+a_mul_result	ussc	abc-bmc3	TO		150.02
+a_mulh_result	base	rbmc	TO	7	150.07
+a_mulh_result	base	abc-bmc3	TO		150.02
+a_mulh_result	base	ric3-ic3-bare	TO		150.06
+a_mulh_result	us	ric3-ic3-bare	TO		150.06
+a_mulh_result	us	rbmc	TO	7	150.08
+a_mulh_result	us	ric3-ic3	TO		150.02
+a_mulh_result	us	abc-bmc3	TO		150.01
+a_mulh_result	sc	rbmc	TO	7	150.10
+a_mulh_result	sc	abc-bmc3	TO		150.01
+a_mulh_result	base	ric3-ic3	TO		155.02
+a_shift_result_ll	us	abc-bmc3	K	20	4.36
+a_shift_result_ll	us	ric3-ic3-bare	UNSAT		0.59
+a_mulh_result	sc	ric3-ic3-bare	TO		150.05
+a_mulh_result	sc	ric3-ic3	TO		150.02
+a_shift_result_ll	us	ric3-ic3	UNSAT		4.58
+a_shift_result_ll	us	rbmc	K	20	16.73
+a_mulh_result	ussc	rbmc	TO	7	150.08
+a_shift_result_ll	ussc	rbmc	K	20	1.45
+a_shift_result_ll	ussc	abc-bmc3	K	20	0.15
+a_shift_result_ll	ussc	ric3-ic3-bare	UNSAT		0.30
+a_shift_result_ll	ussc	ric3-ic3	UNSAT		4.00
+a_mulh_result	ussc	abc-bmc3	TO		150.02
+a_mulh_result	ussc	ric3-ic3-bare	TO		150.04
+a_mulh_result	ussc	ric3-ic3	TO		150.04
+a_shift_result_ll	base	rbmc	TO	5	150.04
+a_shift_result_ll	base	ric3-ic3-bare	TO		150.05
+a_shift_result_ll	base	ric3-ic3	TO		150.03
+a_shift_result_ll	base	abc-bmc3	TO		150.01
+a_shift_result_lh	us	ric3-ic3-bare	UNSAT		1.06
+a_shift_result_lh	us	abc-bmc3	K	20	4.78
+a_shift_result_lh	us	ric3-ic3	UNSAT		5.24
+a_shift_result_ll	sc	rbmc	TO	5	150.05
+a_shift_result_ll	sc	abc-bmc3	TO		150.01
+a_shift_result_ll	sc	ric3-ic3-bare	TO		150.03
+a_shift_result_lh	ussc	abc-bmc3	K	20	0.15
+a_shift_result_lh	ussc	ric3-ic3-bare	UNSAT		0.28
+a_shift_result_lh	ussc	rbmc	K	20	1.50
+a_shift_result_ll	sc	ric3-ic3	TO		150.04
+a_shift_result_lh	ussc	ric3-ic3	UNSAT		4.16
+a_shift_result_lh	us	rbmc	K	20	37.44
+a_shift_result_lh	base	rbmc	TO	5	150.05
+a_shift_result_lh	base	abc-bmc3	TO		150.02
+a_shift_result_lh	base	ric3-ic3	TO		150.04
+a_shift_result_lh	base	ric3-ic3-bare	TO		150.04
+a_shift_result_lh	sc	rbmc	TO	5	150.05
+a_shift_result_lh	sc	abc-bmc3	TO		150.02
+a_shift_result_lh	sc	ric3-ic3-bare	TO		150.03
+a_shift_result_lh	sc	ric3-ic3	TO		150.04
+a_shift_result_ll_shift	base	rbmc	TO	6	150.04
+a_shift_result_ll_shift	base	abc-bmc3	TO		150.02
+a_shift_result_ll_shift	base	ric3-ic3-bare	TO		150.05
+a_shift_result_ll_shift	base	ric3-ic3	TO		150.04
+a_shift_result_ll_shift	us	rbmc	TO	6	150.04
+a_shift_result_ll_shift	us	abc-bmc3	TO		150.02
+a_shift_result_ll_shift	us	ric3-ic3	TO		150.04
+a_shift_result_ll_shift	us	ric3-ic3-bare	TO		150.04
+a_shift_result_ll_shift	sc	rbmc	TO	6	150.06
+a_shift_result_ll_shift	sc	abc-bmc3	TO		150.02
+a_shift_result_ll_shift	sc	ric3-ic3-bare	TO		150.03
+a_shift_result_hh	us	ric3-ic3-bare	UNSAT		7.23
+a_shift_result_ll_shift	sc	ric3-ic3	TO		150.02
+a_shift_result_ll_shift	ussc	rbmc	TO	6	150.05
+a_shift_result_ll_shift	ussc	abc-bmc3	TO		150.01
+a_shift_result_ll_shift	ussc	ric3-ic3-bare	TO		150.04
+a_shift_result_hh	us	ric3-ic3	UNSAT		7.57
+a_shift_result_hh	us	abc-bmc3	K	20	18.40
+a_shift_result_hh	us	rbmc	K	20	33.29
+a_shift_result_ll_shift	ussc	ric3-ic3	TO		150.03
+a_shift_result_hh	ussc	ric3-ic3	UNSAT		26.65
+a_shift_result_hh	ussc	ric3-ic3-bare	UNSAT		35.07
+a_shift_result_hh	base	rbmc	TO	7	150.05
+a_shift_result_hh	ussc	rbmc	K	20	86.50
+a_shift_result_hh	base	abc-bmc3	TO		150.02
+a_shift_result_hh	base	ric3-ic3	TO		150.04
+a_shift_result_hh	base	ric3-ic3-bare	TO		150.05
+a_shift_result_hh	sc	rbmc	TO	7	150.07
+a_shift_result_hh	sc	abc-bmc3	TO		150.01
+a_shift_result_hh	sc	ric3-ic3-bare	TO		150.04
+a_shift_result_hh	sc	ric3-ic3	TO		150.03
+a_shift_result_hh	ussc	abc-bmc3	TO		150.02
+a_shift_result_ll_lh	base	rbmc	TO	6	150.05
+a_shift_result_ll_lh	base	abc-bmc3	TO		150.02
+a_shift_result_ll_lh	base	ric3-ic3-bare	TO		150.06
+a_shift_result_ll_lh	base	ric3-ic3	TO		150.04
+a_shift_result_ll_lh	us	rbmc	TO	6	150.05
+a_shift_result_ll_lh	us	ric3-ic3-bare	TO		150.05
+a_shift_result_ll_lh	us	abc-bmc3	TO		150.85
+a_shift_result_ll_lh	us	ric3-ic3	TO		150.04
+a_shift_result_ll_lh	sc	rbmc	TO	6	150.05
+a_shift_result_ll_lh	sc	abc-bmc3	TO		150.02
+a_shift_result_ll_lh	sc	ric3-ic3-bare	TO		150.04
+a_shift_result_ll_lh	sc	ric3-ic3	TO		150.04
+a_shift_result_hl	us	abc-bmc3	K	20	7.87
+a_shift_result_hl	us	ric3-ic3-bare	UNSAT		7.47
+a_shift_result_hl	us	ric3-ic3	UNSAT		5.57
+a_shift_result_ll_lh	ussc	rbmc	TO	6	150.06
+a_shift_result_hl	us	rbmc	K	20	50.96
+a_shift_result_ll_lh	ussc	abc-bmc3	TO		150.02
+a_shift_result_ll_lh	ussc	ric3-ic3-bare	TO		150.05
+a_shift_result_ll_lh	ussc	ric3-ic3	TO		150.03
+a_shift_result_hl	ussc	ric3-ic3	UNSAT		22.95
+a_shift_result_hl	ussc	ric3-ic3-bare	UNSAT		57.95
+a_shift_result_hl	base	rbmc	TO	6	150.05
+a_shift_result_hl	base	ric3-ic3-bare	TO		150.05
+a_shift_result_hl	base	abc-bmc3	TO		150.01
+a_shift_result_hl	base	ric3-ic3	TO		150.03
+a_shift_result_hl	sc	rbmc	TO	6	150.05
+a_shift_result_hl	sc	abc-bmc3	TO		150.01
+a_shift_result_hl	sc	ric3-ic3-bare	TO		150.04
+a_shift_result_hl	ussc	abc-bmc3	K	20	120.76
+a_shift_result_hl	sc	ric3-ic3	TO		150.03
+a_shift_result_hl	ussc	rbmc	TO	18	150.99
+a_shift_result_ll_lh_hl_shift	base	rbmc	TO	7	150.17
+a_shift_result_ll_lh_hl_shift	base	abc-bmc3	TO		150.02
+a_shift_result_ll_lh_hl_shift	base	ric3-ic3-bare	TO		150.07
+a_shift_result_ll_lh_hl_shift	base	ric3-ic3	TO		150.03
+a_shift_result_ll_lh_hl_shift	us	rbmc	TO	7	150.05
+a_shift_result_ll_lh_hl_shift	us	abc-bmc3	TO		150.02
+a_shift_result_ll_lh_hl_shift	us	ric3-ic3-bare	TO		150.05
+a_shift_result_ll_lh_hl_shift	us	ric3-ic3	TO		150.02
+a_shift_result_ll_lh_hl_shift	sc	rbmc	TO	7	150.05
+a_shift_result_ll_lh_hl_shift	sc	abc-bmc3	TO		150.02
+a_shift_result_ll_lh_hl_shift	sc	ric3-ic3-bare	TO		150.04
+a_shift_result_ll_lh_hl_shift	sc	ric3-ic3	TO		150.03
+a_shift_result_ll_lh_hl_shift	ussc	rbmc	TO	7	150.06
+a_shift_result_ll_lh_hl_shift	ussc	abc-bmc3	TO		150.02
+a_shift_result_ll_lh_hl_shift	ussc	ric3-ic3-bare	TO		150.04
+a_shift_result_ll_lh_hl_shift	ussc	ric3-ic3	TO		150.03
