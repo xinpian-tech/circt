@@ -1,0 +1,37 @@
+assert	config	backend	result	depth	seconds
+a_shift_result_hh	pass	ric3-ic3	UNSAT		5.17
+a_shift_result_hh	pass	ric3-ic3-bare	UNSAT		5.18
+a_mul_result	pass	ric3-ic3	UNSAT		9.53
+a_mul_result	pass	ric3-ic3-bare	UNSAT		9.71
+a_shift_result_hl	pass	abc-bmc3	K	20	7.66
+a_shift_result_hl	pass	ric3-ic3	UNSAT		5.44
+a_shift_result_hl	pass	ric3-ic3-bare	UNSAT		5.77
+a_shift_result_lh	pass	ric3-ic3-bare	UNSAT		1.53
+a_shift_result_hh	pass	abc-bmc3	K	20	19.68
+a_shift_result_lh	pass	abc-bmc3	K	20	4.73
+a_shift_result_lh	pass	ric3-ic3	UNSAT		5.83
+a_mul_result	pass	abc-bmc3	K	20	22.67
+a_shift_result_ll	pass	ric3-ic3-bare	UNSAT		0.59
+a_shift_result_ll	pass	abc-bmc3	K	20	4.26
+a_shift_result_hh	pass	rbmc	K	20	25.50
+a_shift_result_ll	pass	ric3-ic3	UNSAT		4.67
+a_shift_result_ll	pass	rbmc	K	20	16.92
+a_mul_result	pass	rbmc	K	20	41.75
+a_shift_result_hl	pass	rbmc	K	20	51.26
+a_shift_result_lh	pass	rbmc	K	20	51.85
+a_mulh_result	pass	ric3-ic3	TO		300.03
+a_mulh_result	pass	ric3-ic3-bare	TO		300.05
+a_mulh_result	pass	rbmc	TO	7	300.07
+a_mulh_result	pass	abc-bmc3	TO		300.01
+a_shift_result_ll_lh	pass	rbmc	TO	6	300.05
+a_shift_result_ll_lh	pass	abc-bmc3	TO		300.01
+a_shift_result_ll_lh	pass	ric3-ic3-bare	TO		300.04
+a_shift_result_ll_lh	pass	ric3-ic3	TO		300.02
+a_shift_result_ll_lh_hl_shift	pass	rbmc	TO	7	300.06
+a_shift_result_ll_lh_hl_shift	pass	abc-bmc3	TO		300.02
+a_shift_result_ll_lh_hl_shift	pass	ric3-ic3-bare	TO		300.05
+a_shift_result_ll_lh_hl_shift	pass	ric3-ic3	TO		300.03
+a_shift_result_ll_shift	pass	rbmc	TO	6	300.04
+a_shift_result_ll_shift	pass	ric3-ic3-bare	TO		300.03
+a_shift_result_ll_shift	pass	ric3-ic3	TO		300.02
+a_shift_result_ll_shift	pass	abc-bmc3	TO		300.01

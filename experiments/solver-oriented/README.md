@@ -160,3 +160,22 @@ constant after sc). Geometric mean against base: rBMC tc 0.94, tc+fraig
 tc+fraig 0.45, sc 0.34 (35 properties). The numbers of solved properties
 barely change: these speed up what is solvable; unsharing changes what
 is solvable.
+
+**The pass** (`comb-unshare-operators`,
+`lib/Dialect/Comb/Transforms/UnshareOperators.cpp`, test
+`test/Dialect/Comb/unshare-operators.mlir`). Unlike the prototype it does
+not copy multipliers: it compares operands bit by bit (through concat,
+extract, replicate and the muxes resolved by an assignment of selects),
+finds the assignments under which the operands of a shared multiplier are
+those of another multiplier, and takes the (low bits of the) result from
+that one under their disjunction. Run after `canonicalize,cse`, before
+`hw-cone-of-influence`. On the 97 properties it rewrites 9
+(`results/core-env-unshare-pass-hits.txt`) and the models grow by 0.2%.
+`results/mult-hard-unshare-pass.tsv` (300 s): the same five properties are
+solved on all four backends, faster than with the prototype
+(`a_mul_result`: rBMC 42 s, ABC bmc3 23 s, rIC3 ic3 10 s).
+
+Build note: `inbuild.sh` runs a command in a namespace that maps this
+worktree, the LLVM checkout and a copy of the old build directory to the
+paths the build was configured with (edit the paths at its top), so only
+CIRCT is rebuilt.

@@ -74,4 +74,28 @@ def SimplifyTruthTable : Pass<"comb-simplify-tt"> {
   }];
 }
 
+def UnshareOperators : Pass<"comb-unshare-operators", "hw::HWModuleOp"> {
+  let summary = "Take the result of a shared multiplier from an equal one";
+  let description = [{
+    For a multiplier whose operands go through muxes, finds the conditions on
+    the mux selects under which its operands are those of another multiplier
+    of the module (typically the one a property is written with), and takes
+    the result from that multiplier under these conditions. Operands are
+    compared bit by bit through concatenations, extracts and replications,
+    and only on the low bits when the widths differ. The rewrite is exact and
+    is meant for formal backends: it undoes resource sharing so the two
+    multipliers become one after bit-blasting.
+  }];
+  let dependentDialects = ["comb::CombDialect", "hw::HWDialect"];
+  let options = [Option<
+      "maxPaths", "max-paths", "unsigned", "64",
+      "Maximum number of select assignments tried per multiplier">];
+  let statistics = [
+    Statistic<"numUnshared", "num-unshared",
+              "Number of multipliers taking results from another one">,
+    Statistic<"numConditions", "num-conditions",
+              "Number of (multiplier, other multiplier) pairs rewritten">,
+  ];
+}
+
 #endif // CIRCT_DIALECT_COMB_PASSES_TD
