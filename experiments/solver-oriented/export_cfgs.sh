@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Export the models of the evaluation: base, us (comb-unshare-operators),
+# sc (signal correspondence) and ussc (both), from lowered models
+# IN/A.none.mlir.
+#   CIRCT_BIN=dir IN=dir OUT=dir P=12 export_cfgs.sh A...
+# When unsharing changes nothing, A.us.aig and A.ussc.aig are hard links to
+# the base and sc models (A.us.same marks it).
+set -u
+H=$(cd "$(dirname "$0")" && pwd)
+B=${CIRCT_BIN:?}; IN=${IN:?}; OUT=${OUT:?}; P=${P:-12}
+mkdir -p $OUT
+PRE="canonicalize,cse"
+LOWER="hw-cone-of-influence,canonicalize,hw-aggregate-to-comb,canonicalize,synth-lower-word-to-bits,canonicalize,convert-comb-to-synth,synth-lower-word-to-bits,canonicalize,synth-remove-false-cycles{obligation fixpoint-obligation},synth-lower-variadic,synth-lower-word-to-bits,synth-structural-hash"
+BITS="synth-lower-variadic,synth-lower-word-to-bits,synth-structural-hash"
+SC="synth-register-correspondence{internal},canonicalize,$BITS"
+export H B IN OUT PRE LOWER SC
+one() {
+  local a=$1
+  toaig() { $B/circt-translate --export-aiger --exclude-symbol-table $1 -o $2.full.aig &&
+    python3 $H/../synth-solver/cv32e40x/aigsel.py $2.full.aig $2 0 && rm -f $2.full.aig; }
+  run() { local s=$(date +%s.%N); "$@"; printf "%.1f\n" "$(echo "$(date +%s.%N)-$s" | bc)"; }
+  [ -s $OUT/$a.ussc.aig ] && return
+  $B/circt-opt $IN/$a.none.mlir --pass-pipeline="builtin.module(hw.module($PRE,$LOWER))" -o $OUT/$a.base.mlir 2>$OUT/$a.base.log && toaig $OUT/$a.base.mlir $OUT/$a.base.aig
+  $B/circt-opt $IN/$a.none.mlir --pass-pipeline="builtin.module(hw.module($PRE,comb-unshare-operators,$PRE,$LOWER))" --mlir-pass-statistics -o $OUT/$a.us.mlir 2>$OUT/$a.us.log && toaig $OUT/$a.us.mlir $OUT/$a.us.aig
+  run $B/circt-opt $OUT/$a.base.mlir --pass-pipeline="builtin.module(hw.module($SC))" -o $OUT/$a.sc.mlir 2>$OUT/$a.sc.log > $OUT/$a.sc.time && toaig $OUT/$a.sc.mlir $OUT/$a.sc.aig
+  if cmp -s $OUT/$a.base.aig $OUT/$a.us.aig; then
+    ln -f $OUT/$a.base.aig $OUT/$a.us.aig; ln -f $OUT/$a.sc.aig $OUT/$a.ussc.aig; touch $OUT/$a.us.same
+  else
+    $B/circt-opt $OUT/$a.us.mlir --pass-pipeline="builtin.module(hw.module($SC))" -o $OUT/$a.ussc.mlir 2>$OUT/$a.ussc.log && toaig $OUT/$a.ussc.mlir $OUT/$a.ussc.aig
+  fi
+  rm -f $OUT/$a.*.mlir
+  echo "$a $([ -e $OUT/$a.us.same ] && echo same || echo changed) $(for c in base us sc ussc; do head -1 $OUT/$a.$c.aig | awk '{printf "%s/%s ", $4, $6}'; done)"
+}
+export -f one
+for a in "$@"; do echo $a; done | xargs -P $P -I{} bash -c 'one {}'

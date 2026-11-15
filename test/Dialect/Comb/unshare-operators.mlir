@@ -1,4 +1,8 @@
 // RUN: circt-opt %s --comb-unshare-operators | FileCheck %s
+// RUN: circt-opt %s --comb-unshare-operators=max-paths=1 | FileCheck %s --check-prefix=LIMIT
+
+// With one assignment tried (the empty one) nothing is found.
+// LIMIT-NOT: comb.mux %sel, {{%.+}}, {{%.+}} : i8
 
 // The shared multiplier computes a * b when sel is true; the other
 // multiplier is taken then.
@@ -121,4 +125,35 @@ hw.module @Shift(in %a : i8, in %b : i8, in %c : i8, in %sel : i1,
   %y = comb.mux %sel, %b, %c : i8
   %shared = comb.shl %x, %y : i8
   hw.output %shared, %spec, %narrow : i8, i8, i4
+}
+
+// Two shared multipliers that match each other when sel is true: only one
+// takes its result from the other.
+// CHECK-LABEL: hw.module @Mutual
+hw.module @Mutual(in %a : i8, in %b : i8, in %c : i8, in %d : i8, in %e : i8,
+                  in %sel : i1, out m : i8, out n : i8) {
+  // CHECK: [[M:%.+]] = comb.mul {{%.+}}, {{%.+}} : i8
+  // CHECK-NEXT: [[NEWM:%.+]] = comb.mux %sel, [[N:%.+]], [[M]] : i8
+  // CHECK-NEXT: [[N]] = comb.mul {{%.+}}, {{%.+}} : i8
+  // CHECK-NEXT: hw.output [[NEWM]], [[N]]
+  %x = comb.mux %sel, %a, %c : i8
+  %y = comb.mux %sel, %b, %d : i8
+  %z = comb.mux %sel, %b, %e : i8
+  %m = comb.mul %x, %y : i8
+  %n = comb.mul %x, %z : i8
+  hw.output %m, %n : i8, i8
+}
+
+// Multiplications of more than two operands are left alone.
+// CHECK-LABEL: hw.module @Variadic
+hw.module @Variadic(in %a : i8, in %b : i8, in %c : i8, in %sel : i1,
+                    out m : i8, out n : i8) {
+  // CHECK: [[M:%.+]] = comb.mul {{%.+}}, {{%.+}}, %c : i8
+  // CHECK-NEXT: [[N:%.+]] = comb.mul %a, %b, %c : i8
+  // CHECK-NEXT: hw.output [[M]], [[N]]
+  %x = comb.mux %sel, %a, %c : i8
+  %y = comb.mux %sel, %b, %c : i8
+  %m = comb.mul %x, %y, %c : i8
+  %n = comb.mul %a, %b, %c : i8
+  hw.output %m, %n : i8, i8
 }
