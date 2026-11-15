@@ -38,6 +38,7 @@
 #include "llvm/Support/Debug.h"
 #include <functional>
 #include <map>
+#include <set>
 #include <optional>
 #include <random>
 
@@ -203,6 +204,11 @@ public:
   std::optional<unsigned> propertyIgnored;
   /// With `constraints`: why the constraints are not used, if they are not.
   std::optional<StringRef> constraintsIgnored;
+  /// Debugging aid: only the classes in [mergeFrom, mergeTo) are merged.
+  unsigned mergeFrom = 0, mergeTo = ~0u;
+  bool mergeDump = false;
+  /// Number of classes at the time of the merge.
+  unsigned numClassesAtMerge = 0;
   unsigned numCandidates() const {
     unsigned n = 0;
     for (auto &c : classes)
@@ -2108,7 +2114,44 @@ std::pair<unsigned, unsigned> Correspondence::merge() {
   unsigned mergedRegs = 0, mergedGates = 0;
   OpBuilder builder(module.getContext());
   builder.setInsertionPoint(module.getBodyBlock()->getTerminator());
+  // Debugging aid: describe a value by the registers and inputs its cone
+  // reads (names without bit index, with the number of bits read).
+  auto describe = [&](Value root) {
+    std::map<std::string, unsigned> sources;
+    SmallVector<Value> stack{root};
+    DenseSet<Value> seen;
+    unsigned gates = 0;
+    while (!stack.empty() && seen.size() < 20000) {
+      Value v = stack.pop_back_val();
+      if (!seen.insert(v).second)
+        continue;
+      Operation *op = v.getDefiningOp();
+      if (!op) {
+        auto arg = cast<BlockArgument>(v);
+        ++sources[("in:" + module.getInputName(arg.getArgNumber())).str()];
+        continue;
+      }
+      if (auto reg = dyn_cast<seq::CompRegOp>(op)) {
+        auto name = reg.getName().value_or("");
+        ++sources[("reg:" + name.substr(0, name.find('['))).str()];
+        continue;
+      }
+      ++gates;
+      for (auto operand : op->getOperands())
+        stack.push_back(operand);
+    }
+    std::string text = std::to_string(gates) + " ops;";
+    for (auto &[name, count] : sources)
+      text += " " + name + "*" + std::to_string(count);
+    return text;
+  };
+  unsigned classIndex = 0;
+  numClassesAtMerge = classes.size();
   for (auto &c : classes) {
+    // Debugging aid: merge only the classes in [mergeFrom, mergeTo).
+    unsigned index = classIndex++;
+    if (index < mergeFrom || index >= mergeTo)
+      continue;
     Value ref;
     if (!c.constant)
       ref = candValue(c.members[0].first);
@@ -2143,6 +2186,77 @@ std::pair<unsigned, unsigned> Correspondence::merge() {
       // depend on it in the module.
       if (hiddenPaths && ref && reaches(ref, v))
         continue;
+      if (mergeDump)
+        llvm::errs() << "merge class " << index << (c.constant ? " const" : "")
+                     << (p ? " inv" : "") << "\n  gate: " << describe(v)
+                     << "\n  repr: " << (ref ? describe(ref) : "-") << "\n";
+      if (mergeDump && ref) {
+        // The part of the gate's cone that is not in the representative's.
+        auto cone = [&](Value root, DenseSet<Operation *> &ops) {
+          SmallVector<Value> stack{root};
+          while (!stack.empty()) {
+            Operation *op = stack.pop_back_val().getDefiningOp();
+            if (!op || isa<seq::CompRegOp>(op) || !ops.insert(op).second)
+              continue;
+            for (auto operand : op->getOperands())
+              stack.push_back(operand);
+          }
+        };
+        DenseSet<Operation *> gateCone, reprCone;
+        cone(v, gateCone);
+        cone(ref, reprCone);
+        unsigned onlyGate = 0, onlyRepr = 0;
+        for (auto *op : gateCone)
+          onlyGate += !reprCone.contains(op);
+        for (auto *op : reprCone)
+          onlyRepr += !gateCone.contains(op);
+        llvm::errs() << "  repr in gate cone: "
+                     << gateCone.contains(ref.getDefiningOp())
+                     << ", ops only in gate cone: " << onlyGate
+                     << ", only in repr cone: " << onlyRepr << ", gate users: "
+                     << std::distance(v.use_begin(), v.use_end())
+                     << ", repr users: "
+                     << std::distance(ref.use_begin(), ref.use_end()) << "\n";
+        // Register bits and inputs read directly by the ops of one cone
+        // that are not in the other.
+        auto leaves = [&](DenseSet<Operation *> &mine,
+                          DenseSet<Operation *> &other) {
+          std::set<std::string> names;
+          for (auto *op : mine) {
+            if (other.contains(op))
+              continue;
+            for (auto operand : op->getOperands()) {
+              std::string suffix;
+              Value source = operand;
+              if (auto extract = source.getDefiningOp<comb::ExtractOp>()) {
+                suffix = "[" + std::to_string(extract.getLowBit()) + "]";
+                source = extract.getInput();
+              }
+              if (auto reg = source.getDefiningOp<seq::CompRegOp>())
+                names.insert(reg.getName().value_or("?").str() + suffix);
+              else if (auto arg = dyn_cast<BlockArgument>(source))
+                names.insert(
+                    ("in:" + module.getInputName(arg.getArgNumber())).str() +
+                    suffix);
+            }
+          }
+          std::string text;
+          for (auto &name : names)
+            text += " " + name;
+          return text;
+        };
+        llvm::errs() << "  only gate reads:" << leaves(gateCone, reprCone)
+                     << "\n  only repr reads:" << leaves(reprCone, gateCone)
+                     << "\n";
+        llvm::errs() << "  gate op: " << *v.getDefiningOp() << "\n  repr op: "
+                     << *ref.getDefiningOp() << "\n";
+        for (auto operand : v.getDefiningOp()->getOperands())
+          llvm::errs() << "  gate operand: " << describe(operand) << "\n";
+        for (auto operand : ref.getDefiningOp()->getOperands())
+          llvm::errs() << "  repr operand: " << describe(operand) << "\n";
+        for (auto *user : v.getUsers())
+          llvm::errs() << "  gate user: " << *user << "\n";
+      }
       v.replaceAllUsesWith(repl);
       ++mergedGates;
     }
@@ -2172,6 +2286,9 @@ struct RegisterCorrespondencePass
                 conjunction,
                 constraints && chunk};
     Correspondence c(module, opts);
+    c.mergeFrom = mergeFrom;
+    c.mergeTo = mergeTo;
+    c.mergeDump = mergeDump;
     if (!c.build())
       return markAllAnalysesPreserved();
     if (constraints && !chunk)
@@ -2197,6 +2314,7 @@ struct RegisterCorrespondencePass
     auto [regs, gates] = c.merge();
     numMergedStat += regs;
     numMergedGatesStat += gates;
+    numClassesStat += c.numClassesAtMerge;
   }
 };
 } // namespace

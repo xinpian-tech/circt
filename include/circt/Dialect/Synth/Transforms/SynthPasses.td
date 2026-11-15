@@ -380,7 +380,14 @@ def RegisterCorrespondence
            "With property-directed: assume the conjunction of several "
            "properties (keeps the first failure of any)">,
     Option<"constraints", "constraints", "bool", "false",
-           "Prove the classes only where the constraints (verif.assume) held">
+           "Prove the classes only where the constraints (verif.assume) held">,
+    Option<"mergeFrom", "merge-from", "unsigned", "0",
+           "Debugging: first class (by index) that is merged">,
+    Option<"mergeTo", "merge-to", "unsigned", "4294967295",
+           "Debugging: one past the last class that is merged">,
+    Option<"mergeDump", "merge-dump", "bool", "false",
+           "Debugging: print each merged gate and its representative as the "
+           "registers and inputs their cones read">
   ];
   let statistics = [
     Statistic<"numCandidatesStat", "num-candidates",
@@ -391,7 +398,9 @@ def RegisterCorrespondence
               "SAT calls that exceeded the conflict budget">,
     Statistic<"numMergedStat", "num-merged", "Register bits merged">,
     Statistic<"numMergedGatesStat", "num-merged-gates",
-              "And-gates merged (with internal)">
+              "And-gates merged (with internal)">,
+    Statistic<"numClassesStat", "num-classes",
+              "Proved classes (the range of merge-from/merge-to)">
   ];
   let dependentDialects = ["comb::CombDialect", "hw::HWDialect",
                            "seq::SeqDialect", "synth::SynthDialect"];

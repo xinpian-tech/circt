@@ -1,0 +1,24 @@
+a_shift_result_hl, unshared (isolated, widened), then sc merging only the
+classes in the given range; idle machine, sequential; seconds to depth 20.
+
+prefix          rbmc   rbmc stabilize=1   ric3 bmc
+none            12.0   19.4               13.6
+[0,2508)        10.2   10.1               11.4
+[0,2587)        11.2   11.8               11.6
+[0,2644)        10.9   11.4               12.5
+[0,2645)        22.0   26.4               20.1
+[0,2666)        24.4   29.4               24.1
+[0,3135)        22.2   25.2               22.0
+all [0,5009)    23.0   26.9               19.2
+
+Word-level reproduction (bit 33 of the reference product replaced by its
+bit 32 in the property's comparison, then unshared, no sc):
+original        11.2   18.4               13.7
+altered         >300   >300               >300
+
+With fold-compare (final pass), us / us+sc:
+a_shift_result_hl   rbmc 4.2 / 9.2    ric3 bmc 7.0 / 5.9   ric3 ic3 1.6 / 1.8
+a_shift_result_hh   rbmc 4.3 / 8.5    ric3 bmc 7.1 / 6.1   ric3 ic3 1.5 / 2.1
+a_shift_result_lh   rbmc 4.3 / 0.7    ric3 bmc 6.7 / 1.7   ric3 ic3 1.5 / 1.4
+a_shift_result_ll   rbmc 0.9 / 0.7    ric3 bmc 1.7 / 1.6   ric3 ic3 1.4 / 1.3
+a_mul_result        rbmc 22.6 / 15.8  ric3 bmc 19.9 / 13.3 ric3 ic3 2.3 / 4.3

@@ -1,4 +1,4 @@
-// RUN: circt-opt %s --comb-unshare-operators='isolate=false widen=false' | FileCheck %s
+// RUN: circt-opt %s --comb-unshare-operators='isolate=false widen=false fold-compare=false' | FileCheck %s
 // RUN: circt-opt %s --comb-unshare-operators=max-paths=1 | FileCheck %s --check-prefix=LIMIT
 // RUN: circt-opt %s --comb-unshare-operators | FileCheck %s --check-prefix=ISOLATE
 
@@ -167,14 +167,15 @@ hw.module @Variadic(in %a : i8, in %b : i8, in %c : i8, in %sel : i1,
 // ISOLATE-LABEL: hw.module @SameWidth
 // ISOLATE: [[SPEC:%.+]] = comb.mul %a, %b : i8
 // ISOLATE: [[SHARED:%.+]] = comb.mul [[X:%.+]], [[Y:%.+]] : i8
-// ISOLATE: comb.mux %sel, [[SPEC]], [[SHARED]] : i8
 // ISOLATE: [[X]] = comb.mux %sel, %c0_i8, {{%.+}} : i8
 // ISOLATE: [[Y]] = comb.mux %sel, %c0_i8{{.*}}, {{%.+}} : i8
+// ISOLATE: comb.mux %sel, [[SPEC]], [[SHARED]] : i8
 // The narrower multiplier gives the low 8 bits, a copy of the shared one
 // with the operands of the case (sign extensions of %a and %b) the high 2.
 // ISOLATE-LABEL: hw.module @Wider
 // ISOLATE: [[SPEC:%.+]] = comb.mul %b, %a : i8
 // ISOLATE: [[SHARED:%.+]] = comb.mul [[X:%.+]], [[Y:%.+]] : i10
+// ISOLATE: [[X]] = comb.mux %nsel, %c0_i10, {{%.+}} : i10
 // ISOLATE: [[AS:%.+]] = comb.extract %a from 7 : (i8) -> i1
 // ISOLATE: [[AR:%.+]] = comb.replicate [[AS]] : (i1) -> i2
 // ISOLATE: [[AE:%.+]] = comb.concat [[AR]], %a : i2, i8
@@ -183,7 +184,6 @@ hw.module @Variadic(in %a : i8, in %b : i8, in %c : i8, in %sel : i1,
 // ISOLATE: [[HIGH:%.+]] = comb.extract [[COPY]] from 8 : (i10) -> i2
 // ISOLATE: [[WHOLE:%.+]] = comb.concat [[HIGH]], [[SPEC]] : i2, i8
 // ISOLATE: [[RESULT:%.+]] = comb.mux %nsel, [[WHOLE]], [[SHARED]] : i10
-// ISOLATE: [[X]] = comb.mux %nsel, %c0_i10, {{%.+}} : i10
 // ISOLATE: hw.output [[RESULT]], [[SPEC]]
 // ISOLATE-LABEL: hw.module @TwoSelects
 // ISOLATE-LABEL: hw.module @Division
@@ -191,3 +191,26 @@ hw.module @Variadic(in %a : i8, in %b : i8, in %c : i8, in %sel : i1,
 // ISOLATE: [[DIV:%.+]] = comb.divu [[N:%.+]], [[D:%.+]] : i8
 // ISOLATE: [[N]] = comb.mux %sel, %c0_i8, {{%.+}} : i8
 // ISOLATE: [[D]] = comb.mux %sel, %c1_i8, {{%.+}} : i8
+
+// A comparison of the shared operator with the one it matches is folded:
+// eq(mux(c, e, m), e) is c | eq(m, e), ne is !c & ne(m, e).
+// ISOLATE-LABEL: hw.module @Compare
+// CHECK-LABEL: hw.module @Compare
+hw.module @Compare(in %a : i8, in %b : i8, in %c : i8, in %d : i8,
+                   in %sel : i1, out ok : i1, out bad : i1) {
+  // ISOLATE: [[SPEC:%.+]] = comb.mul %a, %b : i8
+  // ISOLATE: [[SHARED:%.+]] = comb.mul {{%.+}}, {{%.+}} : i8
+  // ISOLATE: [[EQ:%.+]] = comb.icmp eq [[SHARED]], [[SPEC]] : i8
+  // ISOLATE: [[OK:%.+]] = comb.or bin %sel, [[EQ]] : i1
+  // ISOLATE: [[NE:%.+]] = comb.icmp ne [[SHARED]], [[SPEC]] : i8
+  // ISOLATE: [[NSEL:%.+]] = comb.xor bin %sel, %true : i1
+  // ISOLATE: [[BAD:%.+]] = comb.and bin [[NSEL]], [[NE]] : i1
+  // ISOLATE: hw.output [[OK]], [[BAD]]
+  %spec = comb.mul %a, %b : i8
+  %x = comb.mux %sel, %a, %c : i8
+  %y = comb.mux %sel, %b, %d : i8
+  %shared = comb.mul %x, %y : i8
+  %ok = comb.icmp eq %shared, %spec : i8
+  %bad = comb.icmp ne %spec, %shared : i8
+  hw.output %ok, %bad : i1, i1
+}

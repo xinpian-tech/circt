@@ -326,3 +326,42 @@ note: `a_mul_result` under us alone times out on rIC3 ic3 without
 preprocessing (14 s before widening); rIC3 was seed-sensitive on this
 model in the seed runs, so this needs repeated runs before blaming the
 widening.
+
+## Why sc slowed a_shift_result_hl after unsharing (2026-11-15)
+
+Material in `results/hl-sc-mechanism/`. Debugging options were added to
+`synth-register-correspondence`: `merge-from`/`merge-to` merge only a
+range of the proved classes, `merge-dump` prints each merged gate and its
+representative.
+
+- The earlier one-off timeout of `a_mul_result` (us, rIC3 without
+  preprocessing) is rIC3's default seed: eight other seeds give the same
+  median with and without widening (`results/a_mul_result-us-ric3-seeds.tsv`).
+- Merging single ranges of classes gave unstable answers: on this
+  instance one gate merge can move one solver between about 12 and 18 s,
+  a different merge for each solver (`perturbation-distribution.tsv`).
+  Merging prefixes of the classes is stable (`timings.txt`): three
+  engines step from 11-12 s to 20-26 s exactly when class 2644 is added.
+- Class 2644 is one gate, `p & !x`, replaced by `q & !x`, where p and q
+  read only the operand register through about 2600 ops (bits derived
+  from the product) and x is a control cone (`class-2644.txt`). It sits
+  in the property's comparator. After unsharing the comparator compares
+  `cond ? e : m` with `e` bit by bit, the same node on both sides when
+  cond holds; sc replaced one term by an equivalent one built from
+  another bit of the product (equal in every reachable state), so that
+  bit of the comparison became a fact about the multiplier that the
+  solver has to prove.
+- Reproduction at word level: replacing bit 33 of the reference product by
+  its bit 32 in the comparison (they are always equal) takes the three
+  engines from 11-18 s to a timeout at 300 s. Stronger than what sc did
+  (it replaced one term, not the whole bit), same direction.
+
+Fix in the pass (`fold-compare`, on by default): a comparison of the
+shared operator with the operator it now takes its result from,
+`eq(cond ? e : m, e)`, becomes `cond | eq(m, e)`. Under cond the
+comparison holds by construction and no later rewrite of the bits of `e`
+can turn it into a statement about the operator. Exact. It applies to the
+four `a_shift_result_*` properties (the comparison is direct), not to
+`a_mul_result` (an addition and a truncation are in between). The four
+get faster by themselves (rBMC 11-24 s to 1-4 s) and stay fast with sc;
+see `timings.txt`.

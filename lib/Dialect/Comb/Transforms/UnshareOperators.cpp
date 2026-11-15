@@ -323,6 +323,7 @@ bool UnshareOperatorsPass::rewrite(Operation *shared, ArrayRef<Hit> hits) {
   bool changed = false;
   // Conditions under which the whole result comes from another operator.
   SmallVector<Value> unused;
+  Value comparedWith, comparedCondition;
   for (const Hit &hit : hits) {
     // Taking the result from a multiplier that depends on this one would
     // close a combinational cycle.
@@ -349,6 +350,12 @@ bool UnshareOperatorsPass::rewrite(Operation *shared, ArrayRef<Hit> hits) {
       Value condition = terms.size() == 1
                             ? terms.front()
                             : OrOp::create(builder, loc, terms, true);
+      // With a single replacement of the whole result, comparisons with
+      // the other operator can be folded (see below).
+      if (hits.size() == 1 && otherWidth == width) {
+        comparedWith = otherLow;
+        comparedCondition = condition;
+      }
       result = MuxOp::create(builder, loc, condition, otherLow, result);
       unused.push_back(condition);
     } else if (widen) {
@@ -383,12 +390,44 @@ bool UnshareOperatorsPass::rewrite(Operation *shared, ArrayRef<Hit> hits) {
   }
   if (!changed)
     return false;
-  for (auto *use : uses)
+  for (auto *use : uses) {
+    // A comparison of the shared operator with the operator its result now
+    // comes from: eq(mux(c, e, m), e) is c | eq(m, e). Done here so that the
+    // comparison holds by construction under c and no later rewrite of the
+    // bits of e can make it a statement about the operator again.
+    if (foldCompare && comparedWith) {
+      auto icmp = dyn_cast<ICmpOp>(use->getOwner());
+      if (icmp &&
+          (icmp.getPredicate() == ICmpPredicate::eq ||
+           icmp.getPredicate() == ICmpPredicate::ne) &&
+          icmp.getOperand(1 - use->getOperandNumber()) == comparedWith) {
+        bool isEq = icmp.getPredicate() == ICmpPredicate::eq;
+        OpBuilder icmpBuilder(icmp);
+        Value rest = ICmpOp::create(icmpBuilder, icmp.getLoc(),
+                                    icmp.getPredicate(), shared->getResult(0),
+                                    comparedWith, icmp.getTwoState());
+        Value folded =
+            isEq ? Value(OrOp::create(icmpBuilder, icmp.getLoc(),
+                                      comparedCondition, rest, true))
+                 : Value(AndOp::create(
+                       icmpBuilder, icmp.getLoc(),
+                       comb::createOrFoldNot(icmpBuilder, icmp.getLoc(),
+                                             comparedCondition, true),
+                       rest, true));
+        icmp.getResult().replaceAllUsesWith(folded);
+        icmp.erase();
+        ++numFoldedCompares;
+        continue;
+      }
+    }
     use->set(result);
+  }
   // Under these conditions the result of the shared operator is not read
   // any more: give it constant operands there. Otherwise its result would
   // still equal the new one in every case, and an equivalence-merging pass
   // (fraig, signal correspondence) may put it back.
+  // A folded comparison may have been the insertion point.
+  builder.setInsertionPointAfter(shared);
   if (isolate && !unused.empty()) {
     Value condition = unused.size() == 1
                           ? unused.front()
