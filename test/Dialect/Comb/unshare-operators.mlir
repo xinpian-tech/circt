@@ -2,7 +2,10 @@
 // RUN: circt-opt %s --comb-unshare-operators=max-paths=1 | FileCheck %s --check-prefix=LIMIT
 
 // With one assignment tried (the empty one) nothing is found.
-// LIMIT-NOT: comb.mux %sel, {{%.+}}, {{%.+}} : i8
+// LIMIT-LABEL: hw.module @SameWidth
+// LIMIT: comb.mul %a, %b : i8
+// LIMIT: [[SHARED:%.+]] = comb.mul {{%.+}}, {{%.+}} : i8
+// LIMIT-NEXT: hw.output [[SHARED]],
 
 // The shared multiplier computes a * b when sel is true; the other
 // multiplier is taken then.
