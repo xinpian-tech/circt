@@ -194,3 +194,15 @@ zero-extended 16-bit values has zero top bits, so an arithmetic and a
 logical shift agree) and on values two or more cycles back. Making this
 work needs refinement (CEGAR) or partially interpreted multipliers; not
 pursued yet.
+
+With two additions to `ufmul.py` the spurious counterexamples on the
+accumulator checks are gone (`results/mult-hard-uf-lemmas.tsv`): range
+lemmas (operands zero- or sign-extended from ka and kb bits give a
+product that fits in ka+kb bits), and consistency between multipliers of
+different widths on their low bits. A one-step history is enough: the
+property's multipliers are evaluated every cycle, so with stable
+operands they carry the result forward and meet the value the register
+took from the shared multiplier. `a_shift_result_ll_shift` is proved by
+IC3 (14-33 s) and reaches depth 20 in BMC; `_ll_lh`, `_ll_lh_hl_shift`
+and `a_check_result_constant` reach depth 20 in BMC (55-160 s, stuck at
+frames 6-7 before) but IC3 still times out at 300 s.

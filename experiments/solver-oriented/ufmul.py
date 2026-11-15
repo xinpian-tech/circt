@@ -20,15 +20,37 @@ for k,(i,v,a,b,w,ind) in enumerate(muls):
     L[i]=f'{ind}{v} = comb.concat %uf{k} : i{w}'   # alias
     new+= [f'%ufha{k} = seq.compreg {a}, {clk} : i{w}', f'%ufhb{k} = seq.compreg {b}, {clk} : i{w}', f'%ufhr{k} = seq.compreg %uf{k}, {clk} : i{w}']
 n=0
-def imp(a1,b1,r1,a2,b2,r2,w):
-    global n; n+=1; p=f'%ufc{n}'
-    return [f'{p}a = comb.icmp eq {a1}, {a2} : i{w}', f'{p}b = comb.icmp eq {b1}, {b2} : i{w}', f'{p}r = comb.icmp eq {r1}, {r2} : i{w}',
+def low(v,w,wl,p):
+    if w==wl: return v,[]
+    return p,[f'{p} = comb.extract {v} from 0 : (i{w}) -> i{wl}']
+def imp(a1,b1,r1,w1,a2,b2,r2,w2):
+    # equal low operand bits give equal low result bits
+    global n; n+=1; p=f'%ufc{n}'; w=min(w1,w2); o=[]; x=[]
+    for i,(v,ww) in enumerate(((a1,w1),(b1,w1),(r1,w1),(a2,w2),(b2,w2),(r2,w2))):
+        nv,ops=low(v,ww,w,f'{p}l{i}'); x.append(nv); o+=ops
+    return o+[f'{p}a = comb.icmp eq {x[0]}, {x[3]} : i{w}', f'{p}b = comb.icmp eq {x[1]}, {x[4]} : i{w}', f'{p}r = comb.icmp eq {x[2]}, {x[5]} : i{w}',
             f'{p}n = comb.and {p}a, {p}b : i1', f'{p}t = hw.constant true', f'{p}x = comb.xor {p}n, {p}t : i1', f'{p}o = comb.or {p}x, {p}r : i1', f'verif.assume {p}o : i1']
 for k,(i,v,a,b,w,ind) in enumerate(muls):
     for j,(i2,v2,a2,b2,w2,_) in enumerate(muls):
-        if w!=w2: continue
-        if j>k: new+=imp(a,b,f'%uf{k}',a2,b2,f'%uf{j}',w)+imp(a,b,f'%uf{k}',b2,a2,f'%uf{j}',w)
-        new+=imp(a,b,f'%uf{k}',f'%ufha{j}',f'%ufhb{j}',f'%ufhr{j}',w)+imp(a,b,f'%uf{k}',f'%ufhb{j}',f'%ufha{j}',f'%ufhr{j}',w)
+        if j>k: new+=imp(a,b,f'%uf{k}',w,a2,b2,f'%uf{j}',w2)+imp(a,b,f'%uf{k}',w,b2,a2,f'%uf{j}',w2)
+        new+=imp(a,b,f'%uf{k}',w,f'%ufha{j}',f'%ufhb{j}',f'%ufhr{j}',w2)+imp(a,b,f'%uf{k}',w,f'%ufhb{j}',f'%ufha{j}',f'%ufhr{j}',w2)
+# Range lemmas: an operand zero-extended from ka bits times one zero-extended
+# from kb bits is below 2^(ka+kb); sign-extended from ka and kb bits, the
+# product is sign-extended from ka+kb bits. Stated for a few widths.
+KS=[int(x) for x in (sys.argv[3].split(',') if len(sys.argv)>3 else ['16','17','32','33'])]
+def hi_zero(v,k,w,p): return [f'{p}e = comb.extract {v} from {k} : (i{w}) -> i{w-k}', f'{p}c = hw.constant 0 : i{w-k}', f'{p} = comb.icmp eq {p}e, {p}c : i{w-k}']
+def hi_sext(v,k,w,p): return [f'{p}e = comb.extract {v} from {k-1} : (i{w}) -> i{w-k+1}', f'{p}c = hw.constant 0 : i{w-k+1}', f'{p}d = hw.constant -1 : i{w-k+1}',
+    f'{p}z = comb.icmp eq {p}e, {p}c : i{w-k+1}', f'{p}o = comb.icmp eq {p}e, {p}d : i{w-k+1}', f'{p} = comb.or {p}z, {p}o : i1']
+r=0
+for k,(i,v,a_,b_,w,ind) in enumerate(muls):
+    for ka in KS:
+        for kb in KS:
+            for kind,f in (('z',hi_zero),('s',hi_sext)):
+                if ka>=w or kb>=w or ka+kb>=w: continue
+                r+=1; p=f'%ufr{r}'
+                new+=f(a_,ka,w,p+'a')+f(b_,kb,w,p+'b')+f(f'%uf{k}',ka+kb,w,p+'r')
+                new+=[f'{p}n = comb.and {p}a, {p}b : i1', f'{p}t = hw.constant true', f'{p}x = comb.xor {p}n, {p}t : i1', f'{p}i = comb.or {p}x, {p}r : i1', f'verif.assume {p}i : i1']
+print(r,'range lemmas',file=sys.stderr)
 h=next(i for i,l in enumerate(L) if 'hw.module' in l)
 L[h]=L[h].replace('(in ','('+', '.join(ports)+', in ',1)
 o=next(i for i,l in enumerate(L) if 'hw.output' in l)
