@@ -13,8 +13,9 @@
 //  - consistency: two multipliers with equal operands (in either order) have
 //    equal results, in the same cycle and against the operands and result of
 //    every multiplier in the previous cycle, which registers keep;
-//  - range: operands zero- (sign-) extended from ka and kb bits give a
-//    result zero- (sign-) extended from ka + kb bits.
+//  - range: operands zero-extended from ka and kb bits give a result of at
+//    most (2^ka - 1) * (2^kb - 1); sign-extended, a result of magnitude at
+//    most 2^(ka + kb - 2).
 //
 // With multipliers of different widths the low bits are compared. The result
 // over-approximates the module: a proof carries over, a counterexample may be
@@ -64,8 +65,10 @@ static void collectWidths(Value value, unsigned limit, std::set<unsigned> &out,
   if (!visited.insert(value).second || depth > 16)
     return;
   unsigned width = hw::getBitWidth(value.getType());
-  if (width >= 2 && width < limit)
-    out.insert(width);
+  // Zero-extended from k bits is also sign-extended from k + 1.
+  for (unsigned candidate : {width, width + 1})
+    if (candidate >= 2 && candidate < limit)
+      out.insert(candidate);
   auto *def = value.getDefiningOp();
   if (!def || !isa<comb::MuxOp, comb::ConcatOp, comb::ExtractOp,
                    comb::ReplicateOp>(def))
@@ -208,20 +211,47 @@ void AbstractOperatorsPass::runOnOperation() {
         unsigned resultWidth = lhsWidth + rhsWidth;
         if (resultWidth >= application.width)
           continue;
+        // Unsigned: the product is at most (2^ka - 1) * (2^kb - 1).
+        APInt bound = (APInt::getLowBitsSet(application.width, lhsWidth) *
+                       APInt::getLowBitsSet(application.width, rhsWidth));
         assume(loc,
                comb::AndOp::create(builder, loc,
                                    highZero(loc, application.lhs, lhsWidth),
                                    highZero(loc, application.rhs, rhsWidth),
                                    true),
-               highZero(loc, application.result, resultWidth));
+               comb::ICmpOp::create(
+                   builder, loc, comb::ICmpPredicate::ule, application.result,
+                   hw::ConstantOp::create(builder, loc, bound), true));
+        // Signed: the product is sign-extended from ka + kb bits and its
+        // magnitude is at most 2^(ka + kb - 2).
+        APInt magnitude =
+            APInt::getOneBitSet(application.width, resultWidth - 2);
+        Value inRange = comb::AndOp::create(
+            builder, loc,
+            comb::ICmpOp::create(
+                builder, loc, comb::ICmpPredicate::sle, application.result,
+                hw::ConstantOp::create(builder, loc, magnitude), true),
+            comb::ICmpOp::create(
+                builder, loc, comb::ICmpPredicate::sge, application.result,
+                hw::ConstantOp::create(builder, loc, -magnitude), true),
+            true);
         assume(loc,
                comb::AndOp::create(builder, loc,
                                    highEqual(loc, application.lhs, lhsWidth),
                                    highEqual(loc, application.rhs, rhsWidth),
                                    true),
-               highEqual(loc, application.result, resultWidth));
+               inRange);
       }
   }
+  // Outputs to replay a counterexample: a trace is one of the original
+  // module if every result is the product of its operands in every cycle.
+  if (observe)
+    for (auto [index, application] : llvm::enumerate(applications)) {
+      auto name = "abstract_mul_" + Twine(index);
+      module.appendOutput((name + "_obs_lhs").str(), application.lhs);
+      module.appendOutput((name + "_obs_rhs").str(), application.rhs);
+      module.appendOutput((name + "_obs_result").str(), application.result);
+    }
   numAbstracted += applications.size();
   numAssumptions += numAssumed;
 }

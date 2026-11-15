@@ -322,9 +322,10 @@ def AbstractOperatorsPass
     hold for a multiplication: equal operands (in either order) give equal
     results, between the multipliers of a cycle and, with `history`, against
     the operands and result of every multiplier in the previous cycle (kept
-    in new registers); and operands zero- or sign-extended from ka and kb
-    bits give a result zero- or sign-extended from ka + kb bits, for the
-    widths found in the operand cones. Multipliers of different widths are
+    in new registers); and operands zero-extended from ka and kb bits give
+    a result of at most (2^ka - 1) * (2^kb - 1), sign-extended ones a result
+    of magnitude at most 2^(ka + kb - 2), for the widths found in the operand
+    cones. Multipliers of different widths are
     compared on their low bits. The module is over-approximated: a proof
     carries over to the original, a counterexample may be spurious. The new
     inputs change the port list, so the pass is meant for top-level
@@ -337,6 +338,9 @@ def AbstractOperatorsPass
            "Keep the operands and results of the previous cycle">,
     Option<"minWidth", "min-width", "unsigned", "8",
            "Smallest multiplier abstracted">,
+    Option<"observe", "observe", "bool", "false",
+           "Add outputs with the operands and result of each multiplier, "
+           "to check a counterexample against the original">,
     Option<"maxOperators", "max-operators", "unsigned", "8",
            "Leave the module alone if it has more multipliers than this">
   ];

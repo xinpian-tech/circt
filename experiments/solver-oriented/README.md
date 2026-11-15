@@ -222,3 +222,19 @@ counterexamples need to be replayed on the original model, which is not
 automated yet. `results/mult-hard-abstract-pass.tsv` (300 s) matches the
 script: all four cross-cycle checks reach depth 20 in BMC (39-177 s),
 `a_shift_result_ll_shift` is proved by IC3 (19-34 s).
+
+**Abstraction, last state** (`results/mult-hard-abstract-bounds.tsv`,
+`abstract_check.sh`, `replay.py`, `splitmul.py`). `observe` adds outputs
+with the operands and free result of each multiplier; `replay.py`
+compares them with the real product along a counterexample. On the three
+`a_mulh*_result` checks, with the property's 64-bit multiplier split at
+bit 16 into four partial products (`splitmul.py`, exact), the first
+counterexample was spurious because a free partial product exceeded
+(2^16 - 1)^2, which the accumulation relies on; the range assumptions
+are now these tight bounds, and all three reach depth 20 in rBMC
+(225-278 s; frame 7 before). IC3 does not prove them in 300 s.
+
+The abstraction changes behaviour (it is an over-approximation), which is
+not the kind of simplification this branch is about; it stays here as a
+side experiment and is not developed further. The line of work is the
+exact rewrite, `comb-unshare-operators`.

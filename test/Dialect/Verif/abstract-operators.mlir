@@ -38,7 +38,8 @@ hw.module @Two(in %clk : !seq.clock, in %a : i16, in %b : i16, in %c : i12,
   hw.output %m, %n : i16, i12
 }
 
-// Range: operands extended from 4 bits give a result that fits in 8 bits.
+// Range: operands zero-extended from 4 bits give a product of at most
+// 15 * 15.
 // CHECK-LABEL: hw.module @Range
 hw.module @Range(in %a : i4, in %b : i4, out o : i12) {
   // CHECK: [[AH:%.+]] = comb.extract [[A:%.+]] from 4 : (i12) -> i8
@@ -46,11 +47,13 @@ hw.module @Range(in %a : i4, in %b : i4, out o : i12) {
   // CHECK: [[BH:%.+]] = comb.extract [[B:%.+]] from 4 : (i12) -> i8
   // CHECK: [[BZ:%.+]] = comb.icmp bin eq [[BH]], %c0_i8
   // CHECK: [[PRE:%.+]] = comb.and bin [[AZ]], [[BZ]] : i1
-  // CHECK: [[RH:%.+]] = comb.extract %abstract_mul_0 from 8 : (i12) -> i4
-  // CHECK: [[RZ:%.+]] = comb.icmp bin eq [[RH]], %c0_i4
+  // CHECK: [[LE:%.+]] = comb.icmp bin ule %abstract_mul_0, %c225_i12 : i12
   // CHECK: [[NPRE:%.+]] = comb.xor bin [[PRE]], %true
-  // CHECK: [[IMP:%.+]] = comb.or bin [[NPRE]], [[RZ]] : i1
+  // CHECK: [[IMP:%.+]] = comb.or bin [[NPRE]], [[LE]] : i1
   // CHECK: verif.assume [[IMP]] : i1
+  // Signed, from 5 and 5 bits: magnitude at most 2^8.
+  // CHECK: comb.icmp bin sle %abstract_mul_0, %c256_i12 : i12
+  // CHECK: comb.icmp bin sge %abstract_mul_0, %c-256_i12 : i12
   %c0 = hw.constant 0 : i8
   %az = comb.concat %c0, %a : i8, i4
   %bz = comb.concat %c0, %b : i8, i4
