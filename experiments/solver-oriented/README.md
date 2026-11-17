@@ -458,3 +458,35 @@ amounts enumerated over the bits they depend on, at most 12), and
 to their observed bits. On a_mul_result after sc: 2509 -> 2501 latches,
 45301 -> 45228 ands, and rIC3's trivial simplification, scorr and frts then
 remove nothing. `export_cfgs.sh` runs them with DC=1.
+
+## Solver preprocessing after CIRCT: ABC, CaDiCaL, rIC3 encoding (2026-11-17)
+
+ABC, step by step on the plain models (`results/final/abcpre.txt`; 82
+properties, 15 more whose output sc already made constant; medians):
+
+| step | base | sc |
+|---|---|---|
+| scorr | -16.8% latches (~508), -25% ands | -0.04% latches (1-2), -0.3% ands |
+| fraig after scorr | 0 | 0 |
+| fraig alone | -14.9% ands | 0 |
+| dc2 alone | -19.4% ands | -11.8% ands |
+
+ABC's scorr and fraig find nothing after sc (the 1-2 latches are likely the
+helper latches aigplain.py adds). dc2, an area-oriented rewriting, still
+removes 12% of the ands; whether that helps solving is measured with
+`results-dc2.tsv`.
+
+CaDiCaL (rBMC, `rbmc-nopre`: elim, subsume, probe, vivify, ternary and
+decompose off; same batch): base 70 with, 52 without (18 only with); sc 73
+with, 69 without (4 only with: a_debug_taken_rf_write, a_max_seq_len_pop,
+a_max_seq_len_popret, a_sleep_to_irq); equal time on the common ones.
+
+rIC3 on the ussc models, on / off / enc (only compact CNF and bve), same
+batch: middle set solved by most seeds 29 / 28 / 28 (runs 85 / 79 / 81 of
+87), geometric mean on the 18 common 9.2 / 23.6 / 6.9 s; easy set 3.60 /
+1.09 / 0.63 s. With the circuit-level items off rIC3 is faster and loses
+one borderline property (a_if_ex_trig_exclusive, 2 of 3 seeds).
+
+The don't-care passes (DC=1) on all 97: solved counts within noise of the
+earlier ussc (rBMC 80 -> 79, ABC 82 -> 83, rIC3 bare 67 -> 66, rIC3 70 ->
+68, different properties in both directions), same times.
