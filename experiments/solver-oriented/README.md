@@ -490,3 +490,11 @@ one borderline property (a_if_ex_trig_exclusive, 2 of 3 seeds).
 The don't-care passes (DC=1) on all 97: solved counts within noise of the
 earlier ussc (rBMC 80 -> 79, ABC 82 -> 83, rIC3 bare 67 -> 66, rIC3 70 ->
 68, different properties in both directions), same times.
+
+dc2 after sc (`results-dc2.tsv`, scplain vs scdc2, same batch, 150 s):
+solved rBMC 74 / 75, ABC bmc3 78 / 77, rIC3 bare 55 / 55, rIC3 61 / 58,
+with different properties in both directions (noise). Geometric mean on the
+commonly solved ones taking over 5 s: rBMC 56.2 / 47.5 s, ABC 22.7 / 21.7 s,
+rIC3 bare 16.5 / 12.4 s, rIC3 15.8 / 12.8 s. dc2 solves nothing new but makes
+the hard ones 5-25% faster: AIG rewriting is the one solver-side step CIRCT
+does not cover yet.
