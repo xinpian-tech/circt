@@ -6,6 +6,7 @@ add_circt_dialect_library(CIRCTCombTransforms
   AssumeTwoValued.cpp
   SimplifyTruthTable.cpp
   UnshareOperators.cpp
+  MuxDontCare.cpp
 
   DEPENDS
   CIRCTCombTransformsIncGen

@@ -74,6 +74,34 @@ def SimplifyTruthTable : Pass<"comb-simplify-tt"> {
   }];
 }
 
+def MuxDontCare : Pass<"comb-mux-dont-care", "hw::HWModuleOp"> {
+  let summary = "Zero the bits of mux arms that no shift can bring out";
+  let description = [{
+    For a mux whose result is only shifted or extracted, finds the bits of
+    each arm that can reach a used bit of the result while the arm is
+    selected, and replaces the others by zero:
+
+      r = shru(mux(c, a, b), k)[31:0], c implies k >= 8
+      ->  a's bits 0..7 are never seen; a := {a[63:8], 8'b0}
+
+    The values of the select and of the shift amounts are enumerated over
+    the bits they depend on (registers, ports and other operators are free
+    inputs), so the rewrite is exact and needs no reachability. Bits that
+    are only seen through such a mux, like the low byte of a register that
+    holds the first half of a misaligned load, then have no observer left.
+  }];
+  let dependentDialects = ["comb::CombDialect", "hw::HWDialect"];
+  let options = [
+    Option<"maxSupportBits", "max-support-bits", "unsigned", "12",
+           "Maximum number of free bits the select and shift amounts may "
+           "depend on together">
+  ];
+  let statistics = [
+    Statistic<"numArms", "num-arms", "Number of mux arms rewritten">,
+    Statistic<"numBits", "num-bits", "Number of arm bits replaced by zero">,
+  ];
+}
+
 def UnshareOperators : Pass<"comb-unshare-operators", "hw::HWModuleOp"> {
   let summary = "Take the result of a shared operator from an equal one";
   let description = [{

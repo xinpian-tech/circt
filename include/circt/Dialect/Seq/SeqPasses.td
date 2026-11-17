@@ -232,4 +232,28 @@ def UnrollMemoryLatencies : Pass<"seq-unroll-mem-latency", "hw::HWModuleOp"> {
   let dependentDialects = ["circt::hw::HWDialect", "circt::comb::CombDialect"];
 }
 
+def TrimRegisters : Pass<"seq-trim-registers", "hw::HWModuleOp"> {
+  let summary = "Remove register bits that nothing observes";
+  let description = [{
+    A cone of influence at the granularity of bits. The observed bits of each
+    value are propagated from the module outputs and from the operations that
+    observe their operands (assertions, assumptions and anything unknown)
+    through extracts, concatenations, replications, bitwise operators, mux
+    data inputs, the low bits of adders and multipliers, and through
+    registers from their result to their next state and reset value. A
+    register is then narrowed to its observed bits; the removed bits read as
+    zero, which no observer can tell apart. This removes register bits that
+    only feed themselves, which the cone of influence of whole operations
+    keeps. Registers with an inner symbol or a non-constant initial value are
+    left alone.
+  }];
+  let dependentDialects = ["circt::hw::HWDialect", "circt::comb::CombDialect"];
+  let statistics = [
+    Statistic<"numTrimmedRegisters", "num-trimmed-registers",
+              "Number of registers narrowed or removed">,
+    Statistic<"numRemovedBits", "num-removed-bits",
+              "Number of register bits removed">,
+  ];
+}
+
 #endif // CIRCT_DIALECT_SEQ_SEQPASSES
