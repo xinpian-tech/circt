@@ -8,6 +8,8 @@
 # for the bounded back ends).
 # Back ends:
 #   rbmc           rBMC (Tseitin only, incremental CaDiCaL)
+#   rbmc-nopre     rBMC with CaDiCaL's elimination, subsumption, probing,
+#                  vivification, ternary resolution and decomposition off
 #   ric3-bmc       rIC3 bmc with its preprocessing
 #   ric3-ic3-bare  rIC3 ic3, no preprocessing, plain CNF
 #   ric3-ic3       rIC3 ic3 with its preprocessing
@@ -34,6 +36,8 @@ one() {
   local s=$(date +%s.%N)
   case $e in
     rbmc) $run $RBMC $f --end $K ;;
+    rbmc-nopre) $run $RBMC $f --end $K --cadical elim=0 --cadical subsume=0 --cadical probe=0 \
+      --cadical vivify=0 --cadical ternary=0 --cadical decompose=0 ;;
     ric3-bmc) $run $RIC3 check $f --ui false bmc --end $K ;;
     ric3-ic3-bare) $run $RIC3 check $f --ui false --fe-simp false --fe-cnf plain ic3 --preproc false ;;
     ric3-ic3) $run $RIC3 check $f --ui false ic3 ;;
@@ -44,7 +48,7 @@ one() {
   esac > $o.log 2>&1
   local t=$(echo "$(date +%s.%N)-$s" | bc) r=TO d=
   case $e in
-    rbmc)
+    rbmc*)
       if grep -aq '^SAT$' $o.log; then r=SAT; d=$(grep -aoE 'length [0-9]+' $o.log | grep -oE '[0-9]+' | tail -1)
       else d=$(grep -aoE 'up to bound [0-9]+' $o.log | grep -oE '[0-9]+' | tail -1); [ "$d" = "$K" ] && r=K; fi ;;
     ric3-bmc)
