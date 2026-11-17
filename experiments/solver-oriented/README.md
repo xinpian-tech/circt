@@ -175,10 +175,18 @@ that one under their disjunction. Run after `canonicalize,cse`, before
 solved on all four backends, faster than with the prototype
 (`a_mul_result`: rBMC 42 s, ABC bmc3 23 s, rIC3 ic3 10 s).
 
-Build note: `inbuild.sh` runs a command in a namespace that maps this
-worktree, the LLVM checkout and a copy of the old build directory to the
-paths the build was configured with (edit the paths at its top), so only
-CIRCT is rebuilt.
+Build note: the worktree is `/root/yjh-workspace/circt-solver-oriented`
+(local disk), with the build directory in its `build/` (a copy of the one
+configured at `/var/storage/workspaces/clo91eaf/circt`, now
+`circt.moved`). `inbuild.sh` runs a command in a namespace that maps the
+worktree and the LLVM checkout of `circt.moved` to the configured paths,
+so only CIRCT is rebuilt:
+
+    nix-shell experiments/synth-solver/toolchain.nix --run \
+      "experiments/solver-oriented/inbuild.sh ninja -C build bin/circt-opt"
+
+The tools run outside the namespace with
+`LD_LIBRARY_PATH=/nix/store/41ym1jm1b7j3rhglk82gwg9jml26z1km-gcc-14.3.0-lib/lib`.
 
 **Cross-cycle multiplier checks: uninterpreted-function abstraction**
 (`ufmul.py`, an experiment on MLIR text; `results/mult-hard-uf.tsv`,

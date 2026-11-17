@@ -1,13 +1,24 @@
 #!/usr/bin/env bash
-# run a command inside a namespace where the CIRCT worktree, the LLVM
-# checkout and the copied build directory sit at the paths the build was
-# configured with. usage: inbuild.sh CMD...
+# Run a command in a namespace where this worktree (with its build/
+# directory) and the LLVM checkout sit at the paths the build directory was
+# configured with, so ninja rebuilds CIRCT only.
+#   inbuild.sh CMD...
+# e.g. nix-shell experiments/synth-solver/toolchain.nix --run \
+#        "experiments/solver-oriented/inbuild.sh ninja -C build bin/circt-opt"
+# The build directory is a copy of the one configured at
+# $P/circt (now $P/circt.moved), kept in build/ of this worktree.
+W=$(cd "$(dirname "$0")/../.." && pwd)
+P=${CONFIGURED_PARENT:-/var/storage/workspaces/clo91eaf}
+M=${LLVM_CHECKOUT:-$P/circt.moved}
+# An empty local directory stands in for $P inside the namespace, so that
+# $P/circt can be a mount point without creating it on the shared storage.
+F=${BWRAP_PARENT:-$(dirname "$W")/.bwrap-parent}
+mkdir -p "$F" "$W/.venv" "$W/build"
 exec bwrap --bind / / --dev-bind /dev /dev --proc /proc \
-  --bind /tmp/claude-0/-root-yjh-workspace/3cca2a40-f56d-411e-8bea-05778e44e84e/scratchpad/fakeparent /var/storage/workspaces/clo91eaf \
-  --bind /var/storage/workspaces/clo91eaf/yjh-workspace /var/storage/workspaces/clo91eaf/yjh-workspace \
-  --bind /var/storage/workspaces/clo91eaf/circt.moved /var/storage/workspaces/clo91eaf/circt.moved \
-  --bind /tmp/claude-0/-root-yjh-workspace/3cca2a40-f56d-411e-8bea-05778e44e84e/scratchpad/exp-wt /var/storage/workspaces/clo91eaf/circt \
-  --bind /var/storage/workspaces/clo91eaf/circt.moved/llvm /var/storage/workspaces/clo91eaf/circt/llvm \
-  --bind /var/storage/workspaces/clo91eaf/circt.moved/.venv /var/storage/workspaces/clo91eaf/circt/.venv \
-  --bind /tmp/claude-0/-root-yjh-workspace/3cca2a40-f56d-411e-8bea-05778e44e84e/scratchpad/build /var/storage/workspaces/clo91eaf/circt/build \
-  --chdir /var/storage/workspaces/clo91eaf/circt "$@"
+  --bind "$F" "$P" \
+  --bind "$P/yjh-workspace" "$P/yjh-workspace" \
+  --bind "$M" "$P/circt.moved" \
+  --bind "$W" "$P/circt" \
+  --bind "$M/llvm" "$P/circt/llvm" \
+  --bind "$M/.venv" "$P/circt/.venv" \
+  --chdir "$P/circt" "$@"
