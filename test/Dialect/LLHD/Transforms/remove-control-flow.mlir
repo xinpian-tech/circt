@@ -105,3 +105,28 @@ hw.module @HandleCondBranchToSameBlock(in %a: i42, in %b: i42, in %c: i1) {
 }
 
 func.func private @someFunc()
+
+// Immediate assertions under a branch are enabled by the branch decisions
+// leading to them, and a region left with only them as side effects is
+// inlined. Covers keep their own enable and-ed in.
+// CHECK-LABEL: @ImmediateAssertions
+hw.module @ImmediateAssertions(in %a: i1, in %b: i1, in %c: i1, in %d: i1) {
+  // CHECK-NOT: llhd.combinational
+  // CHECK: verif.assume %a : i1
+  // CHECK: verif.assert %b if %c : i1
+  // CHECK: [[NC:%.+]] = comb.xor %c, %true
+  // CHECK: [[EN:%.+]] = comb.and [[NC]], %d
+  // CHECK: verif.cover %a if [[EN]] : i1
+  llhd.combinational {
+    verif.assume %a : i1
+    cf.cond_br %c, ^bb1, ^bb2
+  ^bb1:
+    verif.assert %b : i1
+    cf.br ^bb3
+  ^bb2:
+    verif.cover %a if %d : i1
+    cf.br ^bb3
+  ^bb3:
+    llhd.yield
+  }
+}

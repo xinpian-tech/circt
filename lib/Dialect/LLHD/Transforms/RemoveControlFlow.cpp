@@ -10,6 +10,7 @@
 #include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/LLHD/LLHDOps.h"
 #include "circt/Dialect/LLHD/LLHDPasses.h"
+#include "circt/Dialect/Verif/VerifOps.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/IR/Dominance.h"
 #include "mlir/IR/Matchers.h"
@@ -151,6 +152,13 @@ static Condition getBranchDecisionsFromDominatorToTarget(
   return decisions.lookup({dominator, target});
 }
 
+/// Immediate assertions, assumptions and covers: their only effect is to check
+/// their property when they are reached, which an enable expresses exactly.
+static bool isImmediateAssertLike(Operation *op) {
+  return isa<verif::AssertOp, verif::AssumeOp, verif::CoverOp>(op) &&
+         op->getOperand(0).getType().isInteger(1);
+}
+
 //===----------------------------------------------------------------------===//
 // Control Flow Removal
 //===----------------------------------------------------------------------===//
@@ -194,7 +202,7 @@ void CFRemover::run() {
 
     // Give up if there are any side-effecting ops in the region.
     for (auto &op : block) {
-      if (!isMemoryEffectFree(&op)) {
+      if (!isMemoryEffectFree(&op) && !isImmediateAssertLike(&op)) {
         LLVM_DEBUG(llvm::dbgs() << "- Has side effects, giving up\n");
         return;
       }
@@ -350,6 +358,28 @@ void CFRemover::run() {
          llvm::zip(block->getArguments(), mergedArgs))
       blockArg.replaceAllUsesWith(mergedArg);
 
+    // Assertions only check when control reaches their block: enable them
+    // with the branch decisions leading there from the entry.
+    if (block != entryBlock) {
+      for (auto &op : llvm::make_range(block->begin(), --block->end())) {
+        if (!isImmediateAssertLike(&op))
+          continue;
+        auto reached = getBranchDecisionsFromDominatorToTarget(
+            builder, entryBlock, block, decisionCache);
+        if (reached.isTrue())
+          continue;
+        auto enableIndex = 1;
+        if (op.getNumOperands() > 1)
+          reached = reached.andWith(Condition(op.getOperand(enableIndex)),
+                                    builder);
+        auto enable = reached.materialize(builder, op.getLoc());
+        if (op.getNumOperands() > 1)
+          op.setOperand(enableIndex, enable);
+        else
+          op.insertOperands(enableIndex, enable);
+      }
+    }
+
     // Move all ops except for the terminator into the entry block.
     if (block != entryBlock)
       entryBlock->getOperations().splice(--entryBlock->end(),
@@ -388,6 +418,29 @@ struct RemoveControlFlowPass
 } // namespace
 
 void RemoveControlFlowPass::runOnOperation() {
-  for (auto op : getOperation().getOps<CombinationalOp>())
+  for (auto op : llvm::make_early_inc_range(
+           getOperation().getOps<CombinationalOp>())) {
     CFRemover(op.getBody()).run();
+    // A single block whose only side effects are immediate assertions checks
+    // them in every evaluation, as the same assertions in the module do:
+    // inline it (the canonicalizer only inlines effect-free blocks).
+    auto &body = op.getBody();
+    if (!body.hasOneBlock())
+      continue;
+    bool onlyAsserts = true, anyAssert = false;
+    for (auto &inner : body.front()) {
+      if (isImmediateAssertLike(&inner))
+        anyAssert = true;
+      else if (!isMemoryEffectFree(&inner) && !isa<YieldOp>(inner))
+        onlyAsserts = false;
+    }
+    if (!anyAssert || !onlyAsserts)
+      continue;
+    auto *terminator = body.front().getTerminator();
+    op.getResults().replaceAllUsesWith(terminator->getOperands());
+    terminator->erase();
+    op->getBlock()->getOperations().splice(op->getIterator(),
+                                           body.front().getOperations());
+    op.erase();
+  }
 }

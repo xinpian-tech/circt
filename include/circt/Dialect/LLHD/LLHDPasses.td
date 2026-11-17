@@ -157,7 +157,11 @@ def RemoveControlFlowPass : Pass<"llhd-remove-control-flow", "hw::HWModuleOp"> {
     This requires the control flow to be acyclic, for example by unrolling all
     loops beforehand. Additionally, since this moves operations from
     conditionally executed blocks into the unconditionally executed entry block,
-    all operations must be side-effect free.
+    all operations must be side-effect free, except for immediate assertions,
+    assumptions and covers (`verif.assert` and friends on an `i1`): these get
+    the branch decisions leading to their block as enable. A region left with
+    a single block whose only side effects are such assertions is inlined into
+    the parent.
   }];
   let dependentDialects = [
     "comb::CombDialect",

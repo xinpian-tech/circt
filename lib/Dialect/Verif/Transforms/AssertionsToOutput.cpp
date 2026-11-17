@@ -19,6 +19,11 @@
 // (`seq.clock_gate`): those are checked in the cycles where the gate is
 // enabled, and their registers count cycles of the gated clock.
 //
+// Immediate (unclocked) assertions and assumptions of a boolean, such as
+// `assert` statements in `always @*` blocks, are checked in every cycle of
+// that clock (of the only clock input if there is no clocked assertion).
+// Immediate covers of booleans are removed.
+//
 //===----------------------------------------------------------------------===//
 
 #include "circt/Dialect/Comb/CombOps.h"
@@ -74,6 +79,27 @@ struct Clocked {
     if (auto a = dyn_cast<verif::ClockedAssertOp>(op))
       return from(a, false);
     if (auto a = dyn_cast<verif::ClockedAssumeOp>(op))
+      return from(a, true);
+    return std::nullopt;
+  }
+
+  /// An immediate assertion or assumption of a boolean, checked in every
+  /// cycle of `clock`.
+  static std::optional<Clocked> getImmediate(Operation *op, Value clock) {
+    auto from = [&](auto immediate, bool isAssume) {
+      return Clocked{op,
+                     immediate.getProperty(),
+                     immediate.getEnable(),
+                     clock,
+                     verif::ClockEdge::Pos,
+                     immediate.getLabel() ? *immediate.getLabel() : "",
+                     isAssume};
+    };
+    if (!op->getOperand(0).getType().isInteger(1))
+      return std::nullopt;
+    if (auto a = dyn_cast<verif::AssertOp>(op))
+      return from(a, false);
+    if (auto a = dyn_cast<verif::AssumeOp>(op))
       return from(a, true);
     return std::nullopt;
   }
@@ -257,16 +283,39 @@ LogicalResult AssertionsToOutputPass::lower(hw::HWModuleOp module,
                                             llvm::StringSet<> &found) {
   auto *body = module.getBodyBlock();
   SmallVector<Clocked> ops;
+  SmallVector<Operation *> immediates;
+  Value immediateClock;
   for (auto &op : *body) {
     if (auto clocked = Clocked::get(&op)) {
       ops.push_back(*clocked);
+      if (!immediateClock)
+        immediateClock = clocked->clock;
       continue;
     }
-    if (isa<verif::AssertOp, verif::AssumeOp>(op)) {
-      op.emitError("unclocked assertion not supported by "
-                   "verif-assertions-to-output");
+    if (isa<verif::AssertOp, verif::AssumeOp>(op))
+      immediates.push_back(&op);
+  }
+  if (!immediates.empty() && !immediateClock) {
+    for (auto arg : body->getArguments()) {
+      if (!isa<seq::ClockType>(arg.getType()))
+        continue;
+      if (immediateClock) {
+        immediateClock = {};
+        break;
+      }
+      immediateClock = arg;
+    }
+  }
+  for (auto *op : immediates) {
+    auto immediate =
+        immediateClock ? Clocked::getImmediate(op, immediateClock) : std::nullopt;
+    if (!immediate) {
+      op->emitError("unclocked assertion not supported by "
+                    "verif-assertions-to-output (needs a boolean and one "
+                    "clock)");
       return failure();
     }
+    ops.push_back(*immediate);
   }
   if (ops.empty())
     return success();
@@ -399,9 +448,13 @@ LogicalResult AssertionsToOutputPass::lower(hw::HWModuleOp module,
     bad = lowering.andOf({bad, lowering.notOf(failedNow)}, loc);
   }
 
-  // Remove the assertions and the LTL ops only they used.
+  // Remove the assertions and the LTL ops only they used, and the immediate
+  // covers of booleans (reachability goals, not part of the safety property).
   for (auto &op : ops)
     op.op->erase();
+  for (auto cover : llvm::make_early_inc_range(body->getOps<verif::CoverOp>()))
+    if (cover.getProperty().getType().isInteger(1))
+      cover.erase();
   SetVector<Operation *> worklist(lowering.visited.begin(),
                                   lowering.visited.end());
   for (auto &[clock, gated] : gatedLowerings)

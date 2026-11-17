@@ -75,3 +75,20 @@ hw.module @Sequence(in %clk : i1, in %a : i1, in %b : i1) {
   %s = ltl.concat %a, %d : i1, !ltl.sequence
   verif.clocked_assert %s, posedge %clk : !ltl.sequence
 }
+
+// Immediate assertions and assumptions are checked in every cycle of the only
+// clock; immediate covers are removed.
+// CHECK-LABEL: hw.module @Immediate
+// CHECK-SAME: out bad : i1)
+// CHECK-NOT: verif.
+// CHECK: [[NA:%.+]] = comb.xor bin %a, %true
+// CHECK: [[V:%.+]] = comb.and bin [[NA]], %en
+// CHECK: [[NB:%.+]] = comb.xor bin %b, %true
+// CHECK: [[F:%.+]] = seq.compreg [[FAILED:%.+]], %clk
+// CHECK: [[FAILED]] = comb.or bin [[NB]], [[F]]
+// CHECK-NOT: verif.
+hw.module @Immediate(in %clk : !seq.clock, in %en : i1, in %a : i1, in %b : i1) {
+  verif.assert %a if %en : i1
+  verif.assume %b : i1
+  verif.cover %a : i1
+}
