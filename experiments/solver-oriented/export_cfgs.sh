@@ -5,12 +5,16 @@
 #   CIRCT_BIN=dir IN=dir OUT=dir P=12 export_cfgs.sh A...
 # When unsharing changes nothing, A.us.aig and A.ussc.aig are hard links to
 # the base and sc models (A.us.same marks it).
+# DC=1 adds comb-mux-dont-care and seq-trim-registers after the aggregates
+# are lowered (observability don't cares; every configuration gets them).
 set -u
 H=$(cd "$(dirname "$0")" && pwd)
 B=${CIRCT_BIN:?}; IN=${IN:?}; OUT=${OUT:?}; P=${P:-12}
 mkdir -p $OUT
 PRE="canonicalize,cse"
-LOWER="hw-cone-of-influence,canonicalize,hw-aggregate-to-comb,canonicalize,synth-lower-word-to-bits,canonicalize,convert-comb-to-synth,synth-lower-word-to-bits,canonicalize,synth-remove-false-cycles{obligation fixpoint-obligation},synth-lower-variadic,synth-lower-word-to-bits,synth-structural-hash"
+DCP=""
+[ "${DC:-0}" = 1 ] && DCP="comb-mux-dont-care,canonicalize,cse,seq-trim-registers,canonicalize,hw-cone-of-influence,"
+LOWER="hw-cone-of-influence,canonicalize,hw-aggregate-to-comb,canonicalize,${DCP}synth-lower-word-to-bits,canonicalize,convert-comb-to-synth,synth-lower-word-to-bits,canonicalize,synth-remove-false-cycles{obligation fixpoint-obligation},synth-lower-variadic,synth-lower-word-to-bits,synth-structural-hash"
 BITS="synth-lower-variadic,synth-lower-word-to-bits,synth-structural-hash"
 SC="synth-register-correspondence{internal},canonicalize,$BITS"
 export H B IN OUT PRE LOWER SC
