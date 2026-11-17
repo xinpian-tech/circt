@@ -7,7 +7,7 @@
 # Output TSV on stdout: assert variant seed result seconds.
 # Items: simp (--fe-simp), cnf (--fe-cnf compact instead of plain), scorr,
 # frts, bve (the three steps of ic3 --preproc).  Variant names: on, off,
-# only-ITEM, no-ITEM.
+# only-ITEM, no-ITEM, and enc (only the CNF-level items: cnf and bve).
 set -u
 Y=/var/storage/workspaces/clo91eaf/yjh-workspace
 RIC3=${RIC3:-$Y/rIC3-target-rebuild-20261106/release/ric3-bundled}
@@ -28,6 +28,7 @@ one() {
     only-frts) frts=true ;; only-bve) bve=true ;;
     no-simp) simp=false ;; no-cnf) cnf=plain ;; no-scorr) scorr=false ;;
     no-frts) frts=false ;; no-bve) bve=false ;;
+    enc) simp=false scorr=false frts=false ;;
   esac
   local pre=true
   [ $scorr$frts$bve = falsefalsefalse ] && pre=false

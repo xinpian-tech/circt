@@ -1,0 +1,181 @@
+assert	config	backend	result	depth	seconds
+a_mulh_result	base	abc-bmc3	TO		150.02
+a_mulh_result	us	abc-bmc3	TO		150.02
+a_mulh_result	sc	abc-bmc3	TO		150.02
+a_mulh_result	us	abc-pre-bmc3	TO		150.02
+a_mulh_result	tc	abc-bmc3	TO		150.02
+a_mulh_result	base	abc-pre-bmc3	TO		150.03
+a_mulh_result	ussc	abc-bmc3	TO		150.02
+a_mulh_result	sc	abc-pre-bmc3	TO		150.03
+a_mulh_result	fr	abc-pre-bmc3	TO		150.03
+a_mulh_result	ussc	abc-pre-bmc3	TO		150.03
+a_mulh_result	tc	abc-pre-bmc3	TO		150.03
+a_mulh_result	fr	abc-bmc3	TO		150.03
+a_mul_result	us	abc-bmc3	K	20	19.89
+a_mul_result	us	abc-pre-bmc3	K	20	129.62
+a_mulh_result	tcfr	abc-bmc3	TO		150.02
+a_mulh_result	tcfr	abc-pre-bmc3	TO		150.02
+a_mulh_result	ustc	abc-bmc3	TO		150.02
+a_mul_result	base	abc-bmc3	TO		150.01
+a_mulh_result	usfr	abc-bmc3	TO		150.02
+a_mulh_result	ustc	abc-pre-bmc3	TO		150.02
+a_mulh_result	ustcfr	abc-bmc3	TO		150.02
+a_mulh_result	usfr	abc-pre-bmc3	TO		150.02
+a_mulh_result	ustcfr	abc-pre-bmc3	TO		150.02
+a_mul_result	base	abc-pre-bmc3	TO		150.02
+a_mul_result	ussc	abc-bmc3	K	20	16.94
+a_mul_result	sc	abc-bmc3	TO		150.01
+a_mul_result	ustc	abc-bmc3	K	20	24.38
+a_mul_result	usfr	abc-bmc3	K	20	24.76
+a_mul_result	ustcfr	abc-bmc3	K	20	36.81
+a_mul_result	ussc	abc-pre-bmc3	K	20	85.94
+a_mul_result	usfr	abc-pre-bmc3	K	20	74.35
+a_shift_result_hh	us	abc-bmc3	K	20	1.02
+a_mul_result	ustc	abc-pre-bmc3	K	20	100.16
+a_mul_result	sc	abc-pre-bmc3	TO		150.01
+a_mul_result	ustcfr	abc-pre-bmc3	K	20	100.28
+a_shift_result_hh	ussc	abc-bmc3	K	20	0.89
+a_mul_result	tc	abc-bmc3	TO		150.01
+a_mul_result	tcfr	abc-bmc3	TO		150.01
+a_mul_result	fr	abc-bmc3	TO		150.01
+a_mul_result	tc	abc-pre-bmc3	TO		150.02
+a_mul_result	fr	abc-pre-bmc3	TO		150.02
+a_mul_result	tcfr	abc-pre-bmc3	TO		150.02
+a_shift_result_hh	ussc	abc-pre-bmc3	K	20	54.10
+a_shift_result_hh	us	abc-pre-bmc3	K	20	101.94
+a_shift_result_hh	ustc	abc-bmc3	K	20	0.99
+a_shift_result_hh	usfr	abc-bmc3	K	20	1.05
+a_shift_result_hh	base	abc-bmc3	TO		150.01
+a_shift_result_hh	ustcfr	abc-bmc3	K	20	1.08
+a_shift_result_hh	base	abc-pre-bmc3	TO		150.02
+a_shift_result_hh	sc	abc-bmc3	TO		150.01
+a_shift_result_hh	ustcfr	abc-pre-bmc3	K	20	65.51
+a_shift_result_hl	us	abc-bmc3	K	20	0.97
+a_shift_result_hh	sc	abc-pre-bmc3	TO		150.02
+a_shift_result_hh	usfr	abc-pre-bmc3	K	20	80.83
+a_shift_result_hh	ustc	abc-pre-bmc3	K	20	98.66
+a_shift_result_hl	ussc	abc-bmc3	K	20	0.80
+a_shift_result_hh	tc	abc-bmc3	TO		150.01
+a_shift_result_hh	fr	abc-bmc3	TO		150.01
+a_shift_result_hh	tc	abc-pre-bmc3	TO		150.02
+a_shift_result_hh	tcfr	abc-bmc3	TO		150.01
+a_shift_result_hh	fr	abc-pre-bmc3	TO		150.02
+a_shift_result_hh	tcfr	abc-pre-bmc3	TO		150.02
+a_shift_result_hl	ussc	abc-pre-bmc3	K	20	30.70
+a_shift_result_hl	ustc	abc-bmc3	K	20	0.67
+a_shift_result_hl	base	abc-bmc3	TO		150.01
+a_shift_result_hl	usfr	abc-bmc3	K	20	0.65
+a_shift_result_hl	us	abc-pre-bmc3	K	20	108.62
+a_shift_result_hl	ustcfr	abc-bmc3	K	20	0.98
+a_shift_result_hl	ustc	abc-pre-bmc3	K	20	64.62
+a_shift_result_hl	base	abc-pre-bmc3	TO		150.02
+a_shift_result_hl	sc	abc-bmc3	TO		150.01
+a_shift_result_hl	sc	abc-pre-bmc3	TO		150.02
+a_shift_result_lh	us	abc-bmc3	K	20	0.99
+a_shift_result_hl	tc	abc-bmc3	TO		150.01
+a_shift_result_hl	tc	abc-pre-bmc3	TO		150.02
+a_shift_result_hl	fr	abc-bmc3	TO		150.01
+a_shift_result_hl	tcfr	abc-bmc3	TO		150.01
+a_shift_result_hl	fr	abc-pre-bmc3	TO		150.02
+a_shift_result_hl	tcfr	abc-pre-bmc3	TO		150.02
+a_shift_result_lh	ussc	abc-bmc3	K	20	0.10
+a_shift_result_hl	ustcfr	abc-pre-bmc3	K	20	75.08
+a_shift_result_hl	usfr	abc-pre-bmc3	K	20	82.81
+a_shift_result_lh	us	abc-pre-bmc3	TO		58.52
+a_shift_result_lh	ustc	abc-bmc3	K	20	0.97
+a_shift_result_lh	ussc	abc-pre-bmc3	TO		43.05
+a_shift_result_lh	usfr	abc-bmc3	K	20	1.06
+a_shift_result_lh	base	abc-bmc3	TO		150.01
+a_shift_result_lh	ustcfr	abc-bmc3	K	20	0.85
+a_shift_result_lh	base	abc-pre-bmc3	TO		150.01
+a_shift_result_lh	usfr	abc-pre-bmc3	TO		76.36
+a_shift_result_lh	ustc	abc-pre-bmc3	TO		86.94
+a_shift_result_lh	sc	abc-bmc3	TO		150.01
+a_shift_result_lh	sc	abc-pre-bmc3	TO		150.02
+a_shift_result_lh	tc	abc-bmc3	TO		150.01
+a_shift_result_lh	fr	abc-bmc3	TO		150.01
+a_shift_result_lh	tc	abc-pre-bmc3	TO		150.02
+a_shift_result_lh	fr	abc-pre-bmc3	TO		150.02
+a_shift_result_lh	ustcfr	abc-pre-bmc3	TO		58.87
+a_shift_result_lh	tcfr	abc-bmc3	TO		150.01
+a_shift_result_lh	tcfr	abc-pre-bmc3	TO		150.01
+a_shift_result_ll_lh_hl_shift	base	abc-bmc3	TO		150.02
+a_shift_result_ll_lh_hl_shift	base	abc-pre-bmc3	TO		150.02
+a_shift_result_ll_lh_hl_shift	us	abc-bmc3	TO		150.02
+a_shift_result_ll_lh_hl_shift	us	abc-pre-bmc3	TO		150.02
+a_shift_result_ll_lh_hl_shift	sc	abc-bmc3	TO		150.01
+a_shift_result_ll_lh_hl_shift	ussc	abc-bmc3	TO		150.01
+a_shift_result_ll_lh_hl_shift	sc	abc-pre-bmc3	TO		150.02
+a_shift_result_ll_lh_hl_shift	ussc	abc-pre-bmc3	TO		150.02
+a_shift_result_ll_lh_hl_shift	tc	abc-bmc3	TO		150.02
+a_shift_result_ll_lh_hl_shift	tc	abc-pre-bmc3	TO		150.02
+a_shift_result_ll_lh_hl_shift	fr	abc-bmc3	TO		150.02
+a_shift_result_ll_lh_hl_shift	fr	abc-pre-bmc3	TO		150.01
+a_shift_result_ll_lh_hl_shift	tcfr	abc-bmc3	TO		150.01
+a_shift_result_ll_lh_hl_shift	tcfr	abc-pre-bmc3	TO		150.02
+a_shift_result_ll_lh_hl_shift	ustc	abc-bmc3	TO		150.02
+a_shift_result_ll_lh_hl_shift	ustc	abc-pre-bmc3	TO		150.02
+a_shift_result_ll_lh_hl_shift	usfr	abc-bmc3	TO		150.01
+a_shift_result_ll_lh_hl_shift	ustcfr	abc-bmc3	TO		150.01
+a_shift_result_ll_lh_hl_shift	usfr	abc-pre-bmc3	TO		150.02
+a_shift_result_ll_lh_hl_shift	ustcfr	abc-pre-bmc3	TO		150.02
+a_shift_result_ll_lh	base	abc-bmc3	TO		150.01
+a_shift_result_ll_lh	base	abc-pre-bmc3	TO		150.02
+a_shift_result_ll_lh	us	abc-bmc3	TO		150.01
+a_shift_result_ll_lh	us	abc-pre-bmc3	TO		150.01
+a_shift_result_ll_lh	sc	abc-bmc3	TO		150.01
+a_shift_result_ll_lh	sc	abc-pre-bmc3	TO		150.02
+a_shift_result_ll_lh	ussc	abc-bmc3	TO		150.01
+a_shift_result_ll_lh	ussc	abc-pre-bmc3	TO		150.01
+a_shift_result_ll_lh	tc	abc-bmc3	TO		150.01
+a_shift_result_ll_lh	fr	abc-bmc3	TO		150.01
+a_shift_result_ll_lh	tc	abc-pre-bmc3	TO		150.02
+a_shift_result_ll_lh	fr	abc-pre-bmc3	TO		150.02
+a_shift_result_ll_lh	tcfr	abc-bmc3	TO		150.01
+a_shift_result_ll_lh	tcfr	abc-pre-bmc3	TO		150.01
+a_shift_result_ll_lh	ustc	abc-bmc3	TO		150.01
+a_shift_result_ll_lh	ustc	abc-pre-bmc3	TO		150.01
+a_shift_result_ll_lh	usfr	abc-bmc3	TO		150.01
+a_shift_result_ll_lh	usfr	abc-pre-bmc3	TO		150.02
+a_shift_result_ll_lh	ustcfr	abc-bmc3	TO		150.01
+a_shift_result_ll_lh	ustcfr	abc-pre-bmc3	TO		150.02
+a_shift_result_ll_shift	base	abc-bmc3	TO		150.01
+a_shift_result_ll_shift	us	abc-bmc3	TO		150.01
+a_shift_result_ll_shift	base	abc-pre-bmc3	TO		150.02
+a_shift_result_ll_shift	us	abc-pre-bmc3	TO		150.02
+a_shift_result_ll_shift	sc	abc-bmc3	TO		150.01
+a_shift_result_ll_shift	sc	abc-pre-bmc3	TO		150.02
+a_shift_result_ll_shift	ussc	abc-bmc3	TO		150.01
+a_shift_result_ll_shift	ussc	abc-pre-bmc3	TO		150.02
+a_shift_result_ll_shift	tc	abc-bmc3	TO		150.01
+a_shift_result_ll_shift	tc	abc-pre-bmc3	TO		150.02
+a_shift_result_ll_shift	fr	abc-bmc3	TO		150.01
+a_shift_result_ll	us	abc-bmc3	K	20	0.72
+a_shift_result_ll_shift	fr	abc-pre-bmc3	TO		150.01
+a_shift_result_ll_shift	tcfr	abc-bmc3	TO		150.02
+a_shift_result_ll_shift	tcfr	abc-pre-bmc3	TO		150.02
+a_shift_result_ll_shift	ustc	abc-bmc3	TO		150.01
+a_shift_result_ll_shift	ustc	abc-pre-bmc3	TO		150.02
+a_shift_result_ll_shift	usfr	abc-bmc3	TO		150.01
+a_shift_result_ll	ussc	abc-bmc3	K	20	0.15
+a_shift_result_ll_shift	usfr	abc-pre-bmc3	TO		150.01
+a_shift_result_ll_shift	ustcfr	abc-bmc3	TO		150.01
+a_shift_result_ll_shift	ustcfr	abc-pre-bmc3	TO		150.02
+a_shift_result_ll	ussc	abc-pre-bmc3	TO		37.48
+a_shift_result_ll	ustc	abc-bmc3	K	20	0.69
+a_shift_result_ll	us	abc-pre-bmc3	TO		76.54
+a_shift_result_ll	usfr	abc-bmc3	K	20	0.18
+a_shift_result_ll	base	abc-bmc3	TO		150.01
+a_shift_result_ll	ustcfr	abc-bmc3	K	20	0.15
+a_shift_result_ll	base	abc-pre-bmc3	TO		150.02
+a_shift_result_ll	ustc	abc-pre-bmc3	TO		83.75
+a_shift_result_ll	usfr	abc-pre-bmc3	TO		70.45
+a_shift_result_ll	sc	abc-bmc3	TO		150.01
+a_shift_result_ll	sc	abc-pre-bmc3	TO		150.01
+a_shift_result_ll	tc	abc-bmc3	TO		150.01
+a_shift_result_ll	tc	abc-pre-bmc3	TO		150.01
+a_shift_result_ll	fr	abc-bmc3	TO		150.01
+a_shift_result_ll	fr	abc-pre-bmc3	TO		150.01
+a_shift_result_ll	ustcfr	abc-pre-bmc3	TO		55.95
+a_shift_result_ll	tcfr	abc-bmc3	TO		150.01
+a_shift_result_ll	tcfr	abc-pre-bmc3	TO		150.01

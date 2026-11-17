@@ -373,3 +373,88 @@ four `a_shift_result_*` properties (the comparison is direct), not to
 `a_mul_result` (an addition and a truncation are in between). The four
 get faster by themselves (rBMC 11-24 s to 1-4 s) and stay fast with sc;
 see `timings.txt`.
+
+## Full table on the final passes (2026-11-17)
+
+All 97 properties re-exported with the final binary; `export_cfgs.sh` and
+`export_parts.sh`, then `run_matrix.sh`, K=20, 150 s. Unsharing changes 9
+properties; the other 88 reuse base for us, sc for ussc and so on. Data in
+`results/final/`. "Solved" means different things per back end: K (no
+counterexample up to 20 frames) for rBMC and ABC bmc3, a proof (UNSAT) for
+rIC3 ic3. No property has a counterexample.
+
+Solved (without / with unsharing), and geometric mean seconds on the
+properties all ten configurations solve:
+
+| config | rBMC | ABC bmc3 | rIC3 ic3, no front end | rIC3 ic3 |
+|---|---|---|---|---|
+| base  | 73/78, 33.8 | 76/81, 10.5 | 59/63, 5.54 | 66/71, 8.04 |
+| tc    | 73/78, 33.1 | 77/82, 10.9 | 54/59, 3.20 | 66/71, 6.82 |
+| fr    | 73/78, 29.9 | 76/81, 9.1  | 61/66, 4.39 | 62/67, 7.55 |
+| tc+fr | 74/79, 29.5 | 77/82, 8.4  | 60/65, 3.26 | 61/66, 7.09 |
+| sc    | 75/80, 22.1 | 77/82, 6.5  | 62/67, 2.31 | 65/70, 5.42 |
+
+- Unsharing adds 5 on every configuration and back end.
+- sc is the fastest everywhere; tc+fr gets part of it (rBMC 13% vs 35%).
+- The rIC3 solved counts move by up to 5 between configurations in both
+  directions; properties near the 150 s limit flip, so differences of a few
+  properties are noise (see the seeds runs below).
+- ABC with its own preprocessing (`scorr; fraig; dc2`, time included) solves
+  57 / 61 / 64 on base / sc / ussc against 76 / 77 / 82 without it, and no
+  property only with it. Its run time drops from 98 s to 54 s on sc models.
+
+On the sc models rIC3's own scorr and frts merge nothing on all 97
+properties (on base models they always do, up to 207 latches): CIRCT's sc
+covers them.
+
+## rIC3 front end on the final models (2026-11-17)
+
+`ric3_frontend.sh` on the ussc models: each front-end item alone. Middle
+set: 29 properties where on or off needed more than 10 s or timed out (3
+seeds, 300 s, solved = solved by most seeds, time = geometric mean of the
+median over the 11 properties every variant solves in every seed):
+
+| variant | solved | time |
+|---|---|---|
+| on         | 29 | 10.5 |
+| off        | 27 | 20.0 |
+| only-bve   | 29 | 7.0  |
+| only-cnf   | 29 | 8.6  |
+| only-scorr | 28 | 30.7 |
+| only-simp  | 27 | 17.0 |
+| only-frts  | 24 | 20.8 |
+
+Easy set (44, 60 s, one seed): all solve; on 4.1 s, off 1.0 s, only-scorr
+8.9 s, only-frts 3.3 s, only-cnf 0.66 s, only-bve 0.77 s. Hard set (24 both
+timed out at 150 s; on and off, 2 seeds, 300 s): off none, on one
+(a_single_step_no_irq_id, 96 s and 299.6 s).
+
+The circuit-level items (scorr, frts, fe-simp) bring nothing after CIRCT;
+the remaining gap between on and off is in the CNF encoding (compact
+encoding, bounded variable elimination).
+
+## Latches rIC3 still removed: observability don't cares (2026-11-17)
+
+After sc, rIC3's trivial simplification (cone of influence after bve on the
+compact CNF) removed 8 of 2509 latches on every model. With an instrumented
+rIC3 (`RIC3_DEBUG_COI=1`, prints the latches its cone of influence drops)
+they are `load_store_unit_i/rdata_q[7:0]`:
+
+    rdata_is_split = (size == word && offset != 0) || (size == half && offset == 3)
+    rdata_full     = rdata_is_split ? {resp_rdata, rdata_q} : {resp_rdata, resp_rdata}
+    rdata_aligned  = rdata_full >> (8 * offset)        // only [31:0] used
+
+rdata_q is selected only when the offset is not zero, so its low byte is
+never shifted into the result; its next state is resp_rdata or the result.
+Tying the 8 bits to 0 leaves bad, constraints and all other next states
+equal (ABC `cec`); each bit alone is observable, only the group is not. No
+equivalence-based pass removes them: nothing in the circuit is equal to
+what they could be replaced by.
+
+Two passes (commit 083ea67ef): `comb-mux-dont-care` zeroes mux-arm bits no
+shift can bring into a used bit while the arm is selected (select and shift
+amounts enumerated over the bits they depend on, at most 12), and
+`seq-trim-registers`, a bit-level cone of influence that narrows registers
+to their observed bits. On a_mul_result after sc: 2509 -> 2501 latches,
+45301 -> 45228 ands, and rIC3's trivial simplification, scorr and frts then
+remove nothing. `export_cfgs.sh` runs them with DC=1.
