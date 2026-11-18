@@ -256,4 +256,30 @@ def TrimRegisters : Pass<"seq-trim-registers", "hw::HWModuleOp"> {
   ];
 }
 
+def RegisterBisimulation : Pass<"seq-register-bisimulation", "hw::HWModuleOp"> {
+  let summary = "Merge registers and logic that are equal by structure";
+  let description = [{
+    Structural hashing through registers, on words: values are partitioned
+    by partition refinement, starting with all registers of one type, clock
+    and constant initial value in one class and all operations of one kind
+    and attributes in one class, and splitting classes whose members read
+    operands of different classes (sorted for commutative operations) until
+    nothing splits. The members of a class start equal and compute the same
+    function of equal values, so they are equal in every reachable state;
+    each class is merged into its first member. No SAT solver is used: this
+    finds structural duplicates (such as registers of assertions that mirror
+    the design) cheaply, before signal correspondence.
+
+    Registers with an inner symbol or a non-constant initial value, block
+    arguments, and operations with side effects, regions or several results
+    are classes of their own.
+  }];
+  let statistics = [
+    Statistic<"numMergedRegisters", "num-merged-registers",
+              "Registers merged">,
+    Statistic<"numMergedOps", "num-merged-ops", "Operations merged">,
+    Statistic<"numRounds", "num-rounds", "Refinement rounds">,
+  ];
+}
+
 #endif // CIRCT_DIALECT_SEQ_SEQPASSES
