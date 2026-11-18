@@ -17,7 +17,7 @@ one() {
   [ -s $OUT/$a.none.mlir ] && return
   sby=${c}_ch0
   $H/import.sh $sby $OUT/$a.mlir 2>$OUT/$a.import.log &&
-    $H/../../synth-solver/cv32e40x/lower.sh $OUT/$a.mlir $OUT/$a.none.mlir 2>$OUT/$a.lower.log
+    $H/../../synth-solver/cv32e40x/lower.sh $OUT/$a.mlir $OUT/$a.none.mlir --immediate 2>$OUT/$a.lower.log
   echo "$a $([ -s $OUT/$a.none.mlir ] && echo ok || echo FAILED)"
   rm -f $OUT/$a.mlir
 }

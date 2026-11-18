@@ -19,7 +19,10 @@
 # becomes seq.compreg with an initial value (registers with reset start in
 # reset; others with any value), symbolic values become inputs. With
 # --constraints, the assumptions stay as verif.assume (AIGER constraints)
-# instead of being folded into `bad`.
+# instead of being folded into `bad`. --immediate moves immediate assertions
+# out of clocked processes (llhd-sample-process-assertions) and unrolls
+# loops before removing control flow, for assert statements in always
+# blocks (riscv-formal).
 #
 # Assertions proved by verif-simplify-odc are removed by it: for those,
 # "LABEL: proved by verif-simplify-odc" is printed and no model is written.
@@ -29,7 +32,7 @@ set -euo pipefail
 in=$1; shift
 out=
 if [ $# -gt 0 ] && [ "${1#--}" = "$1" ]; then out=$1; shift; fi
-asserts= assumes= odc= cache= list= constraints=
+asserts= assumes= odc= cache= list= constraints= immediate=
 while [ $# -gt 0 ]; do
   case $1 in
     --assert) asserts=$2; shift 2 ;;
@@ -38,6 +41,7 @@ while [ $# -gt 0 ]; do
     --pre-cache) cache=$2; shift 2 ;;
     --list) list=1; shift ;;
     --constraints) constraints=1; shift ;;
+    --immediate) immediate=1; shift ;;
     *) echo "unknown option $1" >&2; exit 2 ;;
   esac
 done
@@ -48,7 +52,9 @@ case $odc in
   antecedent) ODC=",verif-simplify-odc{antecedent-only},canonicalize" ;;
   *) echo "--odc full|antecedent" >&2; exit 2 ;;
 esac
-PRE="builtin.module(hw-flatten-modules,symbol-dce,hw.module(llhd-raise-clock-gates,llhd-mem2reg,llhd-hoist-signals,llhd-deseq,llhd-lower-processes,canonicalize,llhd-remove-control-flow,canonicalize,llhd-sig2reg,llhd-combine-drives{free-undriven},llhd-sig2reg,canonicalize,seq-clock-gate-to-enable$ODC,lower-ltl-to-core,lower-seq-shiftreg,seq-clock-gate-to-enable,lower-seq-compreg-ce),cse,hw-flatten-io,hw.module(hw-aggregate-to-comb,canonicalize),cse)"
+SAMPLE= UNROLL=
+[ -n "$immediate" ] && SAMPLE="llhd-unroll-loops,canonicalize,llhd-sample-process-assertions,canonicalize," UNROLL="llhd-unroll-loops,"
+PRE="builtin.module(hw-flatten-modules,symbol-dce,hw.module(llhd-raise-clock-gates,llhd-mem2reg,llhd-hoist-signals,${SAMPLE}llhd-deseq,llhd-lower-processes,canonicalize,${UNROLL}llhd-remove-control-flow,canonicalize,llhd-sig2reg,llhd-combine-drives{free-undriven},llhd-sig2reg,canonicalize,seq-clock-gate-to-enable$ODC,lower-ltl-to-core,lower-seq-shiftreg,seq-clock-gate-to-enable,lower-seq-compreg-ce),cse,hw-flatten-io,hw.module(hw-aggregate-to-comb,canonicalize),cse)"
 
 tmp=$(mktemp -d)
 trap 'rm -rf $tmp' EXIT

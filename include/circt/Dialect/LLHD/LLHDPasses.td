@@ -129,6 +129,36 @@ def CombineDrivesPass : Pass<"llhd-combine-drives", "hw::HWModuleOp"> {
   ];
 }
 
+def SampleProcessAssertionsPass
+    : Pass<"llhd-sample-process-assertions", "hw::HWModuleOp"> {
+  let summary = "Move immediate assertions out of clocked processes";
+  let description = [{
+    Immediate assertions, assumptions and covers in a process that runs at the
+    rising edge of one clock (`assert` statements in `always @(posedge clk)`)
+    check the values the process sees at that edge: those of the cycle that
+    ends. This pass copies such a process into an `llhd.combinational` that
+    runs the body once as at a rising edge (past clock 0, present clock 1),
+    keeps the assertions there and removes them from the process, which then
+    has no side effects left for `llhd-deseq`. In a design on that clock the
+    copy, checked in every cycle, checks the same.
+    `llhd-remove-control-flow` then turns the branches leading to the
+    assertions into enables.
+
+    Only processes with a single wait observing one `i1` clock, resuming in a
+    block that branches to the body on `!past & clock`, and no other side
+    effects are handled.
+  }];
+  let dependentDialects = [
+    "comb::CombDialect",
+    "hw::HWDialect",
+    "mlir::cf::ControlFlowDialect",
+  ];
+  let statistics = [
+    Statistic<"numProcessesSampled", "processes-sampled",
+              "Number of processes whose assertions were moved out">,
+  ];
+}
+
 def WrapProceduralOpsPass : Pass<"llhd-wrap-procedural-ops", "hw::HWModuleOp"> {
   let summary = "Wrap procedural ops in modules to make them inlinable";
   let description = [{
@@ -173,9 +203,10 @@ def RemoveControlFlowPass : Pass<"llhd-remove-control-flow", "hw::HWModuleOp"> {
 def UnrollLoopsPass : Pass<"llhd-unroll-loops", "hw::HWModuleOp"> {
   let summary = "Unroll control flow loops with static bounds";
   let description = [{
-    Unroll loops in `llhd.combinational` operations by replicating the loop body
-    and replacing induction variables with constants. The loop bounds must be
-    known at compile time.
+    Unroll loops in `llhd.combinational` and `llhd.process` operations by
+    replicating the loop body and replacing induction variables with
+    constants. The loop bounds must be known at compile time. In a process,
+    only loops that do not pass through a wait are unrolled.
   }];
 }
 

@@ -850,3 +850,34 @@ hw.module @LoopWithNegativeBound() {
     llhd.yield
   }
 }
+
+// A loop between two waits of a process is unrolled; the loop through the
+// wait is not.
+// CHECK-LABEL: @LoopInProcess
+hw.module @LoopInProcess(in %clock : i1, out x : i42) {
+  %c0_i42 = hw.constant 0 : i42
+  %c1_i42 = hw.constant 1 : i42
+  %c2_i42 = hw.constant 2 : i42
+  %c42_i42 = hw.constant 42 : i42
+  // CHECK: llhd.process
+  %0 = llhd.process -> i42 {
+    cf.br ^wait(%c0_i42 : i42)
+  ^wait(%y: i42):
+    // CHECK: llhd.wait
+    llhd.wait yield (%y : i42), (%clock : i1), ^resume
+  ^resume:
+    cf.br ^header(%c0_i42, %c0_i42 : i42, i42)
+  ^header(%i: i42, %x: i42):
+    // CHECK-NOT: comb.icmp
+    %1 = comb.icmp slt %i, %c2_i42 : i42
+    cf.cond_br %1, ^body, ^wait(%x : i42)
+  ^body:
+    // CHECK: [[X1:%.+]] = comb.add {{%.+}}, %c42_i42
+    // CHECK: [[X2:%.+]] = comb.add [[X1]], %c42_i42
+    // CHECK: cf.br ^bb{{.+}}
+    %2 = comb.add %x, %c42_i42 : i42
+    %ip = comb.add %i, %c1_i42 : i42
+    cf.br ^header(%ip, %2 : i42, i42)
+  }
+  hw.output %0 : i42
+}

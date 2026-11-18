@@ -9,6 +9,7 @@ add_circt_dialect_library(CIRCTLLHDTransforms
   ProjectionUtils.cpp
   RaiseClockGates.cpp
   RemoveControlFlow.cpp
+  SampleProcessAssertions.cpp
   Sig2Reg.cpp
   UnrollLoops.cpp
   WrapProceduralOps.cpp
