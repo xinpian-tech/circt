@@ -24,7 +24,8 @@ DCP=""
 CS="comb-context-simplify{depth=32 budget=16384},canonicalize,cse,"
 [ "${WS:-0}" = 1 ] && DCP="${DCP}seq-known-bits{context},canonicalize,cse,$CS${CS}seq-word-congruence,canonicalize,cse,seq-trim-registers,canonicalize,cse,"
 # ADDER=RIPPLE-CARRY (or another architecture) for all adders and comparators.
-CTS="convert-comb-to-synth${ADDER:+{adder-architecture=$ADDER}}"
+CTS=convert-comb-to-synth
+[ -n "${ADDER:-}" ] && CTS="convert-comb-to-synth{adder-architecture=$ADDER}"
 LOWER="hw-cone-of-influence,canonicalize,hw-aggregate-to-comb,canonicalize,${DCP}synth-lower-word-to-bits,canonicalize,$CTS,synth-lower-word-to-bits,canonicalize,synth-remove-false-cycles{obligation fixpoint-obligation},synth-lower-variadic,synth-lower-word-to-bits,synth-structural-hash"
 BITS="synth-lower-variadic,synth-lower-word-to-bits,synth-structural-hash"
 SC="synth-register-correspondence{internal},canonicalize,$BITS"
