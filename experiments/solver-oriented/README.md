@@ -533,3 +533,23 @@ solved by all: 34.0, 39.1, 94.7, 86.7 s). The gap is CaDiCaL's bounded
 variable elimination, CNF level and out of scope; its other preprocessing
 (subsumption, probing, vivification, ternary resolution, decomposition)
 brings nothing after sc.
+
+## Word-level known bits (seq-known-bits) on solving (2026-11-18)
+
+`seq-known-bits` (KnownBits abstract interpretation through registers to a
+fixpoint, then constants) before sc, 97 CV32E40X properties, configurations
+base, kb (`KB=1 export_cfgs.sh`), sc, kbsc. Results in
+`results/core-env-kbcmp/results.tsv`. Solved / geometric mean over the
+properties both sides solve (hard: one side >= 10 s):
+
+| backend | base | kb | sc | kbsc | base→kb gm (hard) | sc→kbsc gm (hard) |
+|---|---|---|---|---|---|---|
+| abc-bmc3 | 77 | 75 | 77 | 78 | 10.77→10.80 (32.0→32.3) | 7.02→7.42 (29.5→31.6) |
+| rbmc | 72 | 73 | 73 | 74 | 33.50→32.75 (64.8→64.2) | 22.69→21.60 (48.6→46.0) |
+| ric3-ic3-bare | 59 | 58 | 63 | 61 | 6.49→4.45 (27.8→16.7) | 3.31→3.18 (23.5→20.6) |
+
+kb alone does not help BMC (the constant bits are easy for SAT); it speeds
+bare IC3 by ~30-40% without changing solved counts (4/3 and 5/3 properties
+solved by one side only: IC3 variance). kb+sc solves like sc; kb's value is
+the 15-22% cheaper sc after it (fewer candidates). Cheap word-level constant
+invariants are not enough on their own; next: word-level equivalences.
