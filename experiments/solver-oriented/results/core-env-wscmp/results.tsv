@@ -1,0 +1,583 @@
+assert	config	backend	result	depth	seconds
+a_addr_incr	wssc	ric3-ic3-bare	UNSAT		0.25
+a_addr_incr	wssc	abc-bmc3	K	20	0.14
+a_addr_incr	wssc	rbmc	K	20	1.39
+a_addr_incr	ws	ric3-ic3-bare	UNSAT		1.49
+a_branch_taken_ex_flush	ws	ric3-ic3-bare	UNSAT		2.02
+a_branch_taken_ex_flush	wssc	ric3-ic3-bare	UNSAT		2.80
+a_addr_incr	ws	abc-bmc3	K	20	5.42
+a_branch_taken_ex_flush	wssc	abc-bmc3	K	20	8.69
+a_branch_taken_ex_flush	ws	abc-bmc3	K	20	14.84
+a_check_acc_mul_value_zero	ws	abc-bmc3	K	20	4.11
+a_bubble_ex_when_branch_taken_wb	ws	abc-bmc3	K	20	26.41
+a_bubble_ex_when_branch_taken_wb	wssc	abc-bmc3	K	20	25.10
+a_check_acc_mul_value_zero	wssc	abc-bmc3	K	20	2.73
+a_branch_taken_ex_flush	wssc	rbmc	K	20	30.92
+a_check_acc_mul_value_zero	ws	rbmc	K	20	29.26
+a_branch_taken_ex_flush	ws	rbmc	K	20	36.49
+a_check_acc_mul_value_zero	wssc	rbmc	K	20	19.68
+a_check_acc_mul_value_zero	ws	ric3-ic3-bare	UNSAT		53.38
+a_bubble_ex_when_branch_taken_wb	wssc	rbmc	K	20	104.80
+a_clock_en_5	ws	rbmc	K	20	2.19
+a_clock_en_5	ws	ric3-ic3-bare	UNSAT		0.33
+a_clock_en_5	ws	abc-bmc3	K	20	0.65
+a_clock_en_5	wssc	rbmc	K	20	1.39
+a_clock_en_5	wssc	ric3-ic3-bare	UNSAT		0.27
+a_clock_en_5	wssc	abc-bmc3	K	20	0.14
+a_core_sleep	ws	rbmc	K	20	1.62
+a_core_sleep	ws	ric3-ic3-bare	UNSAT		0.38
+a_core_sleep	ws	abc-bmc3	K	20	0.76
+a_bubble_ex_when_branch_taken_wb	ws	rbmc	K	20	114.64
+a_core_sleep	wssc	ric3-ic3-bare	UNSAT		0.27
+a_core_sleep	wssc	abc-bmc3	K	20	0.14
+a_addr_incr	ws	rbmc	K	20	115.49
+a_core_sleep	wssc	rbmc	K	20	1.45
+a_check_acc_mul_value_zero	wssc	ric3-ic3-bare	UNSAT		89.71
+a_bubble_ex_when_branch_taken_wb	ws	ric3-ic3-bare	TO		150.16
+a_bubble_ex_when_branch_taken_wb	wssc	ric3-ic3-bare	TO		150.03
+a_csr_wr_in_wb_no_fetch	wssc	rbmc	K	20	47.83
+a_csr_wr_in_wb_no_fetch	ws	abc-bmc3	K	20	56.51
+a_check_result_constant	ws	ric3-ic3-bare	TO		150.03
+a_check_result_constant	ws	rbmc	TO	6	150.04
+a_check_result_constant	ws	abc-bmc3	TO		150.01
+a_csr_wr_in_wb_no_fetch	wssc	abc-bmc3	K	20	34.13
+a_check_result_constant	wssc	rbmc	TO	6	150.04
+a_check_result_constant	wssc	ric3-ic3-bare	TO		150.03
+a_csr_wr_in_wb_no_fetch	ws	rbmc	K	20	81.70
+a_data_obi_max_2_outstanding_transactions	ws	abc-bmc3	K	20	2.97
+a_check_result_constant	wssc	abc-bmc3	TO		150.01
+a_data_obi_max_2_outstanding_transactions	wssc	rbmc	K	20	23.86
+a_data_obi_max_2_outstanding_transactions	wssc	abc-bmc3	K	20	1.17
+a_data_i_stable_during_waited_addr_ph	ws	abc-bmc3	K	20	45.63
+a_data_i_stable_during_waited_addr_ph	wssc	abc-bmc3	K	20	44.79
+a_data_obi_max_2_outstanding_transactions	ws	rbmc	K	20	45.36
+a_data_obi_max_2_outstanding_transactions	ws	ric3-ic3-bare	UNSAT		63.57
+a_csr_wr_in_wb_no_fetch	ws	ric3-ic3-bare	TO		150.03
+a_data_o_stable_during_waited_addr_ph	ws	abc-bmc3	K	20	43.43
+a_data_i_stable_during_waited_addr_ph	ws	rbmc	K	20	112.41
+a_data_i_stable_during_waited_addr_ph	wssc	rbmc	K	20	102.24
+a_data_obi_max_2_outstanding_transactions	wssc	ric3-ic3-bare	UNSAT		73.41
+a_csr_wr_in_wb_no_fetch	wssc	ric3-ic3-bare	TO		150.04
+a_debug_taken_rf_write	wssc	ric3-ic3-bare	UNSAT		6.73
+a_data_o_stable_during_waited_addr_ph	wssc	abc-bmc3	K	20	47.53
+a_debug_taken_rf_write	ws	abc-bmc3	K	20	36.10
+a_enter_sleep_no_lsu	ws	ric3-ic3-bare	UNSAT		0.42
+a_enter_sleep_no_lsu	ws	abc-bmc3	K	20	1.40
+a_data_i_stable_during_waited_addr_ph	ws	ric3-ic3-bare	TO		150.02
+a_enter_sleep_no_lsu	wssc	ric3-ic3-bare	UNSAT		0.57
+a_enter_sleep_no_lsu	wssc	abc-bmc3	K	20	0.94
+a_enter_sleep_no_lsu	wssc	rbmc	K	20	7.80
+a_data_o_stable_during_waited_addr_ph	wssc	rbmc	K	20	97.79
+a_data_i_stable_during_waited_addr_ph	wssc	ric3-ic3-bare	TO		150.02
+a_enter_sleep_no_lsu	ws	rbmc	K	20	22.01
+a_debug_taken_rf_write	wssc	rbmc	K	20	66.78
+a_debug_taken_rf_write	wssc	abc-bmc3	K	20	45.83
+a_data_o_stable_during_waited_addr_ph	ws	rbmc	K	20	129.70
+a_data_o_stable_during_waited_addr_ph	ws	ric3-ic3-bare	TO		150.02
+a_debug_taken_rf_write	ws	rbmc	K	20	107.11
+a_fencei_hndshk_ack_b4_req_clear	ws	abc-bmc3	K	20	6.25
+a_fencei_hndshk_ack_b4_req_clear	ws	rbmc	K	20	32.98
+a_fencei_hndshk_ack_b4_req_clear	wssc	abc-bmc3	K	20	6.21
+a_data_o_stable_during_waited_addr_ph	wssc	ric3-ic3-bare	TO		150.03
+a_fencei_hndshk_ack_b4_req_clear	wssc	rbmc	K	20	30.78
+a_debug_taken_rf_write	ws	ric3-ic3-bare	TO		150.05
+a_fencei_hndshk_req_when_fencei_wb	ws	abc-bmc3	K	20	39.36
+a_fencei_hndshk_req_when_fencei_wb	wssc	ric3-ic3-bare	UNSAT		3.58
+a_fencei_hndshk_req_when_fencei_wb	ws	rbmc	K	20	70.60
+a_exc_no_sequence_debug	ws	rbmc	TO	18	150.10
+a_fencei_lsu_busy	ws	ric3-ic3-bare	UNSAT		2.32
+a_exc_no_sequence_debug	ws	ric3-ic3-bare	TO		150.04
+a_exc_no_sequence_debug	ws	abc-bmc3	TO		150.02
+a_exc_no_sequence_debug	wssc	abc-bmc3	K	20	128.32
+a_fencei_lsu_busy	wssc	ric3-ic3-bare	UNSAT		1.68
+a_fencei_hndshk_req_when_fencei_wb	wssc	abc-bmc3	K	20	27.89
+a_fencei_lsu_busy	ws	abc-bmc3	K	20	7.77
+a_exc_no_sequence_debug	wssc	ric3-ic3-bare	TO		150.03
+a_exc_no_sequence_debug	wssc	rbmc	TO	19	150.33
+a_fencei_lsu_busy	wssc	abc-bmc3	K	20	4.28
+a_fencei_hndshk_req_when_fencei_wb	wssc	rbmc	K	20	58.17
+a_functional_unit_enable_onehot_noptr	ws	rbmc	K	20	1.84
+a_functional_unit_enable_onehot_noptr	ws	ric3-ic3-bare	UNSAT		0.29
+a_functional_unit_enable_onehot_noptr	ws	abc-bmc3	K	20	0.64
+a_fencei_wb_valid	wssc	ric3-ic3-bare	UNSAT		4.14
+a_functional_unit_enable_onehot_noptr	wssc	ric3-ic3-bare	UNSAT		0.26
+a_functional_unit_enable_onehot_noptr	wssc	abc-bmc3	K	20	0.13
+a_fencei_wb_valid	ws	abc-bmc3	K	20	5.14
+a_functional_unit_enable_onehot_noptr	wssc	rbmc	K	20	1.38
+a_fencei_wb_valid	wssc	abc-bmc3	K	20	6.73
+a_fencei_lsu_busy	ws	rbmc	K	20	30.80
+a_fencei_lsu_busy	wssc	rbmc	K	20	22.23
+a_gate_clk_i	ws	ric3-ic3-bare	UNSAT		11.88
+a_fencei_hndshk_ack_b4_req_clear	ws	ric3-ic3-bare	TO		150.10
+a_gate_clk_i	wssc	ric3-ic3-bare	UNSAT		13.80
+a_fencei_wb_valid	ws	rbmc	K	20	27.66
+a_fencei_wb_valid	wssc	rbmc	K	20	28.91
+a_if_ex_trig_exclusive	ws	abc-bmc3	K	20	14.85
+a_fencei_hndshk_ack_b4_req_clear	wssc	ric3-ic3-bare	TO		150.04
+a_illegal_2	ws	rbmc	K	20	1.52
+a_illegal_2	ws	ric3-ic3-bare	UNSAT		0.29
+a_illegal_2	ws	abc-bmc3	K	20	0.56
+a_if_ex_trig_exclusive	wssc	abc-bmc3	K	20	13.09
+a_illegal_2	wssc	ric3-ic3-bare	UNSAT		0.25
+a_illegal_2	wssc	abc-bmc3	K	20	0.14
+a_illegal_2	wssc	rbmc	K	20	1.38
+a_gate_clk_i	ws	abc-bmc3	K	20	50.61
+a_if_ex_trig_exclusive	ws	rbmc	K	20	49.46
+a_if_ex_trig_exclusive	wssc	rbmc	K	20	42.26
+a_instr_err_mepc	ws	abc-bmc3	K	20	10.48
+a_fencei_hndshk_req_when_fencei_wb	ws	ric3-ic3-bare	TO		150.03
+a_gate_clk_i	wssc	rbmc	K	20	61.77
+a_gate_clk_i	wssc	abc-bmc3	K	20	52.62
+a_instr_err_mepc	ws	ric3-ic3-bare	UNSAT		23.77
+a_gate_clk_i	ws	rbmc	K	20	71.29
+a_instr_err_mepc	wssc	abc-bmc3	K	20	10.45
+a_instr_err_mepc	ws	rbmc	K	20	46.05
+a_instr_err_mepc	wssc	rbmc	K	20	42.43
+a_fencei_wb_valid	ws	ric3-ic3-bare	UNSAT		134.78
+a_irq_pri	ws	ric3-ic3-bare	UNSAT		43.14
+a_instr_err_mepc	wssc	ric3-ic3-bare	UNSAT		87.59
+a_irq_pri	wssc	ric3-ic3-bare	UNSAT		13.26
+a_if_ex_trig_exclusive	ws	ric3-ic3-bare	TO		150.04
+a_if_ex_trig_exclusive	wssc	ric3-ic3-bare	TO		150.03
+a_irq_pri	ws	rbmc	K	20	81.88
+a_jalr_fwd	ws	ric3-ic3-bare	UNSAT		13.02
+a_jalr_fwd	ws	abc-bmc3	K	20	15.26
+a_irq_pri	ws	abc-bmc3	K	20	62.18
+a_jalr_fwd	wssc	ric3-ic3-bare	UNSAT		5.40
+a_jalr_fwd	ws	rbmc	K	20	30.74
+a_jalr_fwd	wssc	abc-bmc3	K	20	14.09
+a_interruptible_equivalency	ws	rbmc	TO	12	150.11
+a_interruptible_equivalency	ws	ric3-ic3-bare	TO		150.03
+a_interruptible_equivalency	ws	abc-bmc3	TO		150.02
+a_irq_pri	wssc	abc-bmc3	K	20	52.43
+a_kill_state	ws	rbmc	K	20	2.03
+a_kill_state	ws	ric3-ic3-bare	UNSAT		0.60
+a_kill_state	ws	abc-bmc3	K	20	0.71
+a_kill_state	wssc	rbmc	K	20	1.33
+a_kill_state	wssc	ric3-ic3-bare	UNSAT		0.28
+a_kill_state	wssc	abc-bmc3	K	20	0.14
+a_interruptible_equivalency	wssc	rbmc	TO	13	150.17
+a_interruptible_equivalency	wssc	ric3-ic3-bare	TO		150.03
+a_jalr_fwd	wssc	rbmc	K	20	34.84
+a_interruptible_equivalency	wssc	abc-bmc3	TO		150.02
+a_latched_bus_error	wssc	ric3-ic3-bare	UNSAT		8.39
+a_latched_bus_error	ws	abc-bmc3	K	20	14.52
+a_irq_pri	wssc	rbmc	K	20	93.14
+a_latched_bus_error	wssc	abc-bmc3	K	20	9.22
+a_lsu_wb_valid	ws	ric3-ic3-bare	UNSAT		2.97
+a_latched_bus_error	wssc	rbmc	K	20	24.15
+a_lsu_wb_valid	wssc	ric3-ic3-bare	UNSAT		1.54
+a_lsu_wb_valid	wssc	abc-bmc3	K	20	5.20
+a_lsu_wb_valid	ws	abc-bmc3	K	20	21.81
+a_latched_bus_error	ws	rbmc	K	20	46.53
+a_latched_bus_error	ws	ric3-ic3-bare	UNSAT		53.33
+a_lsu_wb_valid	wssc	rbmc	K	20	34.70
+a_lsu_wb_valid	ws	rbmc	K	20	45.45
+a_max_seq_len_popret	ws	abc-bmc3	K	20	66.36
+a_max_seq_len_popret	wssc	abc-bmc3	K	20	52.95
+a_max_seq_len_popret	ws	rbmc	K	20	88.48
+a_jalr_fw_match	ws	rbmc	TO	15	150.11
+a_jalr_fw_match	ws	ric3-ic3-bare	TO		150.03
+a_jalr_fw_match	ws	abc-bmc3	TO		150.02
+a_jalr_fw_match	wssc	rbmc	TO	16	150.20
+a_jalr_fw_match	wssc	ric3-ic3-bare	TO		150.10
+a_jalr_fw_match	wssc	abc-bmc3	TO		150.02
+a_max_seq_len_popretz	ws	abc-bmc3	K	20	24.57
+a_max_seq_len_popretz	wssc	abc-bmc3	K	20	29.17
+a_max_seq_len_popret	wssc	rbmc	K	20	111.28
+a_max_seq_len_popretz	wssc	rbmc	K	20	63.23
+a_max_seq_len_popret	ws	ric3-ic3-bare	TO		150.23
+a_max_seq_len_popretz	ws	rbmc	K	20	84.70
+a_max_seq_len_popret	wssc	ric3-ic3-bare	TO		150.04
+a_max_seq_len_pop	ws	abc-bmc3	K	20	103.40
+a_max_seq_len_pop	wssc	abc-bmc3	K	20	85.99
+a_max_seq_len_popretz	ws	ric3-ic3-bare	TO		150.05
+a_max_seq_len_pop	wssc	rbmc	K	20	119.34
+a_max_seq_len_popretz	wssc	ric3-ic3-bare	TO		150.04
+a_max_seq_len_pop	ws	rbmc	TO	19	150.09
+a_max_seq_len_pop	ws	ric3-ic3-bare	TO		150.05
+a_mcontrol6_hit_set	ws	abc-bmc3	K	20	18.53
+a_mcontrol6_hit_set	wssc	ric3-ic3-bare	UNSAT		7.64
+a_mip_mie_write_disable	ws	rbmc	K	20	1.51
+a_mip_mie_write_disable	ws	ric3-ic3-bare	UNSAT		0.30
+a_mip_mie_write_disable	ws	abc-bmc3	K	20	0.15
+a_mip_mie_write_disable	wssc	rbmc	K	20	1.39
+a_mip_mie_write_disable	wssc	ric3-ic3-bare	UNSAT		0.25
+a_mip_mie_write_disable	wssc	abc-bmc3	K	20	0.13
+a_mcontrol6_hit_set	wssc	abc-bmc3	K	20	13.31
+a_mcontrol6_hit_set	ws	rbmc	K	20	49.06
+a_max_seq_len_pop	wssc	ric3-ic3-bare	TO		150.03
+a_max_seq_len_push	ws	abc-bmc3	K	20	120.45
+a_max_seq_len_push	wssc	abc-bmc3	K	20	67.66
+a_mcontrol6_hit_set	wssc	rbmc	K	20	39.28
+a_max_seq_len_push	ws	rbmc	TO	19	151.04
+a_mip_mie_write_enable	ws	ric3-ic3-bare	UNSAT		33.18
+a_max_seq_len_push	ws	ric3-ic3-bare	TO		150.04
+a_mret_dbg_mode_illegal	ws	ric3-ic3-bare	UNSAT		6.55
+a_mip_mie_write_enable	wssc	ric3-ic3-bare	UNSAT		37.02
+a_max_seq_len_push	wssc	rbmc	TO	19	150.15
+a_mip_mie_write_enable	wssc	abc-bmc3	K	20	50.53
+a_mret_dbg_mode_illegal	ws	abc-bmc3	K	20	34.37
+a_mret_dbg_mode_illegal	wssc	abc-bmc3	K	20	30.44
+a_mip_mie_write_enable	ws	rbmc	K	20	87.35
+a_mip_mie_write_enable	wssc	rbmc	K	20	80.85
+a_mret_in_wb_csr_restore_mret	ws	ric3-ic3-bare	UNSAT		25.78
+a_mip_mie_write_enable	ws	abc-bmc3	K	20	83.89
+a_max_seq_len_push	wssc	ric3-ic3-bare	TO		150.04
+a_mret_dbg_mode_illegal	wssc	ric3-ic3-bare	UNSAT		53.88
+a_mcontrol6_hit_set	ws	ric3-ic3-bare	TO		150.03
+a_mret_dbg_mode_illegal	wssc	rbmc	K	20	78.91
+a_mret_in_wb_csr_restore_mret	ws	abc-bmc3	K	20	64.47
+a_mret_in_wb_csr_restore_mret	ws	rbmc	K	20	88.27
+a_mret_dbg_mode_illegal	ws	rbmc	K	20	122.26
+a_mret_in_wb_csr_restore_mret	wssc	abc-bmc3	K	20	58.84
+a_mret_in_wb_csr_restore_mret	wssc	rbmc	K	20	97.67
+a_mret_in_wb_csr_restore_mret	wssc	ric3-ic3-bare	UNSAT		95.92
+a_mulh_result	ws	rbmc	TO	7	150.07
+a_mulh_result	ws	ric3-ic3-bare	TO		150.04
+a_mulh_result	ws	abc-bmc3	TO		150.02
+a_mulh_result	wssc	rbmc	TO	7	150.05
+a_mulh_result	wssc	ric3-ic3-bare	TO		150.06
+a_mulh_result	wssc	abc-bmc3	TO		150.01
+a_mulhsu_result	ws	rbmc	TO	7	150.06
+a_mulhsu_result	ws	ric3-ic3-bare	TO		150.06
+a_mulhsu_result	ws	abc-bmc3	TO		150.02
+a_mulhsu_result	wssc	rbmc	TO	7	150.09
+a_mulhsu_result	wssc	ric3-ic3-bare	TO		150.06
+a_mulhsu_result	wssc	abc-bmc3	TO		150.01
+a_mulhu_result	ws	rbmc	TO	7	150.06
+a_mulhu_result	ws	ric3-ic3-bare	TO		150.05
+a_mulhu_result	ws	abc-bmc3	TO		150.01
+a_mulhu_result	wssc	rbmc	TO	7	150.04
+a_nmi_handler_max_retire	ws	ric3-ic3-bare	UNSAT		14.39
+a_mulhu_result	wssc	ric3-ic3-bare	TO		155.01
+a_mulhu_result	wssc	abc-bmc3	TO		150.02
+a_no_back_to_back_branch	ws	rbmc	K	20	4.02
+a_no_back_to_back_branch	ws	ric3-ic3-bare	UNSAT		0.42
+a_no_back_to_back_branch	ws	abc-bmc3	K	20	0.97
+a_no_back_to_back_branch	wssc	rbmc	K	20	1.42
+a_no_back_to_back_branch	wssc	ric3-ic3-bare	UNSAT		0.27
+a_no_back_to_back_branch	wssc	abc-bmc3	K	20	0.13
+a_nmi_handler_max_retire	wssc	ric3-ic3-bare	UNSAT		23.66
+a_mul_result	ws	rbmc	TO	5	150.11
+a_mul_result	ws	ric3-ic3-bare	TO		150.04
+a_mul_result	wssc	rbmc	TO	4	150.02
+a_mul_result	ws	abc-bmc3	TO		150.01
+a_mul_result	wssc	ric3-ic3-bare	TO		150.04
+a_mul_result	wssc	abc-bmc3	TO		150.01
+a_nmi_handler_max_retire	wssc	rbmc	K	20	95.84
+a_no_event_during_debug_taken_nonstep	ws	ric3-ic3-bare	UNSAT		9.16
+a_nmi_handler_max_retire	wssc	abc-bmc3	K	20	90.50
+a_no_event_during_debug_taken_nonstep	wssc	ric3-ic3-bare	UNSAT		5.86
+a_nmi_handler_max_retire	ws	abc-bmc3	K	20	119.73
+a_nmi_handler_max_retire	ws	rbmc	K	20	123.96
+a_no_event_during_debug_taken_nonstep	ws	abc-bmc3	K	20	35.63
+a_no_event_during_debug_taken_nonstep	wssc	abc-bmc3	K	20	27.24
+a_no_event_during_debug_taken_nonstep	ws	rbmc	K	20	60.49
+a_no_event_during_debug_taken_step	ws	ric3-ic3-bare	UNSAT		30.90
+a_no_event_during_debug_taken_nonstep	wssc	rbmc	K	20	56.27
+a_no_event_during_debug_taken_step	wssc	ric3-ic3-bare	UNSAT		19.67
+a_no_event_during_debug_taken_step	ws	abc-bmc3	K	20	37.64
+a_no_context_from_pointer	ws	rbmc	TO	14	150.62
+a_no_context_from_pointer	ws	ric3-ic3-bare	TO		150.05
+a_no_context_from_pointer	ws	abc-bmc3	TO		150.02
+a_no_event_during_debug_taken_step	wssc	abc-bmc3	K	20	45.13
+a_no_context_from_pointer	wssc	rbmc	TO	16	150.16
+a_no_irq_write_during_sleep	ws	ric3-ic3-bare	UNSAT		0.47
+a_no_irq_write_during_sleep	ws	abc-bmc3	K	20	1.45
+a_no_event_during_debug_taken_step	ws	rbmc	K	20	81.82
+a_no_irq_write_during_sleep	wssc	ric3-ic3-bare	UNSAT		0.31
+a_no_irq_write_during_sleep	wssc	abc-bmc3	K	20	1.01
+a_no_event_during_debug_taken_step	wssc	rbmc	K	20	57.63
+a_no_sleep_during_debug	ws	ric3-ic3-bare	UNSAT		2.20
+a_no_context_from_pointer	wssc	ric3-ic3-bare	TO		150.05
+a_no_context_from_pointer	wssc	abc-bmc3	TO		150.02
+a_no_irq_write_during_sleep	ws	rbmc	K	20	8.57
+a_no_irq_write_during_sleep	wssc	rbmc	K	20	6.37
+a_no_sleep_during_debug	wssc	ric3-ic3-bare	UNSAT		1.63
+a_no_sleep_during_debug	wssc	abc-bmc3	K	20	8.34
+a_not_busy_during_sleep	ws	ric3-ic3-bare	UNSAT		7.35
+a_no_sleep_during_debug	ws	abc-bmc3	K	20	12.50
+a_not_busy_during_sleep	wssc	ric3-ic3-bare	UNSAT		10.57
+a_no_sleep_during_debug	wssc	rbmc	K	20	28.41
+a_no_sleep_during_debug	ws	rbmc	K	20	32.59
+a_no_transaction_count_overflow_0	ws	ric3-ic3-bare	UNSAT		1.58
+a_no_transaction_count_overflow_0	ws	abc-bmc3	K	20	11.96
+a_not_busy_during_sleep	wssc	abc-bmc3	K	20	22.58
+a_no_transaction_count_overflow_0	wssc	ric3-ic3-bare	UNSAT		2.22
+a_no_transaction_count_overflow_0	wssc	abc-bmc3	K	20	3.70
+a_no_transaction_count_overflow_0	ws	rbmc	K	20	26.68
+a_only_wpt_lsu_valid_sticky	ws	ric3-ic3-bare	UNSAT		2.49
+a_not_busy_during_sleep	ws	abc-bmc3	K	20	50.43
+a_no_transaction_count_overflow_0	wssc	rbmc	K	20	21.82
+a_only_wpt_lsu_valid_sticky	wssc	ric3-ic3-bare	UNSAT		9.93
+a_only_wpt_lsu_valid_sticky	ws	abc-bmc3	K	20	18.24
+a_only_wpt_lsu_valid_sticky	ws	rbmc	K	20	27.36
+a_only_wpt_lsu_valid_sticky	wssc	rbmc	K	20	22.87
+a_opb_fwd_wb	ws	ric3-ic3-bare	UNSAT		7.96
+a_not_busy_during_sleep	ws	rbmc	K	20	88.88
+a_only_wpt_lsu_valid_sticky	wssc	abc-bmc3	K	20	14.40
+a_opb_fwd_wb	wssc	ric3-ic3-bare	UNSAT		7.73
+a_pma_expect_err	ws	rbmc	K	20	1.52
+a_pma_expect_err	ws	ric3-ic3-bare	UNSAT		0.29
+a_pma_expect_err	ws	abc-bmc3	K	20	0.15
+a_not_busy_during_sleep	wssc	rbmc	K	20	90.52
+a_pma_expect_err	wssc	ric3-ic3-bare	UNSAT		0.26
+a_pma_expect_err	wssc	abc-bmc3	K	20	0.14
+a_pma_expect_err	wssc	rbmc	K	20	1.40
+a_no_exc_no_sequence_debug	ws	rbmc	TO	15	150.40
+a_opb_fwd_wb	wssc	abc-bmc3	K	20	14.01
+a_opb_fwd_wb	ws	abc-bmc3	K	20	23.59
+a_opb_fwd_wb	ws	rbmc	K	20	33.26
+a_no_exc_no_sequence_debug	ws	ric3-ic3-bare	TO		150.03
+a_no_exc_no_sequence_debug	ws	abc-bmc3	TO		150.02
+a_no_exc_no_sequence_debug	wssc	rbmc	TO	16	150.15
+a_opb_fwd_wb	wssc	rbmc	K	20	40.53
+a_no_exc_no_sequence_debug	wssc	ric3-ic3-bare	TO		150.04
+a_no_exc_no_sequence_debug	wssc	abc-bmc3	TO		150.01
+a_pushpop_atomic_end_sequence_popret	ws	ric3-ic3-bare	TO		150.04
+a_pushpop_atomic_end_sequence_popret	ws	rbmc	TO	14	150.16
+a_pushpop_atomic_end_sequence_popret	ws	abc-bmc3	TO		150.01
+a_pushpop_atomic_end_sequence_popret	wssc	rbmc	TO	14	150.06
+a_pushpop_atomic_end_sequence_popret	wssc	ric3-ic3-bare	TO		150.04
+a_pushpop_atomic_end_sequence_popret	wssc	abc-bmc3	TO		150.02
+a_pushpop_atomic_end_sequence_popretz	ws	rbmc	TO	13	150.19
+a_pushpop_atomic_end_sequence_popretz	ws	ric3-ic3-bare	TO		150.04
+a_pushpop_atomic_end_sequence_popretz	ws	abc-bmc3	TO		150.01
+a_pushpop_atomic_end_sequence_popretz	wssc	rbmc	TO	13	150.08
+a_req_after_wake	ws	abc-bmc3	K	20	2.41
+a_pushpop_atomic_end_sequence_popretz	wssc	ric3-ic3-bare	TO		150.03
+a_req_after_wake	wssc	abc-bmc3	K	20	3.62
+a_rf_halt_kill	ws	rbmc	K	20	1.52
+a_pushpop_atomic_end_sequence_popretz	wssc	abc-bmc3	TO		150.02
+a_rf_halt_kill	ws	ric3-ic3-bare	UNSAT		0.30
+a_rf_halt_kill	ws	abc-bmc3	K	20	0.16
+a_rf_halt_kill	wssc	ric3-ic3-bare	UNSAT		0.26
+a_rf_halt_kill	wssc	abc-bmc3	K	20	0.13
+a_req_after_wake	ws	rbmc	K	20	27.88
+a_rf_halt_kill	wssc	rbmc	K	20	1.36
+a_req_after_wake	wssc	rbmc	K	20	21.01
+a_set_clear_dcsr_q	ws	abc-bmc3	K	20	40.49
+a_set_clear_dcsr_q	wssc	ric3-ic3-bare	UNSAT		22.41
+a_set_clear_dcsr_q	wssc	rbmc	K	20	60.26
+a_set_clear_dcsr_q	ws	rbmc	K	20	73.26
+a_set_clear_dcsr_q	wssc	abc-bmc3	K	20	19.88
+a_pushpop_sp_update	ws	ric3-ic3-bare	TO		150.06
+a_pushpop_sp_update	ws	rbmc	TO	18	150.13
+a_pushpop_sp_update	ws	abc-bmc3	TO		150.02
+a_pushpop_sp_update	wssc	rbmc	TO	18	150.11
+a_pushpop_sp_update	wssc	ric3-ic3-bare	TO		150.04
+a_pushpop_sp_update	wssc	abc-bmc3	TO		150.01
+a_set_clear_dscratch0_q	ws	ric3-ic3-bare	UNSAT		6.13
+a_set_clear_dpc_q	wssc	ric3-ic3-bare	UNSAT		12.74
+a_req_after_wake	ws	ric3-ic3-bare	TO		150.03
+a_set_clear_dscratch0_q	wssc	ric3-ic3-bare	UNSAT		7.44
+a_req_after_wake	wssc	ric3-ic3-bare	TO		150.03
+a_set_clear_dscratch0_q	ws	abc-bmc3	K	20	26.06
+a_set_clear_dscratch0_q	wssc	abc-bmc3	K	20	21.74
+a_set_clear_dcsr_q	ws	ric3-ic3-bare	TO		150.06
+a_set_clear_dscratch1_q	ws	ric3-ic3-bare	UNSAT		11.30
+a_set_clear_dpc_q	ws	rbmc	K	20	81.24
+a_set_clear_dpc_q	wssc	abc-bmc3	K	20	40.81
+a_set_clear_dpc_q	ws	abc-bmc3	K	20	70.46
+a_set_clear_dscratch1_q	wssc	ric3-ic3-bare	UNSAT		8.59
+a_set_clear_jvt_q	ws	ric3-ic3-bare	UNSAT		8.18
+a_set_clear_dpc_q	wssc	rbmc	K	20	55.37
+a_set_clear_jvt_q	wssc	ric3-ic3-bare	UNSAT		8.24
+a_set_clear_jvt_q	ws	abc-bmc3	K	20	17.46
+a_set_clear_mcause_q	ws	ric3-ic3-bare	UNSAT		5.24
+a_set_clear_dscratch0_q	wssc	rbmc	K	20	53.18
+a_set_clear_dscratch0_q	ws	rbmc	K	20	62.74
+a_set_clear_dscratch1_q	wssc	abc-bmc3	K	20	27.08
+a_set_clear_jvt_q	wssc	abc-bmc3	K	20	14.46
+a_set_clear_mcause_q	wssc	ric3-ic3-bare	UNSAT		4.42
+a_set_clear_mepc_q	ws	ric3-ic3-bare	UNSAT		7.96
+a_set_clear_mcause_q	wssc	abc-bmc3	K	20	16.47
+a_set_clear_dscratch1_q	ws	abc-bmc3	K	20	48.31
+a_set_clear_jvt_q	wssc	rbmc	K	20	40.72
+a_set_clear_mcause_q	ws	abc-bmc3	K	20	23.55
+a_set_clear_dscratch1_q	wssc	rbmc	K	20	52.12
+a_set_clear_mstatus_q	ws	ric3-ic3-bare	UNSAT		3.90
+a_set_clear_jvt_q	ws	rbmc	K	20	53.87
+a_set_clear_mepc_q	wssc	ric3-ic3-bare	UNSAT		10.42
+a_set_clear_dscratch1_q	ws	rbmc	K	20	74.87
+a_set_clear_mstatus_q	wssc	ric3-ic3-bare	UNSAT		2.00
+a_set_clear_mepc_q	ws	abc-bmc3	K	20	29.64
+a_set_clear_dpc_q	ws	ric3-ic3-bare	TO		150.05
+a_set_clear_mepc_q	wssc	abc-bmc3	K	20	28.00
+a_set_clear_mstatus_q	ws	abc-bmc3	K	20	21.88
+a_set_clear_mstatus_q	wssc	abc-bmc3	K	20	19.51
+a_set_clear_tdata1_q	wssc	ric3-ic3-bare	UNSAT		7.48
+a_set_clear_tdata1_q	ws	ric3-ic3-bare	UNSAT		15.67
+a_set_clear_mcause_q	wssc	rbmc	K	20	59.97
+a_set_clear_mepc_q	ws	rbmc	K	20	60.36
+a_set_clear_mstatus_q	ws	rbmc	K	20	47.30
+a_set_clear_tdata2_q	ws	ric3-ic3-bare	UNSAT		12.90
+a_set_clear_mstatus_q	wssc	rbmc	K	20	48.79
+a_set_clear_tdata2_q	wssc	ric3-ic3-bare	UNSAT		12.04
+a_set_clear_mcause_q	ws	rbmc	K	20	89.81
+a_set_clear_mepc_q	wssc	rbmc	K	20	68.00
+a_set_clear_tdata1_q	wssc	abc-bmc3	K	20	45.30
+a_set_clear_tdata2_q	ws	abc-bmc3	K	20	44.31
+a_set_clear_tdata1_q	ws	abc-bmc3	K	20	80.13
+a_set_clear_tdata1_q	ws	rbmc	K	20	95.09
+a_set_clear_tdata2_q	wssc	rbmc	K	20	63.42
+a_set_clear_tdata2_q	ws	rbmc	K	20	71.80
+a_set_clear_tdata1_q	wssc	rbmc	K	20	80.10
+a_set_clear_tdata2_q	wssc	abc-bmc3	K	20	60.80
+a_shift_result_hh	ws	rbmc	TO	7	150.06
+a_shift_result_hh	ws	ric3-ic3-bare	TO		150.04
+a_shift_result_hh	ws	abc-bmc3	TO		150.01
+a_shift_result_hh	wssc	rbmc	TO	7	150.03
+a_shift_result_hh	wssc	ric3-ic3-bare	TO		155.01
+a_shift_result_hh	wssc	abc-bmc3	TO		150.01
+a_shift_result_hl	ws	rbmc	TO	6	150.03
+a_shift_result_hl	ws	ric3-ic3-bare	TO		150.05
+a_shift_result_hl	ws	abc-bmc3	TO		150.01
+a_shift_result_hl	wssc	rbmc	TO	6	150.06
+a_shift_result_hl	wssc	ric3-ic3-bare	TO		150.03
+a_shift_result_hl	wssc	abc-bmc3	TO		150.01
+a_shift_result_lh	ws	rbmc	TO	5	150.04
+a_shift_result_lh	ws	ric3-ic3-bare	TO		150.03
+a_shift_result_lh	ws	abc-bmc3	TO		150.01
+a_shift_result_lh	wssc	rbmc	TO	5	150.03
+a_shift_result_lh	wssc	ric3-ic3-bare	TO		150.03
+a_shift_result_lh	wssc	abc-bmc3	TO		150.01
+a_shift_result_ll_lh_hl_shift	ws	rbmc	TO	7	150.06
+a_shift_result_ll_lh_hl_shift	ws	ric3-ic3-bare	TO		150.04
+a_shift_result_ll_lh_hl_shift	wssc	rbmc	TO	7	150.05
+a_shift_result_ll_lh_hl_shift	ws	abc-bmc3	TO		150.02
+a_shift_result_ll_lh_hl_shift	wssc	ric3-ic3-bare	TO		150.05
+a_shift_result_ll_lh_hl_shift	wssc	abc-bmc3	TO		150.02
+a_shift_result_ll_lh	ws	rbmc	TO	6	150.04
+a_shift_result_ll_lh	ws	ric3-ic3-bare	TO		150.05
+a_shift_result_ll_lh	ws	abc-bmc3	TO		150.01
+a_shift_result_ll_lh	wssc	rbmc	TO	6	150.03
+a_shift_result_ll_lh	wssc	ric3-ic3-bare	TO		150.05
+a_shift_result_ll_lh	wssc	abc-bmc3	TO		150.01
+a_shift_result_ll	ws	rbmc	TO	5	150.04
+a_shift_result_ll	ws	ric3-ic3-bare	TO		150.04
+a_shift_result_ll	wssc	rbmc	TO	5	150.03
+a_shift_result_ll	ws	abc-bmc3	TO		150.01
+a_shift_result_ll	wssc	ric3-ic3-bare	TO		150.03
+a_shift_result_ll	wssc	abc-bmc3	TO		150.01
+a_shift_result_ll_shift	ws	rbmc	TO	6	150.03
+a_shift_result_ll_shift	ws	ric3-ic3-bare	TO		150.46
+a_shift_result_ll_shift	ws	abc-bmc3	TO		150.01
+a_shift_result_ll_shift	wssc	rbmc	TO	6	150.05
+a_single_step_no_irq_id	ws	abc-bmc3	K	20	113.34
+a_single_step_no_irq_id	wssc	abc-bmc3	K	20	113.09
+a_shift_result_ll_shift	wssc	ric3-ic3-bare	TO		150.62
+a_shift_result_ll_shift	wssc	abc-bmc3	TO		150.01
+a_single_step_pipecheck	ws	ric3-ic3-bare	UNSAT		1.93
+a_single_step_no_irq_id	wssc	rbmc	K	20	132.21
+a_single_step_pipecheck	ws	abc-bmc3	K	20	15.39
+a_single_step_pipecheck	wssc	ric3-ic3-bare	UNSAT		2.45
+a_single_step_no_irq_id	ws	rbmc	TO	19	150.10
+a_single_step_no_irq_id	ws	ric3-ic3-bare	TO		150.05
+a_single_step_no_irq_id	wssc	ric3-ic3-bare	TO		150.05
+a_single_step_pipecheck	wssc	abc-bmc3	K	20	8.15
+a_single_step_pipecheck	ws	rbmc	K	20	48.71
+a_single_step_pipecheck	wssc	rbmc	K	20	46.89
+a_single_step_no_irq_if	ws	abc-bmc3	K	20	102.85
+a_sleep_to_irq	ws	abc-bmc3	K	20	68.96
+a_sleep_to_irq	wssc	abc-bmc3	K	20	43.20
+a_single_step_no_irq_if	wssc	abc-bmc3	K	20	105.71
+a_sleep_to_nmi	ws	ric3-ic3-bare	UNSAT		6.13
+a_sleep_to_nmi	wssc	ric3-ic3-bare	UNSAT		11.70
+a_sleep_to_irq	ws	rbmc	K	20	96.51
+a_sleep_to_irq	wssc	rbmc	K	20	90.35
+a_single_step_no_irq_if	ws	rbmc	TO	18	150.27
+a_single_step_no_irq_if	ws	ric3-ic3-bare	TO		150.05
+a_sleep_to_nmi	ws	abc-bmc3	K	20	31.08
+a_single_step_no_irq_if	wssc	rbmc	TO	19	150.12
+a_sleep_to_nmi	wssc	abc-bmc3	K	20	20.02
+a_suppress_csr_xif_illegal_pipeline_illegal	ws	rbmc	K	20	2.35
+a_suppress_csr_xif_illegal_pipeline_illegal	ws	ric3-ic3-bare	UNSAT		0.36
+a_suppress_csr_xif_illegal_pipeline_illegal	ws	abc-bmc3	K	20	0.76
+a_suppress_csr_xif_illegal_pipeline_illegal	wssc	rbmc	K	20	1.39
+a_suppress_csr_xif_illegal_pipeline_illegal	wssc	ric3-ic3-bare	UNSAT		0.26
+a_single_step_no_irq_if	wssc	ric3-ic3-bare	TO		150.04
+a_suppress_csr_xif_illegal_pipeline_illegal	wssc	abc-bmc3	K	20	0.14
+a_sleep_to_nmi	ws	rbmc	K	20	64.97
+a_sleep_to_nmi	wssc	rbmc	K	20	52.37
+a_tdata1_writes_unique	ws	abc-bmc3	K	20	10.57
+a_stable_id_sleep	ws	ric3-ic3-bare	UNSAT		43.36
+a_tdata1_writes_unique	ws	rbmc	K	20	29.64
+a_stable_id_sleep	wssc	ric3-ic3-bare	UNSAT		41.53
+a_tdata1_writes_unique	wssc	abc-bmc3	K	20	7.78
+a_sleep_to_irq	ws	ric3-ic3-bare	TO		150.04
+a_tdata1_writes_unique	wssc	rbmc	K	20	32.57
+a_trigger_match_in_debug	ws	ric3-ic3-bare	UNSAT		18.13
+a_trigger_match_in_debug	wssc	ric3-ic3-bare	UNSAT		9.36
+a_stable_id_sleep	ws	abc-bmc3	K	20	68.97
+a_valid_jump	ws	ric3-ic3-bare	UNSAT		0.30
+a_trigger_match_in_debug	ws	abc-bmc3	K	20	22.24
+a_valid_jump	ws	abc-bmc3	K	20	1.17
+a_valid_jump	ws	rbmc	K	20	1.65
+a_valid_jump	wssc	rbmc	K	20	1.37
+a_valid_jump	wssc	abc-bmc3	K	20	0.10
+a_valid_jump	wssc	ric3-ic3-bare	UNSAT		0.27
+a_valid_o	ws	abc-bmc3	K	20	0.11
+a_valid_o	ws	ric3-ic3-bare	UNSAT		0.30
+a_valid_o	wssc	ric3-ic3-bare	UNSAT		0.27
+a_valid_o	wssc	abc-bmc3	K	20	0.14
+a_sleep_to_irq	wssc	ric3-ic3-bare	TO		150.04
+a_valid_o	ws	rbmc	K	20	1.42
+a_valid_o	wssc	rbmc	K	20	1.12
+a_stable_id_sleep	wssc	abc-bmc3	K	20	67.65
+a_wakeup_interruptible	ws	ric3-ic3-bare	UNSAT		14.10
+a_trigger_match_in_debug	wssc	abc-bmc3	K	20	23.44
+a_wb_interruptible_abort	ws	rbmc	K	20	2.05
+a_wb_interruptible_abort	ws	ric3-ic3-bare	UNSAT		0.33
+a_wb_interruptible_abort	ws	abc-bmc3	K	20	0.61
+a_wb_interruptible_abort	wssc	rbmc	K	20	1.37
+a_wb_interruptible_abort	wssc	ric3-ic3-bare	UNSAT		0.26
+a_wb_interruptible_abort	wssc	abc-bmc3	K	20	0.14
+a_wakeup_interruptible	wssc	ric3-ic3-bare	UNSAT		17.69
+a_wb_ready_exception	ws	ric3-ic3-bare	UNSAT		6.78
+a_trigger_match_in_debug	ws	rbmc	K	20	62.87
+a_trigger_match_in_debug	wssc	rbmc	K	20	67.19
+a_wb_ready_exception	ws	abc-bmc3	K	20	22.55
+a_wb_ready_exception	wssc	ric3-ic3-bare	UNSAT		8.92
+a_tdata1_writes_unique	wssc	ric3-ic3-bare	UNSAT		91.84
+a_wakeup_interruptible	wssc	abc-bmc3	K	20	40.15
+a_wakeup_interruptible	wssc	rbmc	K	20	54.72
+a_woke_to_debug_single_cycle	ws	ric3-ic3-bare	UNSAT		4.61
+a_woke_to_debug_single_cycle	wssc	ric3-ic3-bare	UNSAT		4.81
+a_wb_ready_exception	wssc	abc-bmc3	K	20	14.42
+a_woke_to_debug_single_cycle	ws	abc-bmc3	K	20	12.75
+a_woke_to_debug_single_cycle	wssc	abc-bmc3	K	20	8.08
+a_stable_id_sleep	ws	rbmc	TO	16	150.21
+a_wpt_debug_entry	ws	ric3-ic3-bare	UNSAT		8.80
+a_woke_to_debug_single_cycle	wssc	rbmc	K	20	24.30
+a_wpt_debug_entry	ws	abc-bmc3	K	20	8.64
+a_wpt_mpu_cnt_share	ws	rbmc	K	20	1.53
+a_wpt_mpu_cnt_share	ws	ric3-ic3-bare	UNSAT		0.30
+a_wpt_mpu_cnt_share	ws	abc-bmc3	K	20	0.15
+a_stable_id_sleep	wssc	rbmc	TO	17	150.19
+a_wpt_mpu_cnt_share	wssc	ric3-ic3-bare	UNSAT		0.28
+a_wpt_mpu_cnt_share	wssc	abc-bmc3	K	20	0.13
+a_wpt_mpu_cnt_share	wssc	rbmc	K	20	1.42
+a_wb_ready_exception	wssc	rbmc	K	20	48.81
+a_woke_to_debug_single_cycle	ws	rbmc	K	20	31.43
+a_wpt_debug_entry	wssc	ric3-ic3-bare	UNSAT		11.10
+a_wakeup_interruptible	ws	rbmc	K	20	88.88
+a_wpt_wb_halt	ws	ric3-ic3-bare	UNSAT		5.07
+a_wpt_debug_entry	wssc	abc-bmc3	K	20	11.16
+a_wb_ready_exception	ws	rbmc	K	20	71.03
+a_tdata1_writes_unique	ws	ric3-ic3-bare	TO		150.04
+a_wpt_wb_halt	wssc	ric3-ic3-bare	UNSAT		8.37
+a_wpt_wb_halt	ws	abc-bmc3	K	20	14.76
+a_wpt_wb_valid	wssc	ric3-ic3-bare	UNSAT		3.76
+a_wpt_wb_halt	wssc	abc-bmc3	K	20	13.04
+a_wpt_debug_entry	ws	rbmc	K	20	39.32
+a_wpt_wb_valid	ws	abc-bmc3	K	20	12.99
+a_wpt_wb_valid	wssc	abc-bmc3	K	20	7.71
+a_wpt_debug_entry	wssc	rbmc	K	20	35.67
+a_wakeup_interruptible	ws	abc-bmc3	K	20	117.60
+a_wpt_wb_halt	wssc	rbmc	K	20	38.57
+a_wpt_wb_valid	wssc	rbmc	K	20	30.89
+a_wpt_wb_valid	ws	rbmc	K	20	38.14
+a_wpt_wb_halt	ws	rbmc	K	20	48.79
+a_wpt_wb_valid	ws	ric3-ic3-bare	UNSAT		80.08

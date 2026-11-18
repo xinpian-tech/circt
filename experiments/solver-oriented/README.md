@@ -553,3 +553,33 @@ bare IC3 by ~30-40% without changing solved counts (4/3 and 5/3 properties
 solved by one side only: IC3 variance). kb+sc solves like sc; kb's value is
 the 15-22% cheaper sc after it (fewer candidates). Cheap word-level constant
 invariants are not enough on their own; next: word-level equivalences.
+
+## Word-level simplification before sc (2026-11-18)
+
+Where sc's reduction comes from, on a_addr_incr (ABC strash, ANDs/latches):
+base 55,854/3,081; kb 51,001; base+fraig 47,459; kb+fraig 43,416; sc
+41,154/2,509. About half of it is combinational (fraig, no induction). With
+locations on the word operations, the gates fraig merges come mostly (62%)
+from reset muxes around logic that already selects the reset value under
+reset (async reset lowered twice, on the wide pipeline registers), then from
+priority decoders `x == A && !(x == B)`. `comb-context-simplify` (operands
+and mux arms evaluated on known bits under the facts of their context) and
+`seq-known-bits{context}` (mux arms under their conditions) are the word
+level answer (`WS=1 export_cfgs.sh`, 0.4 s): 46,854/3,013, +fraig
+42,896, +sc 40,938/2,510. What sc still finds beyond them is mostly constant
+bits of pipeline registers (342 bits; relational) and one shadow register
+of an assertion. `seq-word-congruence` (register partition x known bits,
+no solver) finds almost nothing (21 registers, no size change).
+
+97 properties (`results/core-env-wscmp`, base/kb/sc from core-env-kbcmp):
+mean ANDs base 56,719, ws 46,702, sc 41,936, wssc 41,711; sc export time
+354 s alone, 194 s after ws (-45%).
+
+| backend | base | sc | ws | wssc | base→ws gm (hard) | sc→wssc gm (hard) |
+|---|---|---|---|---|---|---|
+| abc-bmc3 | 77 | 77 | 77 | 78 | 11.51→11.37 (31.2→32.7) | 7.02→7.00 (27.9→27.7) |
+| rbmc | 72 | 73 | 72 | 74 | 33.50→28.79 (64.8→56.0) | 22.69→22.36 (48.6→47.7) |
+| ric3-ic3-bare | 59 | 63 | 57 | 63 | 5.65→3.28 (26.0→11.9) | 3.45→3.39 (16.9→14.1) |
+
+ws alone gives rBMC 14% and bare IC3 ~40% over base but stays behind sc
+(the induction part); wssc solves like sc or one more, with sc 45% cheaper.
