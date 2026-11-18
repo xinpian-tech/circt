@@ -335,4 +335,29 @@ def WordCorrespondence : Pass<"seq-word-correspondence", "hw::HWModuleOp"> {
   ];
 }
 
+def KnownBitsInvariants : Pass<"seq-known-bits", "hw::HWModuleOp"> {
+  let summary = "Constant bits of registers in all reachable states";
+  let description = [{
+    Abstract interpretation on words with known bits (llvm::KnownBits):
+    registers start at their constant initial values, the logic is evaluated
+    on the abstraction with unknown inputs, and next states are joined into
+    the registers' abstraction until it no longer changes. Bits still known
+    are constant in every reachable state: registers read them as constants,
+    and combinational values that are wholly known become constants. No SAT
+    solver is used.
+
+    Registers with a reset, an inner symbol or a non-constant initial value
+    are not analysed (unknown); so are operations closing a combinational
+    cycle and operations other than those of comb.
+  }];
+  let statistics = [
+    Statistic<"numRounds", "num-rounds", "Fixpoint rounds">,
+    Statistic<"numRegisterBits", "num-register-bits",
+              "Register bits replaced by constants">,
+    Statistic<"numConstantValues", "num-constant-values",
+              "Combinational values replaced by constants">,
+  ];
+  let dependentDialects = ["comb::CombDialect", "hw::HWDialect"];
+}
+
 #endif // CIRCT_DIALECT_SEQ_SEQPASSES

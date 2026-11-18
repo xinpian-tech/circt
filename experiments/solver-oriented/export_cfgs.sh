@@ -5,6 +5,7 @@
 #   CIRCT_BIN=dir IN=dir OUT=dir P=12 export_cfgs.sh A...
 # When unsharing changes nothing, A.us.aig and A.ussc.aig are hard links to
 # the base and sc models (A.us.same marks it).
+# KB=1 adds seq-known-bits there (see below).
 # DC=1 adds comb-mux-dont-care and seq-trim-registers after the aggregates
 # are lowered (observability don't cares; every configuration gets them).
 set -u
@@ -14,6 +15,9 @@ mkdir -p $OUT
 PRE="canonicalize,cse"
 DCP=""
 [ "${DC:-0}" = 1 ] && DCP="comb-mux-dont-care,canonicalize,cse,seq-trim-registers,canonicalize,hw-cone-of-influence,"
+# KB=1 adds seq-known-bits (constant register bits by abstract interpretation
+# on words) at the same place.
+[ "${KB:-0}" = 1 ] && DCP="${DCP}seq-known-bits,canonicalize,cse,"
 LOWER="hw-cone-of-influence,canonicalize,hw-aggregate-to-comb,canonicalize,${DCP}synth-lower-word-to-bits,canonicalize,convert-comb-to-synth,synth-lower-word-to-bits,canonicalize,synth-remove-false-cycles{obligation fixpoint-obligation},synth-lower-variadic,synth-lower-word-to-bits,synth-structural-hash"
 BITS="synth-lower-variadic,synth-lower-word-to-bits,synth-structural-hash"
 SC="synth-register-correspondence{internal},canonicalize,$BITS"
