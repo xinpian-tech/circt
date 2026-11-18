@@ -309,6 +309,8 @@ def WordCorrespondence : Pass<"seq-word-correspondence", "hw::HWModuleOp"> {
     Option<"seed", "seed", "uint64_t", "0", "Seed of the simulation">,
     Option<"maxIterations", "max-iterations", "unsigned", "10000",
            "Checks before giving up (then nothing is merged)">,
+    Option<"chunk", "chunk", "unsigned", "32",
+           "Classes checked by one SMT query">,
     Option<"solver", "solver", "std::string", "\"bitwuzla\"",
            "SMT solver (reads SMT-LIB from a file argument)">,
     Option<"dumpDir", "dump-dir", "std::string", "\"\"",

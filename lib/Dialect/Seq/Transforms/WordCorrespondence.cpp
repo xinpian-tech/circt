@@ -42,6 +42,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <map>
+#include <set>
 #include <random>
 
 namespace circt {
@@ -213,9 +214,31 @@ struct Correspondence {
   // SMT encoding.
   std::string smtValue(unsigned i, unsigned frame) const;
   void defineFrame(raw_ostream &os, unsigned frame) const;
-  std::string candidates(unsigned frame) const;
+  SmallVector<std::string> candidates(unsigned frame);
+  std::map<std::string, std::string> literals;
+  std::string pending;
   bool query(bool step);
   bool prove();
+
+  // Local checks with speculative reduction: in the frame of the hypotheses
+  // the members of a class are replaced by its representative (or constant),
+  // and only the cone of the checked class is written.
+  struct Cone {
+    std::string decls, defs;
+    DenseSet<std::pair<unsigned, unsigned>> done;
+    SmallVector<std::string> vars;
+    SmallVector<std::pair<unsigned, unsigned>> defined; // (node, frame)
+  };
+  DenseMap<unsigned, unsigned> reprOf;
+  DenseMap<unsigned, APInt> constOf;
+  void computeReduction();
+  std::string term(unsigned i, unsigned frame, bool reduce, Cone &cone);
+  void evalReduced(SmallVectorImpl<APInt> &vals) const;
+  enum class Check { Holds, Split, Stale, Failed };
+  Check check(const std::string &goal, Cone &cone, bool step, bool fresh);
+  bool proveLocal();
+  unsigned chunk = 32;
+  std::set<std::string> provenBase;
 
   std::pair<unsigned, unsigned> merge();
 };
@@ -770,26 +793,31 @@ void Correspondence::defineFrame(raw_ostream &os, unsigned frame) const {
   }
 }
 
-/// The conjunction of all candidates in a frame.
-std::string Correspondence::candidates(unsigned frame) const {
-  std::string s;
-  llvm::raw_string_ostream os(s);
-  os << "(and true";
+/// The candidates of a frame as Boolean literals (each equality defined once
+/// in the session, so the solver keeps what it learned about it).
+SmallVector<std::string> Correspondence::candidates(unsigned frame) {
+  SmallVector<std::string> lits;
+  auto lit = [&](std::string term) {
+    auto [it, inserted] =
+        literals.try_emplace(term, "e" + std::to_string(literals.size()));
+    if (inserted)
+      pending += "(define-fun " + it->second + " () Bool " + term + ")\n";
+    lits.push_back(it->second);
+  };
   for (auto &c : classes) {
     if (c.constant) {
       for (unsigned i : c.members)
-        os << " (= " << smtValue(i, frame) << " " << bvLiteral(c.value) << ")";
+        lit("(= " + smtValue(i, frame) + " " + bvLiteral(c.value) + ")");
       continue;
     }
     for (unsigned i : llvm::drop_begin(c.members))
-      os << " (= " << smtValue(i, frame) << " "
-         << smtValue(c.members[0], frame) << ")";
+      lit("(= " + smtValue(i, frame) + " " + smtValue(c.members[0], frame) +
+          ")");
   }
   for (auto &[i, cb] : constBits)
-    os << " (= (bvand " << smtValue(i, frame) << " " << bvLiteral(cb.mask)
-       << ") " << bvLiteral(cb.bits) << ")";
-  os << ")";
-  return s;
+    lit("(= (bvand " + smtValue(i, frame) + " " + bvLiteral(cb.mask) + ") " +
+        bvLiteral(cb.bits) + ")");
+  return lits;
 }
 
 /// Parses `(name #b...)` pairs of a get-value answer.
@@ -835,15 +863,25 @@ bool Correspondence::query(bool step) {
   std::string q;
   {
     llvm::raw_string_ostream os(q);
-    os << "(push 1)\n";
-    if (step) {
-      os << "(assert " << candidates(0) << ")\n";
-      os << "(assert (not " << candidates(1) << "))\n";
-    } else {
-      os << "(assert init)\n";
-      os << "(assert (not " << candidates(0) << "))\n";
-    }
-    os << "(check-sat)\n";
+    // The goal behind a fresh activation literal; the hypotheses (and, in
+    // the base case, the initial state) as assumptions.
+    auto goals = candidates(step ? 1 : 0);
+    SmallVector<std::string> hyps;
+    if (step)
+      hyps = candidates(0);
+    std::string act = "act" + std::to_string(numQueries);
+    os << pending;
+    pending.clear();
+    os << "(declare-const " << act << " Bool)\n(assert (=> " << act
+       << " (not (and true";
+    for (auto &g : goals)
+      os << " " << g;
+    os << "))))\n(check-sat-assuming (" << act;
+    if (!step)
+      os << " init_lit";
+    for (auto &h : hyps)
+      os << " " << h;
+    os << "))\n";
   }
   if (!dumpDir.empty()) {
     SmallString<128> copy(dumpDir);
@@ -878,7 +916,6 @@ bool Correspondence::query(bool step) {
     session->write(get);
     text += session->readSexpr();
   }
-  session->write("(pop 1)\n");
   if (StringRef(text).starts_with("unsat"))
     return true;
   if (!StringRef(text).starts_with("sat")) {
@@ -994,7 +1031,7 @@ bool Correspondence::prove() {
     for (unsigned r : regs)
       if (nodes[r].init)
         os << " (= s_" << r << " " << bvLiteral(*nodes[r].init) << ")";
-    os << "))\n";
+    os << "))\n(declare-const init_lit Bool)\n(assert (= init_lit init))\n";
     session->write(header);
   }
   for (unsigned it = 0; it < maxIterations; ++it) {
@@ -1010,6 +1047,392 @@ bool Correspondence::prove() {
       return true;
   }
   return false;
+}
+
+void Correspondence::computeReduction() {
+  reprOf.clear();
+  constOf.clear();
+  for (auto &c : classes) {
+    if (c.constant) {
+      for (unsigned i : c.members)
+        constOf[i] = c.value;
+      continue;
+    }
+    for (unsigned i : llvm::drop_begin(c.members))
+      reprOf[i] = c.members[0];
+  }
+}
+
+std::string Correspondence::term(unsigned i, unsigned frame, bool reduce,
+                                 Cone &cone) {
+  const Node &n = nodes[i];
+  if (n.kind == Kind::Constant)
+    return smtValue(i, frame);
+  if (reduce && frame == 0) {
+    if (auto it = constOf.find(i); it != constOf.end())
+      return bvLiteral(it->second);
+    if (auto it = reprOf.find(i); it != reprOf.end())
+      return term(it->second, 0, reduce, cone);
+  }
+  if (n.kind == Kind::Register && frame == 1)
+    return term(n.operands[0], 0, reduce, cone);
+  std::string name = smtValue(i, frame);
+  // Constant bits assumed in the reduced frame: a separate name.
+  bool masked = reduce && frame == 0 && constBits.count(i);
+  std::string result = masked ? "m_" + name : name;
+  if (!cone.done.insert({i, frame}).second)
+    return result;
+  if (n.kind == Kind::Register || n.kind == Kind::Input ||
+      n.kind == Kind::Free) {
+    cone.decls += "(declare-const " + name + " (_ BitVec " +
+                  std::to_string(n.width) + "))\n";
+    cone.vars.push_back(name);
+  } else {
+    // Operation: its definition from the terms of its operands.
+    SmallVector<std::string> in;
+    for (unsigned j : n.operands)
+      in.push_back(term(j, frame, reduce, cone));
+    Operation *op = n.value.getDefiningOp();
+    auto fold = [&](StringRef f) {
+      std::string e = in[0];
+      for (unsigned k = 1; k < in.size(); ++k)
+        e = "(" + f.str() + " " + e + " " + in[k] + ")";
+      return e;
+    };
+    std::string e;
+    if (isa<comb::AndOp>(op))
+      e = fold("bvand");
+    else if (isa<comb::OrOp>(op))
+      e = fold("bvor");
+    else if (isa<comb::XorOp>(op))
+      e = fold("bvxor");
+    else if (isa<comb::AddOp>(op))
+      e = fold("bvadd");
+    else if (isa<comb::MulOp>(op))
+      e = fold("bvmul");
+    else if (isa<comb::SubOp>(op))
+      e = "(bvsub " + in[0] + " " + in[1] + ")";
+    else if (auto icmp = dyn_cast<comb::ICmpOp>(op)) {
+      std::string f;
+      bool negate = false;
+      switch (icmp.getPredicate()) {
+      case comb::ICmpPredicate::eq:
+      case comb::ICmpPredicate::ceq:
+      case comb::ICmpPredicate::weq:
+        f = "=";
+        break;
+      case comb::ICmpPredicate::ne:
+      case comb::ICmpPredicate::cne:
+      case comb::ICmpPredicate::wne:
+        f = "=";
+        negate = true;
+        break;
+      case comb::ICmpPredicate::slt:
+        f = "bvslt";
+        break;
+      case comb::ICmpPredicate::sle:
+        f = "bvsle";
+        break;
+      case comb::ICmpPredicate::sgt:
+        f = "bvsgt";
+        break;
+      case comb::ICmpPredicate::sge:
+        f = "bvsge";
+        break;
+      case comb::ICmpPredicate::ult:
+        f = "bvult";
+        break;
+      case comb::ICmpPredicate::ule:
+        f = "bvule";
+        break;
+      case comb::ICmpPredicate::ugt:
+        f = "bvugt";
+        break;
+      case comb::ICmpPredicate::uge:
+        f = "bvuge";
+        break;
+      }
+      std::string c = "(" + f + " " + in[0] + " " + in[1] + ")";
+      if (negate)
+        c = "(not " + c + ")";
+      e = "(ite " + c + " #b1 #b0)";
+    } else if (isa<comb::MuxOp>(op))
+      e = "(ite (= " + in[0] + " #b1) " + in[1] + " " + in[2] + ")";
+    else if (auto extract = dyn_cast<comb::ExtractOp>(op))
+      e = "((_ extract " + std::to_string(extract.getLowBit() + n.width - 1) +
+          " " + std::to_string(extract.getLowBit()) + ") " + in[0] + ")";
+    else if (isa<comb::ConcatOp>(op))
+      e = fold("concat");
+    else if (isa<comb::ReplicateOp>(op))
+      e = "((_ repeat " +
+          std::to_string(n.width / nodes[n.operands[0]].width) + ") " +
+          in[0] + ")";
+    else if (isa<comb::ShlOp>(op))
+      e = "(bvshl " + in[0] + " " + in[1] + ")";
+    else if (isa<comb::ShrUOp>(op))
+      e = "(bvlshr " + in[0] + " " + in[1] + ")";
+    else if (isa<comb::ShrSOp>(op))
+      e = "(bvashr " + in[0] + " " + in[1] + ")";
+    cone.defs += "(define-fun " + name + " () (_ BitVec " +
+                 std::to_string(n.width) + ") " + e + ")\n";
+    cone.defined.push_back({i, frame});
+  }
+  if (masked) {
+    auto &cb = constBits.find(i)->second;
+    cone.defs += "(define-fun m_" + name + " () (_ BitVec " +
+                 std::to_string(n.width) + ") (bvor (bvand " + name + " " +
+                 bvLiteral(~cb.mask) + ") " + bvLiteral(cb.bits) + "))\n";
+  }
+  return result;
+}
+
+void Correspondence::evalReduced(SmallVectorImpl<APInt> &vals) const {
+  auto reduceValue = [&](unsigned i) {
+    if (auto it = constOf.find(i); it != constOf.end())
+      vals[i] = it->second;
+    else if (auto it = reprOf.find(i); it != reprOf.end())
+      vals[i] = vals[it->second];
+    else if (auto it = constBits.find(i); it != constBits.end())
+      vals[i] = (vals[i] & ~it->second.mask) | it->second.bits;
+  };
+  // Registers first (representatives of registers are registers), then the
+  // operations in topological order.
+  for (unsigned r : regs)
+    if (!reprOf.count(r))
+      reduceValue(r);
+  for (unsigned r : regs)
+    if (reprOf.count(r))
+      reduceValue(r);
+  for (unsigned i : order) {
+    vals[i] = evalOp(nodes[i], vals);
+    reduceValue(i);
+  }
+}
+
+Correspondence::Check Correspondence::check(const std::string &goal,
+                                            Cone &cone, bool step,
+                                            bool fresh) {
+  ++numQueries;
+  std::string q = "(push 1)\n" + cone.decls + cone.defs;
+  if (!step)
+    for (unsigned r : regs)
+      if (nodes[r].init && cone.done.count({r, 0}))
+        q += "(assert (= " + smtValue(r, 0) + " " + bvLiteral(*nodes[r].init) +
+             "))\n";
+  q += "(assert " + goal + ")\n(check-sat)\n";
+  session->write(q);
+  std::string answer = session->readLine();
+  if (StringRef(answer).starts_with("unsat")) {
+    session->write("(pop 1)\n");
+    return Check::Holds;
+  }
+  if (!StringRef(answer).starts_with("sat")) {
+    module.emitError("unexpected SMT solver answer: ")
+        << StringRef(answer).take_front(200);
+    return Check::Failed;
+  }
+  ++numCex;
+  std::string text;
+  if (!cone.vars.empty() || !dumpDir.empty()) {
+    std::string get = "(get-value (";
+    for (auto &v : cone.vars)
+      get += " " + v;
+    if (!dumpDir.empty())
+      for (auto [i, fr] : cone.defined)
+        get += " " + smtValue(i, fr);
+    get += "))\n";
+    session->write(get);
+    text = session->readSexpr();
+  }
+  session->write("(pop 1)\n");
+  auto model = parseModel(text);
+  auto get = [&](const std::string &name, unsigned width) {
+    auto it = model.find(name);
+    return it != model.end() && it->second.getBitWidth() == width
+               ? it->second
+               : APInt(width, 0);
+  };
+  SmallVector<APInt> vals(nodes.size());
+  for (unsigned i = 0; i < nodes.size(); ++i)
+    if (nodes[i].kind == Kind::Constant)
+      vals[i] = cast<hw::ConstantOp>(nodes[i].value.getDefiningOp())
+                    .getValue();
+  for (unsigned r : regs)
+    vals[r] = !step && nodes[r].init ? *nodes[r].init
+                                     : get(smtValue(r, 0), nodes[r].width);
+  for (unsigned i : inputs)
+    vals[i] = get(smtValue(i, 0), nodes[i].width);
+  for (unsigned i : frees)
+    vals[i] = get(smtValue(i, 0), nodes[i].width);
+  if (step) {
+    evalReduced(vals);
+    SmallVector<APInt> next;
+    for (unsigned r : regs)
+      next.push_back(vals[nodes[r].operands[0]]);
+    for (auto [r, v] : llvm::zip(regs, next))
+      vals[r] = v;
+    for (unsigned i : inputs)
+      vals[i] = get(smtValue(i, 1), nodes[i].width);
+    for (unsigned i : frees)
+      vals[i] = get(smtValue(i, 1), nodes[i].width);
+  }
+  eval(vals);
+  auto measure = [&]() {
+    size_t m = 0;
+    for (auto &c : classes)
+      m += c.members.size();
+    size_t bits = 0;
+    for (auto &[i, cb] : constBits)
+      bits += cb.mask.popcount();
+    return std::make_tuple(classes.size(), m, bits);
+  };
+  auto before = measure();
+  SmallVector<APInt> splitVals(vals.begin(), vals.end());
+  split(vals);
+  if (measure() == before) {
+    // The goal came from classes that an earlier query of the round split
+    // already; checked again in the next round.
+    if (!fresh)
+      return Check::Stale;
+    module.emitWarning("word correspondence: counterexample splits nothing");
+    if (!dumpDir.empty() && !step)
+      for (auto [i, fr] : cone.defined) {
+        auto it = model.find(smtValue(i, fr));
+        if (it == model.end() || it->second == splitVals[i])
+          continue;
+        auto d = nodes[i].value.getDefiningOp()->emitRemark("disagree: sim ")
+                 << toString(splitVals[i], 16, false) << " solver "
+                 << toString(it->second, 16, false) << " operands";
+        for (unsigned j : nodes[i].operands) {
+          auto jt = model.find(smtValue(j, fr));
+          d << " " << toString(splitVals[j], 16, false) << "/"
+            << (jt != model.end() ? toString(jt->second, 16, false) : "?");
+        }
+        break;
+      }
+    return Check::Failed;
+  }
+  continueFrom(vals);
+  computeReduction();
+  return Check::Split;
+}
+
+bool Correspondence::proveLocal() {
+  auto program = llvm::sys::findProgramByName(solver);
+  if (!program) {
+    module.emitError("cannot find SMT solver ") << solver;
+    return false;
+  }
+  session = std::make_unique<Session>();
+  if (!dumpDir.empty()) {
+    SmallString<128> path(dumpDir);
+    llvm::sys::path::append(path, "session.smt2");
+    std::error_code ec;
+    session->transcript = std::make_unique<llvm::raw_fd_ostream>(path, ec);
+  }
+  if (!session->start(*program)) {
+    module.emitError("cannot start SMT solver ") << solver;
+    return false;
+  }
+  session->write("(set-logic QF_BV)\n(set-option :produce-models true)\n");
+  // Base case: every class and constant bit in the initial frame, then the
+  // inductive step with the reduction, round by round until a round has no
+  // counterexample.
+  for (bool step : {false, true}) {
+    for (unsigned round = 0;; ++round) {
+      if (round >= maxIterations)
+        return false;
+      computeReduction();
+      bool clean = true, splitInRound = false;
+      // Goals in chunks of `chunk` classes (or constant-bit values), one
+      // query each: a counterexample splits at least one of them, and the
+      // round is repeated.
+      unsigned f = step ? 1 : 0;
+      Cone cone;
+      std::string goal = "(or false";
+      unsigned inChunk = 0;
+      SmallVector<std::string> chunkKeys;
+      auto flush = [&]() -> bool {
+        if (!inChunk)
+          return true;
+        goal += ")";
+        auto result = check(goal, cone, step, !splitInRound);
+        if (result == Check::Holds && !step)
+          for (auto &k : chunkKeys)
+            provenBase.insert(k);
+        cone = Cone();
+        goal = "(or false";
+        inChunk = 0;
+        chunkKeys.clear();
+        if (result == Check::Failed)
+          return false;
+        if (result == Check::Split)
+          clean = false, splitInRound = true;
+        if (result == Check::Stale)
+          clean = false;
+        return true;
+      };
+      auto keyOf = [&](const Class &c) {
+        std::string k = c.constant ? "c" + toString(c.value, 16, false) : "e";
+        for (unsigned i : c.members)
+          k += "," + std::to_string(i);
+        return k;
+      };
+      // The classes and constant bits of this round (a split changes them).
+      SmallVector<Class> snapshot(classes.begin(), classes.end());
+      for (auto &c : snapshot) {
+        std::string key = keyOf(c);
+        // The base case of a class does not depend on the other classes.
+        if (!step && provenBase.count(key))
+          continue;
+        if (c.constant) {
+          for (unsigned i : c.members)
+            goal += " (not (= " + term(i, f, step, cone) + " " +
+                    bvLiteral(c.value) + "))";
+        } else {
+          std::string r = term(c.members[0], f, step, cone);
+          for (unsigned i : llvm::drop_begin(c.members))
+            goal += " (not (= " + term(i, f, step, cone) + " " + r + "))";
+        }
+        chunkKeys.push_back(key);
+        if (++inChunk >= chunk && !flush())
+          return false;
+      }
+      SmallVector<std::pair<unsigned, ConstBits>> bitsSnapshot;
+      for (auto &[i, cb] : constBits)
+        bitsSnapshot.push_back({i, cb});
+      for (auto &[i, cb] : bitsSnapshot) {
+        std::string key = "b" + std::to_string(i) + ":" +
+                          toString(cb.mask, 16, false) + ":" +
+                          toString(cb.bits, 16, false);
+        if (!step && provenBase.count(key))
+          continue;
+        std::string v = step ? term(i, 1, true, cone) : term(i, 0, false, cone);
+        goal += " (not (= (bvand " + v + " " + bvLiteral(cb.mask) + ") " +
+                bvLiteral(cb.bits) + "))";
+        chunkKeys.push_back(key);
+        if (++inChunk >= chunk && !flush())
+          return false;
+      }
+      if (!flush())
+        return false;
+      if (getenv("WORD_CORRESPONDENCE_PROGRESS")) {
+        size_t m = 0;
+        for (auto &c : classes)
+          m += c.members.size();
+        llvm::errs() << "word-correspondence: " << (step ? "step" : "base")
+                     << " round " << round << ", " << numQueries
+                     << " queries, " << classes.size() << " classes, " << m
+                     << " members, " << constBits.size()
+                     << " with constant bits\n";
+      }
+      if (clean)
+        break;
+      // A split in the step can break the base case of nothing (classes
+      // only split), so the base case needs no new round.
+    }
+  }
+  return true;
 }
 
 std::pair<unsigned, unsigned> Correspondence::merge() {
@@ -1093,6 +1516,7 @@ struct WordCorrespondencePass
     c.maxIterations = maxIterations;
     c.solver = solver;
     c.dumpDir = dumpDir;
+    c.chunk = std::max(1u, (unsigned)chunk);
     if (!c.build()) {
       getOperation().emitWarning("word correspondence: combinational cycle");
       return markAllAnalysesPreserved();
@@ -1103,7 +1527,7 @@ struct WordCorrespondencePass
     for (auto &cl : c.classes)
       numCandidates += cl.members.size();
     numCandidateBits += c.constBits.size();
-    bool proved = c.prove();
+    bool proved = c.proveLocal();
     lap(msProve);
     numQueries += c.numQueries;
     numCounterexamples += c.numCex;
