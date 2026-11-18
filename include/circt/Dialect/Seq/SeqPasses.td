@@ -356,6 +356,12 @@ def KnownBitsInvariants : Pass<"seq-known-bits", "hw::HWModuleOp"> {
               "Register bits replaced by constants">,
     Statistic<"numConstantValues", "num-constant-values",
               "Combinational values replaced by constants">,
+    Statistic<"numConstantBits", "num-constant-bits",
+              "Known bits of other combinational values (with partial)">,
+  ];
+  let options = [
+    Option<"partial", "partial", "bool", "false",
+           "Also read the known bits of combinational values as constants">
   ];
   let dependentDialects = ["comb::CombDialect", "hw::HWDialect"];
 }

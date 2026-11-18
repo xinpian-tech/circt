@@ -46,6 +46,7 @@ using llvm::KnownBits;
 namespace {
 struct KnownBitsInvariantsPass
     : public seq::impl::KnownBitsInvariantsBase<KnownBitsInvariantsPass> {
+  using KnownBitsInvariantsBase::KnownBitsInvariantsBase;
   void runOnOperation() override;
 };
 } // namespace
@@ -340,34 +341,27 @@ void KnownBitsInvariantsPass::runOnOperation() {
   // Rebuild: wholly known combinational values become constants, registers
   // with known bits read them as constants.
   OpBuilder builder(getOperation().getContext());
-  unsigned constValues = 0, regBits = 0;
-  for (auto *op : order) {
-    if (op->getNumResults() != 1 || isa<hw::ConstantOp>(op) ||
-        cut.contains(op))
-      continue;
-    Value v = op->getResult(0);
-    auto it = known.find(v);
-    if (it == known.end() || !it->second.isConstant() || v.use_empty())
-      continue;
-    builder.setInsertionPoint(op);
-    v.replaceAllUsesWith(
-        hw::ConstantOp::create(builder, op->getLoc(), it->second.getConstant()));
-    ++constValues;
-  }
-  for (auto reg : regs) {
-    const KnownBits &k = state[reg];
+  unsigned constValues = 0, regBits = 0, constBits = 0;
+  // A value with known bits read as a concatenation of its other bits and
+  // the constants (all of it a constant if wholly known).
+  auto rebuild = [&](Value v, const KnownBits &k, Operation *after) {
     APInt mask = k.Zero | k.One;
-    if (mask.isZero())
-      continue;
-    Value v = reg.getResult();
+    if (mask.isZero() || v.use_empty())
+      return;
     unsigned width = widthOf(v);
-    builder.setInsertionPointAfter(reg);
+    Location loc = after->getLoc();
+    builder.setInsertionPointAfter(after);
+    bool isReg = isa<CompRegOp>(after);
     if (mask.isAllOnes()) {
-      v.replaceAllUsesWith(
-          hw::ConstantOp::create(builder, reg.getLoc(), k.getConstant()));
-      regBits += width;
-      continue;
+      v.replaceAllUsesWith(hw::ConstantOp::create(builder, loc, k.getConstant()));
+      if (isReg)
+        regBits += width;
+      else
+        ++constValues;
+      return;
     }
+    if (!isReg && !partial)
+      return;
     SmallVector<Value> parts;
     SmallPtrSet<Operation *, 8> created;
     for (int hi = width; hi > 0;) {
@@ -377,19 +371,37 @@ void KnownBitsInvariantsPass::runOnOperation() {
         --lo;
       unsigned len = hi - lo;
       if (isKnown) {
-        parts.push_back(hw::ConstantOp::create(builder, reg.getLoc(),
+        parts.push_back(hw::ConstantOp::create(builder, loc,
                                                k.One.extractBits(len, lo)));
-        regBits += len;
+        if (isReg)
+          regBits += len;
+        else
+          constBits += len;
       } else {
-        auto e = comb::ExtractOp::create(builder, reg.getLoc(), v, lo, len);
+        auto e = comb::ExtractOp::create(builder, loc, v, lo, len);
         parts.push_back(e);
         created.insert(e);
       }
       hi = lo;
     }
-    auto concat = comb::ConcatOp::create(builder, reg.getLoc(), parts);
+    auto concat = comb::ConcatOp::create(builder, loc, parts);
     v.replaceAllUsesExcept(concat, created);
+  };
+  for (auto *op : order) {
+    if (op->getNumResults() != 1 || isa<hw::ConstantOp>(op) ||
+        cut.contains(op) || !isa<IntegerType>(op->getResultTypes()[0]))
+      continue;
+    // Not a bitwise rebuild of wiring (it would only add operations).
+    if (isa<comb::ConcatOp, comb::ExtractOp, comb::ReplicateOp>(op) &&
+        !known.lookup(op->getResult(0)).isConstant())
+      continue;
+    auto it = known.find(op->getResult(0));
+    if (it != known.end())
+      rebuild(op->getResult(0), it->second, op);
   }
+  for (auto reg : regs)
+    rebuild(reg.getResult(), state[reg], reg);
+  numConstantBits += constBits;
   numConstantValues += constValues;
   numRegisterBits += regBits;
   if (!constValues && !regBits)
