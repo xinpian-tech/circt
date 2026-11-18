@@ -26,3 +26,21 @@ hw.module @m(in %clk : !seq.clock, in %d : i8, out q : i8, out r : i8) {
   %nn = comb.and %sum, %mask : i8
   hw.output %c, %n : i8, i8
 }
+
+// With context, a mux arm is evaluated under its condition: r is written x
+// only when x == 4, so it is 0 or 4: only bit 2 is unknown.
+// RUN: circt-opt %s --seq-known-bits=context --canonicalize | FileCheck %s --check-prefix=CTX
+// CTX-LABEL: hw.module @ctx
+// CTX:         [[R:%.+]] = comb.extract %r from 2 : (i4) -> i1
+// CTX:         comb.concat %false, [[R]], %c0_i2
+hw.module @ctx(in %clk : !seq.clock, in %x : i4, out q : i4) {
+  %i0 = seq.initial() {
+    %c0 = hw.constant 0 : i4
+    seq.yield %c0 : i4
+  } : () -> !seq.immutable<i4>
+  %c4 = hw.constant 4 : i4
+  %e = comb.icmp eq %x, %c4 : i4
+  %r = seq.compreg %nr, %clk initial %i0 : i4
+  %nr = comb.mux %e, %x, %r : i4
+  hw.output %r : i4
+}

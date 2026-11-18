@@ -361,7 +361,70 @@ def KnownBitsInvariants : Pass<"seq-known-bits", "hw::HWModuleOp"> {
   ];
   let options = [
     Option<"partial", "partial", "bool", "false",
-           "Also read the known bits of combinational values as constants">
+           "Also read the known bits of combinational values as constants">,
+    Option<"context", "context", "bool", "false",
+           "Evaluate the arms of muxes under their conditions">,
+    Option<"depth", "depth", "unsigned", "8",
+           "Depth of the evaluation under a condition">,
+    Option<"budget", "budget", "unsigned", "256",
+           "Operations evaluated under a condition per arm">
+  ];
+  let dependentDialects = ["comb::CombDialect", "hw::HWDialect"];
+}
+
+def WordCongruence : Pass<"seq-word-congruence", "hw::HWModuleOp"> {
+  let summary = "Equal and constant words through registers, without a solver";
+  let description = [{
+    A greatest fixpoint of a partition of the registers combined with a least
+    fixpoint of their known bits (llvm::KnownBits): the reduced product of a
+    relational domain (which registers are equal) and a non-relational one
+    (which of their bits are constant). Registers start in classes of the
+    same type, clock and constant initial value, with the known bits of that
+    value. Each round numbers the values of the logic (global value numbering
+    with the registers of a class numbered alike, constant folding with the
+    known bits, and rewriting of concatenations, extracts, bitwise
+    operations, muxes and comparisons), splits the classes whose members'
+    next states get different numbers, and joins the known bits of each
+    class with those of its next states. At the fixpoint the partition and
+    known bits are an inductive invariant: the registers of a class are
+    merged, values of one number are merged, and known bits become constants.
+    No SAT or SMT solver is used.
+  }];
+  let statistics = [
+    Statistic<"numRounds", "num-rounds", "Fixpoint rounds">,
+    Statistic<"numMergedRegisters", "num-merged-registers",
+              "Registers merged into an equal one">,
+    Statistic<"numMergedValues", "num-merged-values",
+              "Combinational values merged into an equal one">,
+    Statistic<"numConstantValues", "num-constant-values",
+              "Combinational values replaced by constants">,
+    Statistic<"numRegisterBits", "num-register-bits",
+              "Register bits replaced by constants">,
+  ];
+  let dependentDialects = ["comb::CombDialect", "hw::HWDialect"];
+}
+
+def ContextSimplify : Pass<"comb-context-simplify", "hw::HWModuleOp"> {
+  let summary = "Simplify logic in the context where it matters, on words";
+  let description = [{
+    A conjunct of an i1 and is evaluated on known bits assuming the other
+    conjuncts hold (an equality with a constant makes the compared word
+    known), a disjunct of an or assuming the others do not, an arm of a mux
+    assuming its condition selects it. Conjuncts known 1 are dropped, known 0
+    make the and 0 (dually for or), arms wholly known become constants. (In
+    the Seq library for the known-bits transfer functions.)
+  }];
+  let options = [
+    Option<"depth", "depth", "unsigned", "8", "Depth of the evaluation">,
+    Option<"budget", "budget", "unsigned", "256",
+           "Operations evaluated per operand">
+  ];
+  let statistics = [
+    Statistic<"numDropped", "num-dropped", "Operands dropped">,
+    Statistic<"numFolded", "num-folded", "and/or replaced by a constant">,
+    Statistic<"numArms", "num-arms", "Mux arms replaced by a constant">,
+    Statistic<"numRedundant", "num-redundant",
+              "Muxes (or some of their bits) equal to one arm">,
   ];
   let dependentDialects = ["comb::CombDialect", "hw::HWDialect"];
 }

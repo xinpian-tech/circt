@@ -23,8 +23,8 @@
 #include "circt/Dialect/Seq/SeqOps.h"
 #include "circt/Dialect/Synth/SynthOps.h"
 #include "circt/Dialect/Synth/Transforms/SynthPasses.h"
-#include "mlir/IR/IRMapping.h"
 #include "mlir/IR/Builders.h"
+#include "mlir/IR/IRMapping.h"
 #include "mlir/IR/SymbolTable.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassRegistry.h"
@@ -74,8 +74,8 @@ static void bitsOf(Value v, SmallVectorImpl<Value> &bits) {
   if (auto c = v.getDefiningOp<hw::ConstantOp>()) {
     OpBuilder b(c);
     for (int k = width - 1; k >= 0; --k)
-      bits.push_back(hw::ConstantOp::create(b, c.getLoc(),
-                                            APInt(1, c.getValue()[k])));
+      bits.push_back(
+          hw::ConstantOp::create(b, c.getLoc(), APInt(1, c.getValue()[k])));
     return;
   }
   // A replicated bit.
@@ -155,7 +155,8 @@ LogicalResult LiftCorrespondencePass::lift(hw::HWModuleOp module) {
       }
       // Constants by value (different constant ops of one value are equal).
       if (auto c = b.getDefiningOp<hw::ConstantOp>())
-        key.push_back(reinterpret_cast<void *>(c.getValue().getZExtValue() + 1));
+        key.push_back(
+            reinterpret_cast<void *>(c.getValue().getZExtValue() + 1));
       else
         key.push_back(b.getAsOpaquePointer());
     }
@@ -207,10 +208,59 @@ LogicalResult LiftCorrespondencePass::lift(hw::HWModuleOp module) {
   b.setInsertionPoint(body->getTerminator());
   DenseSet<unsigned> merged;
   unsigned mergedValues = 0, constValues = 0;
+  bool groupReport = getenv("LIFT_GROUPS");
   for (auto &[key, members] : groups) {
     bool allConst = llvm::all_of(candBits[members[0]], [](Value v) {
       return v.getDefiningOp<hw::ConstantOp>();
     });
+    if (groupReport && (allConst || members.size() > 1)) {
+      llvm::errs() << (allConst ? "lift-const:" : "lift-group:");
+      for (unsigned k : members) {
+        Operation *op = cands[k].getDefiningOp();
+        llvm::errs() << " " << op->getName().stripDialect() << "/"
+                     << cands[k].getType().getIntOrFloatBitWidth();
+      }
+      llvm::errs() << "\n";
+      // A small expression of each member.
+      std::function<void(Value, unsigned)> expr = [&](Value v, unsigned d) {
+        Operation *op = v.getDefiningOp();
+        if (!op) {
+          llvm::errs() << "arg" << cast<BlockArgument>(v).getArgNumber();
+          return;
+        }
+        if (auto c = dyn_cast<hw::ConstantOp>(op)) {
+          llvm::errs() << c.getValue() << "/" << c.getValue().getBitWidth();
+          return;
+        }
+        if (auto reg = dyn_cast<seq::CompRegOp>(op)) {
+          llvm::errs() << "R:" << reg.getName().value_or("?").take_back(24);
+          return;
+        }
+        llvm::errs() << op->getName().stripDialect();
+        if (auto e = dyn_cast<comb::ExtractOp>(op))
+          llvm::errs() << "@" << e.getLowBit();
+        if (auto i = dyn_cast<comb::ICmpOp>(op))
+          llvm::errs() << "." << comb::stringifyICmpPredicate(i.getPredicate());
+        llvm::errs() << "/" << v.getType().getIntOrFloatBitWidth();
+        if (!d) {
+          llvm::errs() << "(..)";
+          return;
+        }
+        llvm::errs() << "(";
+        for (auto [i, operand] : llvm::enumerate(op->getOperands())) {
+          if (i)
+            llvm::errs() << ", ";
+          expr(operand, d - 1);
+        }
+        llvm::errs() << ")";
+      };
+      if (getenv("LIFT_GROUPS")[0] == '2')
+        for (unsigned k : members) {
+          llvm::errs() << "  ";
+          expr(cands[k], 3);
+          llvm::errs() << "\n";
+        }
+    }
     if (allConst) {
       APInt value(cands[members[0]].getType().getIntOrFloatBitWidth(), 0);
       unsigned pos = value.getBitWidth();
@@ -260,9 +310,8 @@ LogicalResult LiftCorrespondencePass::lift(hw::HWModuleOp module) {
       continue;
     auto &bits = candBits[k];
     if (llvm::any_of(bits, [](Value v) { return !v; }) ||
-        llvm::none_of(bits, [](Value v) {
-          return v.getDefiningOp<hw::ConstantOp>();
-        }))
+        llvm::none_of(
+            bits, [](Value v) { return v.getDefiningOp<hw::ConstantOp>(); }))
       continue;
     Value v = cands[k];
     unsigned width = bits.size();
@@ -280,7 +329,10 @@ LogicalResult LiftCorrespondencePass::lift(hw::HWModuleOp module) {
       if (isConst) {
         APInt c(len, 0);
         for (unsigned t = 0; t < len; ++t)
-          if (bits[i + t].getDefiningOp<hw::ConstantOp>().getValue().getBoolValue())
+          if (bits[i + t]
+                  .getDefiningOp<hw::ConstantOp>()
+                  .getValue()
+                  .getBoolValue())
             c.setBit(len - 1 - t);
         parts.push_back(hw::ConstantOp::create(b, v.getLoc(), c));
         constBits += len;

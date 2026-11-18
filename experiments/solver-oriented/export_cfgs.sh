@@ -18,10 +18,14 @@ DCP=""
 # KB=1 adds seq-known-bits (constant register bits by abstract interpretation
 # on words) at the same place.
 [ "${KB:-0}" = 1 ] && DCP="${DCP}seq-known-bits,canonicalize,cse,"
+# WS=1 adds the word-level simplification: path-sensitive known bits and
+# context simplification (twice).
+CS="comb-context-simplify{depth=32 budget=16384},canonicalize,cse,"
+[ "${WS:-0}" = 1 ] && DCP="${DCP}seq-known-bits{context},canonicalize,cse,$CS$CS"
 LOWER="hw-cone-of-influence,canonicalize,hw-aggregate-to-comb,canonicalize,${DCP}synth-lower-word-to-bits,canonicalize,convert-comb-to-synth,synth-lower-word-to-bits,canonicalize,synth-remove-false-cycles{obligation fixpoint-obligation},synth-lower-variadic,synth-lower-word-to-bits,synth-structural-hash"
 BITS="synth-lower-variadic,synth-lower-word-to-bits,synth-structural-hash"
 SC="synth-register-correspondence{internal},canonicalize,$BITS"
-export H B IN OUT PRE LOWER SC
+export H B IN OUT PRE LOWER SC NOUS
 one() {
   local a=$1
   toaig() { $B/circt-translate --export-aiger --exclude-symbol-table $1 -o $2.full.aig &&
@@ -29,7 +33,9 @@ one() {
   run() { local s=$(date +%s.%N); "$@"; printf "%.1f\n" "$(echo "$(date +%s.%N)-$s" | bc)"; }
   [ -s $OUT/$a.ussc.aig ] && return
   $B/circt-opt $IN/$a.none.mlir --pass-pipeline="builtin.module(hw.module($PRE,$LOWER))" -o $OUT/$a.base.mlir 2>$OUT/$a.base.log && toaig $OUT/$a.base.mlir $OUT/$a.base.aig
-  $B/circt-opt $IN/$a.none.mlir --pass-pipeline="builtin.module(hw.module($PRE,comb-unshare-operators,$PRE,$LOWER))" --mlir-pass-statistics -o $OUT/$a.us.mlir 2>$OUT/$a.us.log && toaig $OUT/$a.us.mlir $OUT/$a.us.aig
+  # NOUS=1: no unsharing (us and ussc are the base and sc models).
+  if [ "${NOUS:-0}" = 1 ]; then cp $OUT/$a.base.mlir $OUT/$a.us.mlir; cp $OUT/$a.base.aig $OUT/$a.us.aig; else
+  $B/circt-opt $IN/$a.none.mlir --pass-pipeline="builtin.module(hw.module($PRE,comb-unshare-operators,$PRE,$LOWER))" --mlir-pass-statistics -o $OUT/$a.us.mlir 2>$OUT/$a.us.log && toaig $OUT/$a.us.mlir $OUT/$a.us.aig; fi
   run $B/circt-opt $OUT/$a.base.mlir --pass-pipeline="builtin.module(hw.module($SC))" -o $OUT/$a.sc.mlir 2>$OUT/$a.sc.log > $OUT/$a.sc.time && toaig $OUT/$a.sc.mlir $OUT/$a.sc.aig
   if cmp -s $OUT/$a.base.aig $OUT/$a.us.aig; then
     ln -f $OUT/$a.base.aig $OUT/$a.us.aig; ln -f $OUT/$a.sc.aig $OUT/$a.ussc.aig; touch $OUT/$a.us.same

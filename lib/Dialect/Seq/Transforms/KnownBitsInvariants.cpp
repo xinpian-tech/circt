@@ -31,6 +31,8 @@
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/KnownBits.h"
 
+#include "KnownBitsContext.h"
+
 namespace circt {
 namespace seq {
 #define GEN_PASS_DEF_KNOWNBITSINVARIANTS
@@ -115,9 +117,14 @@ static KnownBits boolean(std::optional<bool> b) {
 }
 
 /// Known bits of the result of `op` from those of its operands; unknown for
-/// operations it does not know.
-static KnownBits transfer(Operation *op, ArrayRef<KnownBits> in,
-                          unsigned width) {
+/// operations it does not know. Also used by WordCongruence.
+namespace circt::seq::detail {
+KnownBits knownBitsTransfer(Operation *op, ArrayRef<KnownBits> in,
+                            unsigned width);
+} // namespace circt::seq::detail
+KnownBits circt::seq::detail::knownBitsTransfer(Operation *op,
+                                                ArrayRef<KnownBits> in,
+                                                unsigned width) {
   if (auto c = dyn_cast<hw::ConstantOp>(op))
     return KnownBits::makeConstant(c.getValue());
   if (isa<comb::AndOp>(op)) {
@@ -323,7 +330,32 @@ void KnownBitsInvariantsPass::runOnOperation() {
         }
         in.push_back(get(operand));
       }
-      known[op->getResult(0)] = ints ? transfer(op, in, w) : KnownBits(w);
+      KnownBits k =
+          ints ? seq::detail::knownBitsTransfer(op, in, w) : KnownBits(w);
+      // A mux: each arm under the condition that selects it.
+      auto mux = dyn_cast<comb::MuxOp>(op);
+      if (context && mux && ints && !in[0].isConstant()) {
+        KnownBits arms[2];
+        bool possible[2];
+        for (unsigned i = 0; i < 2; ++i) {
+          seq::detail::Context ctx(budget, depth, &known);
+          ctx.addKnown(mux.getCond(), KnownBits::makeConstant(APInt(1, i)),
+                       depth);
+          possible[i] = !ctx.contradiction;
+          if (possible[i])
+            arms[i] =
+                ctx.eval(i ? mux.getTrueValue() : mux.getFalseValue(), depth);
+        }
+        KnownBits c = possible[0] && possible[1]
+                          ? arms[0].intersectWith(arms[1])
+                      : possible[0] ? arms[0]
+                      : possible[1] ? arms[1]
+                                    : k;
+        KnownBits u = k.unionWith(c);
+        if (!u.hasConflict())
+          k = u;
+      }
+      known[op->getResult(0)] = k;
     }
     bool changed = false;
     for (auto reg : regs) {
@@ -353,7 +385,8 @@ void KnownBitsInvariantsPass::runOnOperation() {
     builder.setInsertionPointAfter(after);
     bool isReg = isa<CompRegOp>(after);
     if (mask.isAllOnes()) {
-      v.replaceAllUsesWith(hw::ConstantOp::create(builder, loc, k.getConstant()));
+      v.replaceAllUsesWith(
+          hw::ConstantOp::create(builder, loc, k.getConstant()));
       if (isReg)
         regBits += width;
       else
@@ -371,8 +404,8 @@ void KnownBitsInvariantsPass::runOnOperation() {
         --lo;
       unsigned len = hi - lo;
       if (isKnown) {
-        parts.push_back(hw::ConstantOp::create(builder, loc,
-                                               k.One.extractBits(len, lo)));
+        parts.push_back(
+            hw::ConstantOp::create(builder, loc, k.One.extractBits(len, lo)));
         if (isReg)
           regBits += len;
         else
