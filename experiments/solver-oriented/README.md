@@ -613,3 +613,21 @@ vs base 5.56→3.04 s on the common ones, 9 lost and 2 gained). Bare IC3
 varies too much for one run: a_wb_ready_exception goes from 7 s to a
 timeout on the same kind of model under load, so seeded runs
 (`ric3-ic3-bare-sN`) follow. No configuration contradicts another.
+
+## Ripple-carry adders (2026-11-18)
+
+`ADDER=RIPPLE-CARRY` (rIC3 dropped). Mean ANDs (base / after sc, sc time):
+default 56,719 / 41,936 (354 s); r 54,624 / 41,069 (276 s); ws2 46,170 /
+41,704 (188 s); ws2r 44,123 / 40,840 (156 s). Results in
+`results/core-env-rcmp`.
+
+| backend | base | r | sc | rsc | ws2 | ws2r | ws2sc | ws2rsc |
+|---|---|---|---|---|---|---|---|---|
+| abc-bmc3 | 77 | 77 | 77 | 77 | 75 | 76 | 78 | 78 |
+| rbmc | 72 | 72 | 73 | 74 | 72 | 72 | 73 | 76 |
+
+Geometric means (common, hard): rbmc base→ws2r 33.5→25.3 s (64.8→47.9),
+ws2→ws2r 27.0→25.3, sc→ws2rsc 22.7→22.0 with 3 more solved; abc-bmc3
+base→ws2r 11.1→9.7. Ripple-carry alone barely changes solving (2%), but
+helps after ws2 (6-8%) and makes sc 2.3x cheaper with ws2 (156 s vs 354 s)
+for the smallest models (40,840) and the most solved (rbmc 76).
