@@ -143,4 +143,22 @@ def UnshareOperators : Pass<"comb-unshare-operators", "hw::HWModuleOp"> {
   ];
 }
 
+def SplitCycles : Pass<"comb-split-cycles", "hw::HWModuleOp"> {
+  let summary = "Split word-level combinational cycles that bits do not have";
+  let description = [{
+    Aggregates lowered to integers can give combinational cycles of words
+    that their bits do not have (a field of a concatenation feeding another
+    field of it). Such a cycle of bitwise operations, muxes, concatenations,
+    extracts and replications is split into bits; values used outside the
+    cycle are rebuilt as concatenations of their bits. A cycle through any
+    other operation, or one that is a cycle of bits too, is left alone.
+    Word-level back ends (BTOR2, SMT) need the module free of cycles.
+  }];
+  let statistics = [
+    Statistic<"numSplitOps", "num-split-ops", "Operations split into bits">,
+    Statistic<"numKeptCycles", "num-kept-cycles", "Cycles left alone">,
+  ];
+  let dependentDialects = ["hw::HWDialect"];
+}
+
 #endif // CIRCT_DIALECT_COMB_PASSES_TD

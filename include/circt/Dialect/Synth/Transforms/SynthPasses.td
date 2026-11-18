@@ -691,4 +691,40 @@ def TemporalDecomposition
   ];
 }
 
+def LiftCorrespondence : Pass<"synth-lift-correspondence", "mlir::ModuleOp"> {
+  let summary = "Signal correspondence proved on bits, applied to words";
+  let description = [{
+    A copy of each module gets its word values (registers and combinational
+    operations) as extra outputs and is bit-blasted and reduced by signal
+    correspondence (`pipeline`). Word values whose outputs became the same
+    bits in the reduced copy are equal in every reachable state and are
+    merged in the original module (into the one that comes first, registers
+    before operations); words whose bits became constants are replaced by
+    constants, and constant bits of the other words by constants. The module
+    stays word-level, for word-level back ends and passes.
+  }];
+  let options = [
+    Option<"pipeline", "pipeline", "std::string",
+           "\"synth-lower-word-to-bits,canonicalize,convert-comb-to-synth,"
+           "synth-lower-word-to-bits,canonicalize,"
+           "synth-remove-false-cycles{obligation fixpoint-obligation},"
+           "synth-lower-variadic,synth-lower-word-to-bits,"
+           "synth-structural-hash,synth-register-correspondence{internal},"
+           "canonicalize,synth-lower-variadic,synth-lower-word-to-bits,"
+           "synth-structural-hash,cse\"",
+           "Pass pipeline on hw.module that bit-blasts and reduces the copy">
+  ];
+  let statistics = [
+    Statistic<"numCandidates", "num-candidates", "Word values considered">,
+    Statistic<"numMergedValues", "num-merged-values",
+              "Word values merged into an equal one">,
+    Statistic<"numConstantValues", "num-constant-values",
+              "Word values replaced by constants">,
+    Statistic<"numConstantBits", "num-constant-bits",
+              "Bits of other word values replaced by constants">
+  ];
+  let dependentDialects = ["comb::CombDialect", "hw::HWDialect",
+                           "seq::SeqDialect", "synth::SynthDialect"];
+}
+
 #endif // CIRCT_DIALECT_SYNTH_TRANSFORMS_PASSES_TD
