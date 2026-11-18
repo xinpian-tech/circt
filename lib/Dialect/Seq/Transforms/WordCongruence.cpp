@@ -46,6 +46,8 @@
 #include <map>
 #include <unordered_map>
 
+#include "KnownBitsContext.h"
+
 namespace circt {
 namespace seq {
 #define GEN_PASS_DEF_WORDCONGRUENCE
@@ -65,7 +67,9 @@ using llvm::KnownBits;
 namespace {
 struct WordCongruencePass
     : public seq::impl::WordCongruenceBase<WordCongruencePass> {
+  using WordCongruenceBase::WordCongruenceBase;
   void runOnOperation() override;
+  unsigned equalUnderMerges = 0;
 };
 
 /// Term codes: the operations the rewriting knows, then leaves, register
@@ -587,18 +591,98 @@ void WordCongruencePass::runOnOperation() {
       vn[v] = t;
     }
 
-    // Split by next-state number, join the known bits.
+    // Split by next-state number.
     std::map<std::pair<unsigned, unsigned>, unsigned> keys;
+    SmallVector<unsigned> raw(regs.size());
+    SmallVector<unsigned> rawOld, rawFirst; // per raw class
+    for (auto [i, reg] : llvm::enumerate(regs)) {
+      unsigned t = numberOf(reg.getInput());
+      auto [it, inserted] = keys.try_emplace({cls[i], t}, rawOld.size());
+      if (inserted) {
+        rawOld.push_back(cls[i]);
+        rawFirst.push_back(i);
+      }
+      raw[i] = it->second;
+    }
+    // Next states with different numbers may still be equal under the
+    // invariant: split on mux conditions to show it (a few candidates per
+    // class).
+    if (const char *pair = getenv("WC_PAIR")) {
+      auto [x, y] = StringRef(pair).split(',');
+      int ix = -1, iy = -1;
+      for (auto [i, reg] : llvm::enumerate(regs)) {
+        if (reg.getName() && *reg.getName() == x)
+          ix = i;
+        if (reg.getName() && *reg.getName() == y)
+          iy = i;
+      }
+      if (ix >= 0 && iy >= 0) {
+        llvm::errs() << "round " << rounds << " old " << cls[ix] << "/"
+                     << cls[iy] << " raw " << raw[ix] << "/" << raw[iy] << "\n";
+        if (cls[ix] == cls[iy] && raw[ix] != raw[iy]) {
+          auto same = [&](Value a, Value b) {
+            auto p = vn.find(a), q = vn.find(b);
+            return p != vn.end() && q != vn.end() && p->second == q->second;
+          };
+          setenv("EQUAL_UNDER_TRACE", "1", 1);
+          seq::detail::Context ctx(budget, depth, &kb);
+          bool r = seq::detail::equalUnder(ctx, regs[ix].getInput(),
+                                           regs[iy].getInput(), splits, same);
+          unsetenv("EQUAL_UNDER_TRACE");
+          llvm::errs() << " equalUnder " << r << "\n";
+        }
+      }
+    }
+    SmallVector<unsigned> canon(rawOld.size());
+    for (unsigned r = 0; r < rawOld.size(); ++r)
+      canon[r] = r;
+    if (splits) {
+      DenseMap<unsigned, SmallVector<unsigned>> byOld;
+      for (unsigned r = 0; r < rawOld.size(); ++r)
+        byOld[rawOld[r]].push_back(r);
+      auto same = [&](Value a, Value b) {
+        auto x = vn.find(a), y = vn.find(b);
+        return x != vn.end() && y != vn.end() && x->second == y->second;
+      };
+      unsigned calls = 0;
+      for (auto &[old, rs] : byOld) {
+        if (rs.size() < 2)
+          continue;
+        SmallVector<unsigned> heads; // canonical raw classes so far
+        for (unsigned r : rs) {
+          bool merged = false;
+          for (unsigned h : llvm::reverse(heads)) {
+            if (calls >= 100000)
+              break;
+            ++calls;
+            seq::detail::Context ctx(budget, depth, &kb);
+            if (seq::detail::equalUnder(ctx, regs[rawFirst[r]].getInput(),
+                                        regs[rawFirst[h]].getInput(), splits,
+                                        same)) {
+              canon[r] = h;
+              merged = true;
+              ++equalUnderMerges;
+              break;
+            }
+          }
+          if (!merged)
+            heads.push_back(r);
+        }
+      }
+    }
+    // Dense numbering and the join of the known bits.
+    SmallVector<unsigned> dense(rawOld.size(), ~0u);
     SmallVector<unsigned> next(regs.size());
     SmallVector<std::optional<KnownBits>> meet;
     for (auto [i, reg] : llvm::enumerate(regs)) {
-      unsigned t = numberOf(reg.getInput());
-      auto [it, inserted] = keys.try_emplace({cls[i], t}, meet.size());
-      if (inserted)
+      unsigned c = canon[raw[i]];
+      if (dense[c] == ~0u) {
+        dense[c] = meet.size();
         meet.push_back(std::nullopt);
-      next[i] = it->second;
+      }
+      next[i] = dense[c];
       KnownBits k = knownOf(reg.getInput());
-      auto &m = meet[it->second];
+      auto &m = meet[next[i]];
       if (!m)
         m = k;
       else {
@@ -621,6 +705,7 @@ void WordCongruencePass::runOnOperation() {
       break;
   }
   numRounds += rounds;
+  numEqualUnder += equalUnderMerges;
 
   // Representatives: registers of a class, leaves.
   DenseMap<unsigned, Value> repr;

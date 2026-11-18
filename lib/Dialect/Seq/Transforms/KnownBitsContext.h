@@ -56,6 +56,9 @@ struct Context {
   llvm::DenseMap<Value, KnownBits> facts;
   llvm::DenseMap<Value, KnownBits> memo;
   bool contradiction = false;
+  /// Facts that are disjunctions: an or known 1, an and known 0 (for unit
+  /// propagation).
+  llvm::SmallVector<std::pair<Operation *, bool>> clauses;
   unsigned budget;
   unsigned depth;
   /// Known bits of the values in all states, if given: used where the
@@ -90,6 +93,7 @@ struct Context {
         return;
       it->second = u;
     }
+    memo.clear();
     if (!d)
       return;
     Operation *op = v.getDefiningOp();
@@ -117,6 +121,11 @@ struct Context {
   }
 
   void addBool(Operation *op, bool b, unsigned d) {
+    if ((llvm::isa<comb::OrOp>(op) && b) ||
+        (llvm::isa<comb::AndOp>(op) && !b)) {
+      clauses.push_back({op, b});
+      return;
+    }
     if (llvm::isa<comb::AndOp>(op) && b) {
       for (auto operand : op->getOperands())
         addKnown(operand, KnownBits::makeConstant(APInt(1, 1)), d);
@@ -155,6 +164,51 @@ struct Context {
       else if (c->getBitWidth() == 1)
         addKnown(x, KnownBits::makeConstant(~*c), d);
     }
+  }
+
+  /// Unit propagation on the clauses: an or known 1 whose operands but one
+  /// are known 0 has that one 1 (dually for and).
+  void propagate() {
+    for (unsigned round = 0; round <= clauses.size() && !contradiction;
+         ++round) {
+      bool changed = false;
+      for (unsigned i = 0; i < clauses.size() && !contradiction; ++i) {
+        auto [op, b] = clauses[i];
+        Value open;
+        unsigned numOpen = 0;
+        bool satisfied = false;
+        for (auto operand : op->getOperands()) {
+          KnownBits k = eval(operand, depth);
+          if (!k.isConstant()) {
+            open = operand;
+            ++numOpen;
+          } else if (k.getConstant().getBoolValue() == b) {
+            satisfied = true;
+            break;
+          }
+        }
+        if (satisfied)
+          continue;
+        if (numOpen == 0) {
+          contradiction = true;
+          break;
+        }
+        if (numOpen == 1) {
+          addKnown(open, KnownBits::makeConstant(APInt(1, b)), depth);
+          changed = true;
+        }
+      }
+      if (!changed)
+        break;
+    }
+  }
+
+  /// Assume `cond` is `b`; false if that contradicts the facts.
+  bool assume(Value cond, bool b) {
+    addKnown(cond, KnownBits::makeConstant(APInt(1, b)), depth);
+    if (!contradiction)
+      propagate();
+    return !contradiction;
   }
 
   /// The value `v` is under the facts, following muxes with known
@@ -211,6 +265,129 @@ struct Context {
     return k;
   }
 };
+/// A range of bits of a value.
+struct Slice {
+  Value v;
+  unsigned lo, w;
+};
+
+/// A slice as slices of values that are not concatenations or extracts.
+inline void normalizeSlice(Slice s, llvm::SmallVectorImpl<Slice> &out) {
+  if (auto e = s.v.getDefiningOp<comb::ExtractOp>())
+    return normalizeSlice({e.getInput(), s.lo + e.getLowBit(), s.w}, out);
+  if (auto c = s.v.getDefiningOp<comb::ConcatOp>()) {
+    unsigned pos = 0;
+    for (auto input : llvm::reverse(c.getInputs())) {
+      unsigned iw = widthOf(input);
+      unsigned a = std::max(s.lo, pos), b = std::min(s.lo + s.w, pos + iw);
+      if (a < b)
+        normalizeSlice({input, a - pos, b - a}, out);
+      pos += iw;
+    }
+    return;
+  }
+  out.push_back(s);
+}
+
+template <typename Same>
+bool equalSlices(const Context &ctx, Slice a, Slice b, unsigned splits,
+                 Same &same);
+
+/// Two slices that are not concatenations or extracts.
+template <typename Same>
+bool equalAtoms(const Context &ctx, Slice a, Slice b, unsigned splits,
+                Same &same) {
+  if (ctx.contradiction)
+    return true;
+  if (a.lo == b.lo && (a.v == b.v || same(a.v, b.v)))
+    return true;
+  Context c(ctx);
+  KnownBits ka = c.eval(a.v, c.depth).extractBits(a.w, a.lo);
+  KnownBits kb = c.eval(b.v, c.depth).extractBits(b.w, b.lo);
+  if (!((ka.Zero & kb.One) | (ka.One & kb.Zero)).isZero())
+    return false;
+  if (ka.isConstant() && kb.isConstant())
+    return true;
+  if (getenv("EQUAL_UNDER_TRACE")) {
+    auto name = [](Value v) {
+      if (auto *op = v.getDefiningOp())
+        return op->getName().getStringRef();
+      return llvm::StringRef("arg");
+    };
+    llvm::errs().indent(2 * (8 - splits))
+        << name(a.v) << "[" << a.lo << "+" << a.w << "] " << name(b.v) << "["
+        << b.lo << "+" << b.w << "]\n";
+  }
+  // Muxes with a known condition are their arm.
+  for (Slice *s : {&a, &b}) {
+    if (auto mux = s->v.getDefiningOp<comb::MuxOp>()) {
+      KnownBits k = c.eval(mux.getCond(), c.depth);
+      if (k.isConstant()) {
+        s->v = k.getConstant().getBoolValue() ? mux.getTrueValue()
+                                              : mux.getFalseValue();
+        return equalSlices(c, a, b, splits, same);
+      }
+    }
+  }
+  if (!splits)
+    return false;
+  auto mux = a.v.getDefiningOp<comb::MuxOp>();
+  bool onA = bool(mux);
+  if (!mux)
+    mux = b.v.getDefiningOp<comb::MuxOp>();
+  if (!mux)
+    return false;
+  for (bool value : {true, false}) {
+    Context branch(c);
+    if (!branch.assume(mux.getCond(), value))
+      continue;
+    Value arm = value ? mux.getTrueValue() : mux.getFalseValue();
+    Slice na = a, nb = b;
+    (onA ? na : nb).v = arm;
+    if (!equalSlices(branch, na, nb, splits - 1, same))
+      return false;
+  }
+  return true;
+}
+
+/// Whether two slices are equal under the facts of `ctx`, splitting on the
+/// conditions of muxes (up to `splits` deep). `same` says which values are
+/// equal anyway.
+template <typename Same>
+bool equalSlices(const Context &ctx, Slice a, Slice b, unsigned splits,
+                 Same &same) {
+  llvm::SmallVector<Slice> as, bs;
+  normalizeSlice(a, as);
+  normalizeSlice(b, bs);
+  // Align the boundaries.
+  unsigned i = 0, j = 0, ia = 0, ib = 0; // bits consumed in as[i], bs[j]
+  while (i < as.size() && j < bs.size()) {
+    unsigned n = std::min(as[i].w - ia, bs[j].w - ib);
+    if (!equalAtoms(ctx, {as[i].v, as[i].lo + ia, n},
+                    {bs[j].v, bs[j].lo + ib, n}, splits, same))
+      return false;
+    ia += n;
+    ib += n;
+    if (ia == as[i].w) {
+      ++i;
+      ia = 0;
+    }
+    if (ib == bs[j].w) {
+      ++j;
+      ib = 0;
+    }
+  }
+  return true;
+}
+
+template <typename Same>
+bool equalUnder(const Context &ctx, Value a, Value b, unsigned splits,
+                Same same) {
+  if (a == b || same(a, b))
+    return true;
+  return equalSlices(ctx, {a, 0, widthOf(a)}, {b, 0, widthOf(b)}, splits, same);
+}
+
 } // namespace detail
 } // namespace seq
 } // namespace circt

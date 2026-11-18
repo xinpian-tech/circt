@@ -19,9 +19,10 @@ DCP=""
 # on words) at the same place.
 [ "${KB:-0}" = 1 ] && DCP="${DCP}seq-known-bits,canonicalize,cse,"
 # WS=1 adds the word-level simplification: path-sensitive known bits and
-# context simplification (twice).
+# context simplification (twice), word congruence with case splits, and
+# trimming of the register bits nothing reads.
 CS="comb-context-simplify{depth=32 budget=16384},canonicalize,cse,"
-[ "${WS:-0}" = 1 ] && DCP="${DCP}seq-known-bits{context},canonicalize,cse,$CS$CS"
+[ "${WS:-0}" = 1 ] && DCP="${DCP}seq-known-bits{context},canonicalize,cse,$CS${CS}seq-word-congruence,canonicalize,cse,seq-trim-registers,canonicalize,cse,"
 LOWER="hw-cone-of-influence,canonicalize,hw-aggregate-to-comb,canonicalize,${DCP}synth-lower-word-to-bits,canonicalize,convert-comb-to-synth,synth-lower-word-to-bits,canonicalize,synth-remove-false-cycles{obligation fixpoint-obligation},synth-lower-variadic,synth-lower-word-to-bits,synth-structural-hash"
 BITS="synth-lower-variadic,synth-lower-word-to-bits,synth-structural-hash"
 SC="synth-register-correspondence{internal},canonicalize,$BITS"

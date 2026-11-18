@@ -400,6 +400,15 @@ def WordCongruence : Pass<"seq-word-congruence", "hw::HWModuleOp"> {
               "Combinational values replaced by constants">,
     Statistic<"numRegisterBits", "num-register-bits",
               "Register bits replaced by constants">,
+    Statistic<"numEqualUnder", "num-equal-under",
+              "Next states numbered apart but shown equal by case splits">,
+  ];
+  let options = [
+    Option<"splits", "splits", "unsigned", "4",
+           "Mux conditions split on to show next states equal (0: none)">,
+    Option<"depth", "depth", "unsigned", "8", "Depth of the evaluation">,
+    Option<"budget", "budget", "unsigned", "256",
+           "Operations evaluated per comparison">
   ];
   let dependentDialects = ["comb::CombDialect", "hw::HWDialect"];
 }
@@ -417,7 +426,9 @@ def ContextSimplify : Pass<"comb-context-simplify", "hw::HWModuleOp"> {
   let options = [
     Option<"depth", "depth", "unsigned", "8", "Depth of the evaluation">,
     Option<"budget", "budget", "unsigned", "256",
-           "Operations evaluated per operand">
+           "Operations evaluated per operand">,
+    Option<"splits", "splits", "unsigned", "4",
+           "Mux conditions split on to show an arm equals the other">
   ];
   let statistics = [
     Statistic<"numDropped", "num-dropped", "Operands dropped">,

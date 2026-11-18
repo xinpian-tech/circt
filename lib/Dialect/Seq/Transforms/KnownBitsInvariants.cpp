@@ -437,8 +437,78 @@ void KnownBitsInvariantsPass::runOnOperation() {
       const KnownBits &k = state[reg];
       llvm::errs() << "known-bits: " << reg.getName().value_or("?") << " "
                    << widthOf(reg.getResult()) << " "
-                   << (k.Zero | k.One).popcount() << "\n";
+                   << (k.Zero | k.One).popcount() << " ";
+      APInt mask = k.Zero | k.One;
+      for (unsigned b = 0; b < mask.getBitWidth(); ++b)
+        if (mask[b])
+          llvm::errs() << b << ",";
+      llvm::errs() << "\n";
     }
+  // Debugging aid: KB_EXPLAIN=name:bit prints the unknown part of the cone of
+  // that bit of the register's next state.
+  if (const char *explain = getenv("KB_EXPLAIN")) {
+    StringRef spec(explain);
+    auto [name, bitText] = spec.rsplit(':');
+    unsigned bit = 0;
+    bitText.getAsInteger(10, bit);
+    std::function<void(Value, unsigned, unsigned)> show =
+        [&](Value v, unsigned b, unsigned d) {
+          llvm::errs().indent(2 * (12 - d));
+          KnownBits k = get(v);
+          bool isKnown = b < k.getBitWidth() && (k.Zero[b] || k.One[b]);
+          Operation *op = v.getDefiningOp();
+          if (!op) {
+            llvm::errs() << "arg" << cast<BlockArgument>(v).getArgNumber()
+                         << "[" << b << "]\n";
+            return;
+          }
+          if (auto reg = dyn_cast<CompRegOp>(op)) {
+            llvm::errs() << "R " << reg.getName().value_or("?") << "[" << b
+                         << "] " << (isKnown ? "known" : "?") << "\n";
+            return;
+          }
+          llvm::errs() << op->getName().stripDialect() << "/" << widthOf(v)
+                       << "[" << b << "] " << (isKnown ? "known" : "?");
+          if (isKnown || !d) {
+            llvm::errs() << "\n";
+            return;
+          }
+          if (auto icmp = dyn_cast<comb::ICmpOp>(op))
+            llvm::errs() << " "
+                         << comb::stringifyICmpPredicate(icmp.getPredicate());
+          llvm::errs() << "\n";
+          if (auto e = dyn_cast<comb::ExtractOp>(op))
+            return show(e.getInput(), b + e.getLowBit(), d - 1);
+          if (auto c = dyn_cast<comb::ConcatOp>(op)) {
+            unsigned pos = 0;
+            for (auto input : llvm::reverse(c.getInputs())) {
+              unsigned iw = widthOf(input);
+              if (b < pos + iw)
+                return show(input, b - pos, d - 1);
+              pos += iw;
+            }
+            return;
+          }
+          if (auto m = dyn_cast<comb::MuxOp>(op)) {
+            show(m.getCond(), 0, d - 1);
+            show(m.getTrueValue(), b, d - 1);
+            show(m.getFalseValue(), b, d - 1);
+            return;
+          }
+          if (isa<comb::AndOp, comb::OrOp, comb::XorOp>(op)) {
+            for (auto operand : op->getOperands())
+              show(operand, b, d - 1);
+            return;
+          }
+          if (widthOf(v) == 1)
+            for (auto operand : op->getOperands())
+              if (widthOf(operand) == 1)
+                show(operand, 0, d - 1);
+        };
+    for (auto reg : regs)
+      if (reg.getName() && *reg.getName() == name)
+        show(reg.getInput(), bit, 12);
+  }
   for (auto reg : regs)
     rebuild(reg.getResult(), state[reg], reg);
   numConstantBits += constBits;

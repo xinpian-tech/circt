@@ -94,12 +94,10 @@ void ContextSimplifyPass::runOnOperation() {
       bool whole = false;
       for (unsigned arm = 1; arm <= 2 && !whole; ++arm) {
         Context ctx(budget, depth);
-        ctx.addKnown(mux.getCond(), KnownBits::makeConstant(APInt(1, arm == 2)),
-                     depth);
-        if (ctx.contradiction)
+        if (!ctx.assume(mux.getCond(), arm == 2))
           continue;
-        if (ctx.resolve(op->getOperand(arm)) ==
-            ctx.resolve(op->getOperand(3 - arm))) {
+        if (equalUnder(ctx, op->getOperand(arm), op->getOperand(3 - arm),
+                       splits, [](Value, Value) { return false; })) {
           op->getResult(0).replaceAllUsesWith(op->getOperand(arm));
           ++redundant;
           whole = true;
