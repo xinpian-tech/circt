@@ -933,7 +933,12 @@ def ConvertCombToSynth : Pass<"convert-comb-to-synth"> {
               "higher-level synth ops such as synth.xor_inv">,
        Option<"maxEmulationUnknownBits", "max-emulation-unknown-bits",
               "uint32_t", "10",
-              "Maximum number of unknown bits to emulate in a table lookup">];
+              "Maximum number of unknown bits to emulate in a table lookup">,
+       Option<"adderArchitecture", "adder-architecture", "std::string", "\"\"",
+              "Architecture of all adders and comparators (RIPPLE-CARRY, "
+              "SKLANSKEY, KOGGE-STONE, BRENT-KUNG); by width if empty. "
+              "Ripple-carry is the smallest, for verification">
+  ];
 }
 
 //===----------------------------------------------------------------------===//

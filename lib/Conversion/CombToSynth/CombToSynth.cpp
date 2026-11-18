@@ -603,10 +603,16 @@ struct CombLowerVariadicOp : OpConversionPattern<OpTy> {
 //===----------------------------------------------------------------------===//
 
 enum AdderArchitecture { RippleCarry, Sklanskey, KoggeStone, BrentKung };
+/// Set by the pass from its adder-architecture option (for all adders and
+/// comparators it lowers); empty for the width heuristic.
+static std::string adderArchitectureOverride;
 AdderArchitecture determineAdderArch(Operation *op, int64_t width) {
   auto strAttr = op->getAttrOfType<StringAttr>("synth.test.arch");
-  if (strAttr) {
-    return llvm::StringSwitch<AdderArchitecture>(strAttr.getValue())
+  // The pass's adder-architecture option overrides the heuristic.
+  StringRef forced = adderArchitectureOverride;
+  if (strAttr || !forced.empty()) {
+    return llvm::StringSwitch<AdderArchitecture>(strAttr ? strAttr.getValue()
+                                                         : forced)
         .Case("SKLANSKEY", Sklanskey)
         .Case("KOGGE-STONE", KoggeStone)
         .Case("BRENT-KUNG", BrentKung)
@@ -1728,6 +1734,7 @@ populateCombToAIGConversionPatterns(RewritePatternSet &patterns,
 }
 
 void ConvertCombToSynthPass::runOnOperation() {
+  adderArchitectureOverride = adderArchitecture;
   ConversionTarget target(getContext());
 
   // Comb is source dialect.
