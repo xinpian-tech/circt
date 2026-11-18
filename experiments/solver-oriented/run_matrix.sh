@@ -10,6 +10,8 @@
 #   rbmc           rBMC (Tseitin only, incremental CaDiCaL)
 #   rbmc-nopre     rBMC with CaDiCaL's elimination, subsumption, probing,
 #                  vivification, ternary resolution and decomposition off
+#   rbmc-noelim    rBMC with CaDiCaL's variable elimination (bve) off
+#   rbmc-onlyelim  rBMC with only CaDiCaL's variable elimination on (of those)
 #   ric3-bmc       rIC3 bmc with its preprocessing
 #   ric3-ic3-bare  rIC3 ic3, no preprocessing, plain CNF
 #   ric3-ic3       rIC3 ic3 with its preprocessing
@@ -37,6 +39,9 @@ one() {
   case $e in
     rbmc) $run $RBMC $f --end $K ;;
     rbmc-nopre) $run $RBMC $f --end $K --cadical elim=0 --cadical subsume=0 --cadical probe=0 \
+      --cadical vivify=0 --cadical ternary=0 --cadical decompose=0 ;;
+    rbmc-noelim) $run $RBMC $f --end $K --cadical elim=0 ;;
+    rbmc-onlyelim) $run $RBMC $f --end $K --cadical subsume=0 --cadical probe=0 \
       --cadical vivify=0 --cadical ternary=0 --cadical decompose=0 ;;
     ric3-bmc) $run $RIC3 check $f --ui false bmc --end $K ;;
     ric3-ic3-bare) $run $RIC3 check $f --ui false --fe-simp false --fe-cnf plain ic3 --preproc false ;;

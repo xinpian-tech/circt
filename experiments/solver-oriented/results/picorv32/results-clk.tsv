@@ -1,0 +1,121 @@
+assert	config	backend	result	depth	seconds
+reg	sc	ric3-ic3	TO		150.02
+reg	sc	ric3-ic3-bare	TO		150.03
+reg	base	ric3-ic3-bare	TO		150.04
+reg	base	ric3-ic3	TO		150.07
+reg	sc	abc-bmc3	TO		150.01
+reg	base	abc-pre-bmc3	TO		150.01
+reg	base	abc-bmc3	TO		150.02
+reg	sc	rbmc	TO	24	150.12
+reg	sc	abc-pre-bmc3	TO		150.01
+reg	sc	rbmc-nopre	TO	24	150.18
+reg	base	rbmc-nopre	TO	24	150.22
+reg	base	rbmc	TO	24	150.24
+pc_fwd	sc	abc-bmc3	K	31	2.21
+pc_fwd	base	abc-bmc3	K	31	3.97
+pc_bwd	base	abc-bmc3	K	31	0.76
+pc_bwd	base	rbmc	K	31	11.89
+pc_fwd	sc	abc-pre-bmc3	K	31	15.72
+pc_fwd	sc	rbmc-nopre	K	31	17.34
+pc_fwd	sc	rbmc	K	31	18.09
+pc_fwd	base	rbmc	K	31	21.12
+pc_bwd	sc	rbmc	K	31	3.18
+pc_bwd	sc	abc-bmc3	K	31	0.74
+pc_bwd	base	rbmc-nopre	K	31	7.13
+pc_bwd	sc	rbmc-nopre	K	31	3.19
+pc_fwd	base	rbmc-nopre	K	31	27.65
+pc_fwd	base	abc-pre-bmc3	K	31	31.54
+causal	base	abc-bmc3	K	31	0.70
+causal	base	rbmc	K	31	5.92
+pc_bwd	sc	abc-pre-bmc3	K	31	9.78
+causal	base	rbmc-nopre	K	31	6.11
+pc_bwd	base	abc-pre-bmc3	K	31	28.71
+causal	sc	rbmc	K	31	1.75
+causal	sc	abc-bmc3	K	31	0.66
+causal	base	abc-pre-bmc3	K	31	26.11
+pc_fwd	base	ric3-ic3-bare	TO		150.04
+pc_fwd	base	ric3-ic3	TO		150.02
+pc_fwd	sc	ric3-ic3-bare	TO		150.05
+pc_fwd	sc	ric3-ic3	TO		150.03
+unique	base	abc-bmc3	K	31	0.50
+causal	sc	rbmc-nopre	K	31	1.13
+unique	base	rbmc	K	31	2.89
+pc_bwd	base	ric3-ic3-bare	TO		150.03
+unique	base	rbmc-nopre	K	31	2.71
+causal	sc	abc-pre-bmc3	K	31	7.09
+unique	sc	rbmc	K	31	1.57
+unique	sc	abc-bmc3	K	31	0.46
+pc_bwd	base	ric3-ic3	TO		150.02
+unique	sc	rbmc-nopre	K	31	1.57
+pc_bwd	sc	ric3-ic3-bare	TO		150.03
+pc_bwd	sc	ric3-ic3	TO		150.02
+unique	sc	abc-pre-bmc3	K	31	8.21
+liveness	base	abc-bmc3	K	31	5.82
+unique	base	abc-pre-bmc3	K	31	25.02
+causal	base	ric3-ic3-bare	TO		150.03
+causal	base	ric3-ic3	TO		150.02
+liveness	sc	rbmc	K	31	12.45
+liveness	base	rbmc	K	31	25.83
+liveness	sc	abc-bmc3	K	31	1.90
+causal	sc	ric3-ic3-bare	TO		150.04
+liveness	base	abc-pre-bmc3	K	31	20.14
+liveness	sc	abc-pre-bmc3	K	31	7.74
+liveness	base	rbmc-nopre	K	31	32.34
+csrc_inc_mcycle	base	abc-bmc3	K	31	1.08
+liveness	sc	rbmc-nopre	K	31	15.23
+causal	sc	ric3-ic3	TO		150.02
+csrc_inc_mcycle	base	rbmc	K	31	12.15
+csrc_inc_mcycle	base	rbmc-nopre	K	31	9.54
+csrc_inc_mcycle	sc	rbmc	K	31	5.42
+csrc_inc_mcycle	sc	abc-bmc3	K	31	0.59
+csrc_inc_mcycle	base	abc-pre-bmc3	K	31	23.91
+unique	base	ric3-ic3-bare	TO		150.04
+unique	base	ric3-ic3	TO		150.02
+csrc_inc_mcycle	sc	rbmc-nopre	K	31	5.51
+unique	sc	ric3-ic3-bare	TO		150.03
+csrc_inc_mcycle	sc	abc-pre-bmc3	K	31	6.42
+unique	sc	ric3-ic3	TO		150.02
+csrc_inc_minstret	base	abc-bmc3	K	31	0.68
+csrc_inc_minstret	base	rbmc-nopre	K	31	7.24
+csrc_inc_minstret	base	rbmc	K	31	9.10
+csrc_inc_minstret	sc	rbmc	K	31	8.42
+liveness	base	ric3-ic3-bare	TO		150.04
+csrc_inc_minstret	sc	abc-bmc3	K	31	0.53
+liveness	base	ric3-ic3	TO		150.07
+csrc_inc_minstret	base	abc-pre-bmc3	K	31	16.29
+csrc_inc_minstret	sc	rbmc-nopre	K	31	5.83
+csrc_inc_minstret	sc	abc-pre-bmc3	K	31	8.69
+csrc_upcnt_mcycle	base	abc-bmc3	K	31	1.18
+csrc_upcnt_mcycle	base	rbmc	K	31	12.10
+liveness	sc	ric3-ic3-bare	TO		150.04
+liveness	sc	ric3-ic3	TO		150.03
+csrc_upcnt_mcycle	base	rbmc-nopre	K	31	8.20
+csrc_upcnt_mcycle	sc	rbmc	K	31	5.78
+csrc_upcnt_mcycle	sc	abc-bmc3	K	31	0.88
+csrc_inc_mcycle	base	ric3-ic3-bare	TO		150.03
+csrc_inc_mcycle	base	ric3-ic3	TO		150.02
+csrc_upcnt_mcycle	sc	rbmc-nopre	K	31	5.99
+csrc_upcnt_mcycle	base	abc-pre-bmc3	K	31	24.70
+csrc_upcnt_mcycle	sc	abc-pre-bmc3	K	31	9.23
+csrc_upcnt_minstret	base	abc-bmc3	K	31	1.31
+csrc_inc_mcycle	sc	ric3-ic3-bare	TO		150.02
+csrc_upcnt_minstret	base	rbmc	K	31	12.01
+csrc_upcnt_minstret	base	rbmc-nopre	K	31	8.21
+csrc_inc_mcycle	sc	ric3-ic3	TO		150.01
+csrc_upcnt_minstret	sc	rbmc	K	31	4.02
+csrc_upcnt_minstret	sc	abc-bmc3	K	31	0.55
+csrc_upcnt_minstret	base	abc-pre-bmc3	K	31	19.20
+csrc_inc_minstret	base	ric3-ic3-bare	TO		150.04
+csrc_inc_minstret	base	ric3-ic3	TO		150.02
+csrc_upcnt_minstret	sc	rbmc-nopre	K	31	5.50
+csrc_upcnt_minstret	sc	abc-pre-bmc3	K	31	6.86
+csrc_inc_minstret	sc	ric3-ic3-bare	TO		150.02
+csrc_inc_minstret	sc	ric3-ic3	TO		150.02
+csrc_upcnt_mcycle	base	ric3-ic3-bare	TO		150.02
+csrc_upcnt_mcycle	base	ric3-ic3	TO		150.02
+csrc_upcnt_mcycle	sc	ric3-ic3-bare	TO		150.02
+csrc_upcnt_mcycle	sc	ric3-ic3	TO		150.02
+csrc_upcnt_minstret	base	ric3-ic3-bare	TO		150.02
+csrc_upcnt_minstret	base	ric3-ic3	TO		150.02
+csrc_upcnt_minstret	sc	ric3-ic3-bare	TO		150.02
+csrc_upcnt_minstret	sc	ric3-ic3	TO		150.02

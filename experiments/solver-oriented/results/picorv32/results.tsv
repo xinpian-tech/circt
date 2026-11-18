@@ -1,0 +1,577 @@
+assert	config	backend	result	depth	seconds
+csrw_mcycle	base	abc-bmc3	K	21	2.09
+csrw_mcycle	sc	abc-bmc3	K	21	3.02
+csrw_minstret	base	abc-bmc3	K	21	3.45
+csrw_minstret	sc	abc-bmc3	K	21	2.94
+csrw_minstret	base	rbmc	K	21	13.07
+csrw_mcycle	sc	rbmc	K	21	13.49
+csrw_minstret	sc	rbmc	K	21	12.94
+csrw_mcycle	base	rbmc	K	21	16.07
+insn_addi	base	abc-bmc3	K	21	40.94
+insn_addi	base	rbmc	K	21	76.40
+insn_addi	sc	rbmc	K	21	42.62
+insn_addi	sc	abc-bmc3	K	21	42.71
+csrw_mcycle	base	ric3-ic3	TO		150.02
+csrw_mcycle	sc	ric3-ic3	TO		150.02
+csrw_minstret	base	ric3-ic3	TO		150.02
+csrw_mcycle	sc	ric3-ic3-bare	TO		150.03
+csrw_mcycle	base	ric3-ic3-bare	TO		150.03
+csrw_minstret	base	ric3-ic3-bare	TO		150.03
+csrw_minstret	sc	ric3-ic3-bare	TO		150.02
+csrw_minstret	sc	ric3-ic3	TO		150.02
+insn_addi	base	ric3-ic3-bare	TO		150.02
+insn_addi	base	ric3-ic3	TO		150.02
+insn_add	base	abc-bmc3	K	21	41.26
+insn_andi	base	abc-bmc3	K	21	31.52
+insn_add	sc	abc-bmc3	K	21	48.17
+insn_add	sc	rbmc	K	21	48.31
+insn_andi	base	rbmc	K	21	40.31
+insn_add	base	rbmc	K	21	71.74
+insn_andi	sc	abc-bmc3	K	21	27.42
+insn_andi	sc	rbmc	K	21	41.95
+insn_addi	sc	ric3-ic3-bare	TO		150.03
+insn_and	base	abc-bmc3	K	21	25.35
+insn_and	base	rbmc	K	21	55.21
+insn_addi	sc	ric3-ic3	TO		150.02
+insn_add	base	ric3-ic3-bare	TO		150.03
+insn_add	base	ric3-ic3	TO		150.04
+insn_and	sc	abc-bmc3	K	21	20.14
+insn_add	sc	ric3-ic3-bare	TO		150.08
+insn_add	sc	ric3-ic3	TO		150.02
+insn_and	sc	rbmc	K	21	43.55
+insn_andi	base	ric3-ic3-bare	TO		150.03
+insn_andi	base	ric3-ic3	TO		150.01
+insn_andi	sc	ric3-ic3-bare	TO		150.02
+insn_auipc	base	abc-bmc3	K	21	62.45
+insn_andi	sc	ric3-ic3	TO		150.02
+insn_auipc	base	rbmc	K	21	69.75
+insn_auipc	sc	abc-bmc3	K	21	45.08
+insn_and	base	ric3-ic3-bare	TO		150.04
+insn_auipc	sc	rbmc	K	21	56.19
+insn_and	base	ric3-ic3	TO		150.03
+insn_and	sc	ric3-ic3-bare	TO		150.03
+insn_and	sc	ric3-ic3	TO		150.05
+insn_auipc	base	ric3-ic3-bare	TO		150.04
+insn_auipc	base	ric3-ic3	TO		150.03
+insn_beq	base	rbmc	K	21	105.30
+insn_beq	sc	rbmc	K	21	92.51
+insn_beq	base	abc-bmc3	K	21	122.26
+insn_auipc	sc	ric3-ic3-bare	TO		150.02
+insn_beq	sc	abc-bmc3	K	21	96.90
+insn_auipc	sc	ric3-ic3	TO		150.02
+insn_beq	base	ric3-ic3-bare	TO		150.04
+insn_bge	base	rbmc	K	21	90.21
+insn_beq	base	ric3-ic3	TO		150.02
+insn_bge	base	abc-bmc3	K	21	79.98
+insn_bge	sc	rbmc	K	21	77.78
+insn_bge	sc	abc-bmc3	K	21	75.22
+insn_beq	sc	ric3-ic3-bare	TO		150.03
+insn_beq	sc	ric3-ic3	TO		150.03
+insn_bgeu	base	abc-bmc3	K	21	62.96
+insn_bge	base	ric3-ic3-bare	TO		150.05
+insn_bge	base	ric3-ic3	TO		150.03
+insn_bgeu	base	rbmc	K	21	106.73
+insn_bgeu	sc	rbmc	K	21	84.94
+insn_bge	sc	ric3-ic3-bare	TO		150.04
+insn_bge	sc	ric3-ic3	TO		150.05
+insn_bgeu	sc	abc-bmc3	K	21	110.04
+insn_bgeu	base	ric3-ic3-bare	TO		150.12
+insn_bgeu	base	ric3-ic3	TO		150.05
+insn_blt	base	rbmc	K	21	105.86
+insn_blt	sc	rbmc	K	21	78.56
+insn_bgeu	sc	ric3-ic3-bare	TO		150.03
+insn_bgeu	sc	ric3-ic3	TO		150.03
+insn_blt	sc	abc-bmc3	K	21	91.70
+insn_blt	base	abc-bmc3	K	21	141.96
+insn_bltu	base	rbmc	K	21	82.85
+insn_bltu	base	abc-bmc3	K	21	78.94
+insn_blt	base	ric3-ic3-bare	TO		150.04
+insn_blt	base	ric3-ic3	TO		150.03
+insn_blt	sc	ric3-ic3-bare	TO		150.03
+insn_bltu	sc	rbmc	K	21	71.26
+insn_bltu	sc	abc-bmc3	K	21	88.09
+insn_blt	sc	ric3-ic3	TO		150.03
+insn_bne	base	rbmc	K	21	81.36
+insn_bne	base	abc-bmc3	K	21	78.36
+insn_bltu	base	ric3-ic3-bare	TO		151.36
+insn_bltu	base	ric3-ic3	TO		150.03
+insn_c_addi16sp	base	abc-bmc3	K	21	32.60
+insn_bne	sc	rbmc	K	21	81.06
+insn_bne	sc	abc-bmc3	K	21	79.91
+insn_bltu	sc	ric3-ic3-bare	TO		150.13
+insn_bltu	sc	ric3-ic3	TO		150.02
+insn_c_addi16sp	base	rbmc	K	21	58.73
+insn_c_addi16sp	sc	abc-bmc3	K	21	32.80
+insn_bne	base	ric3-ic3-bare	TO		150.03
+insn_c_addi16sp	sc	rbmc	K	21	51.42
+insn_bne	base	ric3-ic3	TO		150.02
+insn_c_addi4spn	base	abc-bmc3	K	21	31.92
+insn_c_addi4spn	base	rbmc	K	21	44.11
+insn_c_addi4spn	sc	abc-bmc3	K	21	22.79
+insn_c_addi4spn	sc	rbmc	K	21	39.92
+insn_bne	sc	ric3-ic3-bare	TO		150.03
+insn_bne	sc	ric3-ic3	TO		150.02
+insn_c_addi16sp	base	ric3-ic3-bare	TO		150.04
+insn_c_addi	base	abc-bmc3	K	21	31.25
+insn_c_addi16sp	base	ric3-ic3	TO		150.02
+insn_c_addi	base	rbmc	K	21	71.51
+insn_c_addi	sc	abc-bmc3	K	21	32.39
+insn_c_addi16sp	sc	ric3-ic3-bare	TO		150.03
+insn_c_addi16sp	sc	ric3-ic3	TO		150.03
+insn_c_addi	sc	rbmc	K	21	47.23
+insn_c_addi4spn	base	ric3-ic3-bare	TO		150.03
+insn_c_add	base	abc-bmc3	K	21	32.69
+insn_c_addi4spn	base	ric3-ic3	TO		150.02
+insn_c_addi4spn	sc	ric3-ic3-bare	TO		150.03
+insn_c_addi4spn	sc	ric3-ic3	TO		150.02
+insn_c_add	base	rbmc	K	21	67.56
+insn_c_add	sc	rbmc	K	21	43.69
+insn_c_add	sc	abc-bmc3	K	21	40.76
+insn_c_addi	base	ric3-ic3-bare	TO		150.03
+insn_c_addi	base	ric3-ic3	TO		150.02
+insn_c_andi	base	abc-bmc3	K	21	26.68
+insn_c_andi	base	rbmc	K	21	34.70
+insn_c_andi	sc	abc-bmc3	K	21	14.80
+insn_c_andi	sc	rbmc	K	21	35.12
+insn_c_addi	sc	ric3-ic3-bare	TO		150.03
+insn_c_and	base	rbmc	K	21	30.32
+insn_c_addi	sc	ric3-ic3	TO		150.02
+insn_c_and	base	abc-bmc3	K	21	24.72
+insn_c_add	base	ric3-ic3-bare	TO		150.04
+insn_c_add	base	ric3-ic3	TO		150.02
+insn_c_and	sc	abc-bmc3	K	21	17.46
+insn_c_and	sc	rbmc	K	21	25.11
+insn_c_add	sc	ric3-ic3-bare	TO		150.04
+insn_c_add	sc	ric3-ic3	TO		150.03
+insn_c_andi	base	ric3-ic3-bare	TO		150.03
+insn_c_andi	base	ric3-ic3	TO		150.02
+insn_c_beqz	base	abc-bmc3	K	21	57.23
+insn_c_andi	sc	ric3-ic3-bare	TO		150.02
+insn_c_andi	sc	ric3-ic3	TO		150.02
+insn_c_beqz	base	rbmc	K	21	88.87
+insn_c_and	base	ric3-ic3-bare	TO		150.04
+insn_c_and	base	ric3-ic3	TO		150.02
+insn_c_beqz	sc	abc-bmc3	K	21	70.49
+insn_c_beqz	sc	rbmc	K	21	72.66
+insn_c_and	sc	ric3-ic3-bare	TO		150.03
+insn_c_and	sc	ric3-ic3	TO		150.02
+insn_c_bnez	base	rbmc	K	21	66.50
+insn_c_bnez	base	abc-bmc3	K	21	82.66
+insn_c_beqz	base	ric3-ic3-bare	TO		150.05
+insn_c_beqz	base	ric3-ic3	TO		150.02
+insn_c_bnez	sc	abc-bmc3	K	21	57.22
+insn_c_bnez	sc	rbmc	K	21	59.96
+insn_c_jal	base	rbmc	K	21	44.17
+insn_c_beqz	sc	ric3-ic3-bare	TO		150.03
+insn_c_jal	sc	abc-bmc3	K	21	29.01
+insn_c_jal	base	abc-bmc3	K	21	49.59
+insn_c_beqz	sc	ric3-ic3	TO		150.02
+insn_c_jal	sc	rbmc	K	21	46.14
+insn_c_jalr	base	abc-bmc3	K	21	20.32
+insn_c_jalr	base	rbmc	K	21	33.68
+insn_c_jalr	sc	abc-bmc3	K	21	12.04
+insn_c_bnez	base	ric3-ic3-bare	TO		150.04
+insn_c_bnez	base	ric3-ic3	TO		150.02
+insn_c_jalr	sc	rbmc	K	21	29.50
+insn_c_bnez	sc	ric3-ic3-bare	TO		150.43
+insn_c_bnez	sc	ric3-ic3	TO		150.02
+insn_c_j	base	abc-bmc3	K	21	33.53
+insn_c_j	base	rbmc	K	21	48.53
+insn_c_jal	base	ric3-ic3-bare	TO		150.05
+insn_c_jal	base	ric3-ic3	TO		150.03
+insn_c_jal	sc	ric3-ic3-bare	TO		150.03
+insn_c_j	sc	rbmc	K	21	43.60
+insn_c_j	sc	abc-bmc3	K	21	29.69
+insn_c_jal	sc	ric3-ic3	TO		150.03
+insn_c_jr	base	abc-bmc3	K	21	18.08
+insn_c_jr	base	rbmc	K	21	27.74
+insn_c_jalr	base	ric3-ic3-bare	TO		150.04
+insn_c_jr	sc	abc-bmc3	K	21	9.27
+insn_c_jalr	base	ric3-ic3	TO		150.02
+insn_c_jr	sc	rbmc	K	21	26.94
+insn_c_jalr	sc	ric3-ic3-bare	TO		150.02
+insn_c_li	base	abc-bmc3	K	21	22.75
+insn_c_jalr	sc	ric3-ic3	TO		150.02
+insn_c_li	base	rbmc	K	21	40.82
+insn_c_j	base	ric3-ic3-bare	TO		150.03
+insn_c_li	sc	abc-bmc3	K	21	19.91
+insn_c_li	sc	rbmc	K	21	25.49
+insn_c_j	base	ric3-ic3	TO		150.02
+insn_c_lui	base	abc-bmc3	K	21	24.89
+insn_c_j	sc	ric3-ic3-bare	TO		150.02
+insn_c_lui	base	rbmc	K	21	39.28
+insn_c_j	sc	ric3-ic3	TO		150.02
+insn_c_jr	base	ric3-ic3-bare	TO		150.14
+insn_c_lui	sc	abc-bmc3	K	21	13.98
+insn_c_jr	base	ric3-ic3	TO		150.02
+insn_c_lui	sc	rbmc	K	21	35.68
+insn_c_jr	sc	ric3-ic3-bare	TO		150.03
+insn_c_jr	sc	ric3-ic3	TO		150.02
+insn_c_li	base	ric3-ic3-bare	TO		150.03
+insn_c_li	base	ric3-ic3	TO		150.02
+insn_c_lw	base	abc-bmc3	K	21	47.82
+insn_c_lw	base	rbmc	K	21	72.70
+insn_c_li	sc	ric3-ic3-bare	TO		150.02
+insn_c_li	sc	ric3-ic3	TO		150.02
+insn_c_lw	sc	abc-bmc3	K	21	42.51
+insn_c_lui	base	ric3-ic3-bare	TO		150.03
+insn_c_lui	base	ric3-ic3	TO		150.03
+insn_c_lwsp	base	abc-bmc3	K	21	32.58
+insn_c_lw	sc	rbmc	K	21	64.63
+insn_c_lui	sc	ric3-ic3-bare	TO		150.03
+insn_c_lui	sc	ric3-ic3	TO		150.02
+insn_c_lwsp	base	rbmc	K	21	69.19
+insn_c_lwsp	sc	abc-bmc3	K	21	40.57
+insn_c_lwsp	sc	rbmc	K	21	52.40
+insn_c_lw	base	ric3-ic3-bare	TO		150.04
+insn_c_lw	base	ric3-ic3	TO		150.03
+insn_c_mv	base	abc-bmc3	K	21	25.80
+insn_c_mv	base	rbmc	K	21	44.37
+insn_c_mv	sc	abc-bmc3	K	21	22.82
+insn_c_mv	sc	rbmc	K	21	38.35
+insn_c_lw	sc	ric3-ic3-bare	TO		150.03
+insn_c_lw	sc	ric3-ic3	TO		150.02
+insn_c_or	base	rbmc	K	21	37.93
+insn_c_or	base	abc-bmc3	K	21	26.92
+insn_c_lwsp	base	ric3-ic3-bare	TO		150.03
+insn_c_or	sc	abc-bmc3	K	21	20.10
+insn_c_lwsp	base	ric3-ic3	TO		150.03
+insn_c_or	sc	rbmc	K	21	34.98
+insn_c_lwsp	sc	ric3-ic3-bare	TO		150.03
+insn_c_lwsp	sc	ric3-ic3	TO		150.03
+insn_c_mv	base	ric3-ic3-bare	TO		150.03
+insn_c_mv	base	ric3-ic3	TO		150.02
+insn_c_slli	base	abc-bmc3	K	21	52.34
+insn_c_mv	sc	ric3-ic3-bare	TO		150.02
+insn_c_slli	base	rbmc	K	21	67.43
+insn_c_mv	sc	ric3-ic3	TO		150.02
+insn_c_or	base	ric3-ic3-bare	TO		150.03
+insn_c_slli	sc	rbmc	K	21	50.38
+insn_c_srai	base	abc-bmc3	K	21	33.85
+insn_c_slli	sc	abc-bmc3	K	21	53.84
+insn_c_or	base	ric3-ic3	TO		150.03
+insn_c_srai	base	rbmc	K	21	54.84
+insn_c_or	sc	ric3-ic3-bare	TO		150.03
+insn_c_or	sc	ric3-ic3	TO		150.02
+insn_c_srai	sc	abc-bmc3	K	21	38.08
+insn_c_srai	sc	rbmc	K	21	49.78
+insn_c_slli	base	ric3-ic3-bare	TO		150.03
+insn_c_slli	base	ric3-ic3	TO		153.66
+insn_c_srli	base	rbmc	K	21	57.67
+insn_c_srli	base	abc-bmc3	K	21	55.93
+insn_c_slli	sc	ric3-ic3-bare	TO		150.02
+insn_c_srli	sc	rbmc	K	21	49.81
+insn_c_slli	sc	ric3-ic3	TO		150.02
+insn_c_srli	sc	abc-bmc3	K	21	52.88
+insn_c_sub	base	abc-bmc3	K	21	33.22
+insn_c_sub	base	rbmc	K	21	39.54
+insn_c_srai	base	ric3-ic3-bare	TO		150.03
+insn_c_srai	base	ric3-ic3	TO		150.56
+insn_c_srai	sc	ric3-ic3-bare	TO		150.03
+insn_c_srai	sc	ric3-ic3	TO		150.03
+insn_c_sub	sc	rbmc	K	21	34.03
+insn_c_sub	sc	abc-bmc3	K	21	33.76
+insn_c_srli	base	ric3-ic3-bare	TO		150.03
+insn_c_srli	base	ric3-ic3	TO		150.02
+insn_c_sw	base	rbmc	K	21	61.09
+insn_c_srli	sc	ric3-ic3-bare	TO		150.03
+insn_c_sw	base	abc-bmc3	K	21	74.97
+insn_c_srli	sc	ric3-ic3	TO		150.02
+insn_c_sw	sc	rbmc	K	21	51.77
+insn_c_sub	base	ric3-ic3-bare	TO		150.04
+insn_c_sw	sc	abc-bmc3	K	21	65.20
+insn_c_sub	base	ric3-ic3	TO		150.03
+insn_c_sub	sc	ric3-ic3-bare	TO		150.03
+insn_c_sub	sc	ric3-ic3	TO		150.02
+insn_c_swsp	base	rbmc	K	21	61.50
+insn_c_swsp	base	abc-bmc3	K	21	73.70
+insn_c_sw	base	ric3-ic3-bare	TO		150.04
+insn_c_sw	base	ric3-ic3	TO		150.02
+insn_c_swsp	sc	rbmc	K	21	67.22
+insn_c_xor	base	rbmc	K	21	31.55
+insn_c_xor	base	abc-bmc3	K	21	27.23
+insn_c_swsp	sc	abc-bmc3	K	21	66.64
+insn_c_xor	sc	abc-bmc3	K	21	15.13
+insn_c_sw	sc	ric3-ic3-bare	TO		150.95
+insn_c_xor	sc	rbmc	K	21	35.95
+insn_c_sw	sc	ric3-ic3	TO		150.03
+insn_c_swsp	base	ric3-ic3-bare	TO		150.03
+insn_div	base	rbmc	K	21	44.57
+insn_c_swsp	base	ric3-ic3	TO		150.03
+insn_div	sc	rbmc	K	21	43.03
+insn_c_swsp	sc	ric3-ic3-bare	TO		150.03
+insn_c_swsp	sc	ric3-ic3	TO		150.02
+insn_c_xor	base	ric3-ic3-bare	TO		150.04
+insn_c_xor	base	ric3-ic3	TO		150.02
+insn_divu	base	rbmc	K	21	47.06
+insn_c_xor	sc	ric3-ic3-bare	TO		150.03
+insn_c_xor	sc	ric3-ic3	TO		150.02
+insn_div	base	abc-bmc3	TO		150.01
+insn_div	base	ric3-ic3-bare	TO		151.85
+insn_divu	sc	rbmc	K	21	36.39
+insn_div	base	ric3-ic3	TO		150.02
+insn_div	sc	abc-bmc3	TO		150.02
+insn_div	sc	ric3-ic3-bare	TO		150.02
+insn_jal	base	abc-bmc3	K	21	56.89
+insn_div	sc	ric3-ic3	TO		150.02
+insn_jal	base	rbmc	K	21	65.87
+insn_divu	base	abc-bmc3	TO		150.01
+insn_jal	sc	rbmc	K	21	42.33
+insn_divu	base	ric3-ic3-bare	TO		150.04
+insn_divu	base	ric3-ic3	TO		150.02
+insn_jalr	base	abc-bmc3	K	21	36.44
+insn_divu	sc	abc-bmc3	TO		150.02
+insn_divu	sc	ric3-ic3-bare	TO		150.02
+insn_jal	sc	abc-bmc3	K	21	66.18
+insn_jalr	base	rbmc	K	21	59.94
+insn_divu	sc	ric3-ic3	TO		150.02
+insn_jalr	sc	abc-bmc3	K	21	32.55
+insn_jalr	sc	rbmc	K	21	49.06
+insn_jal	base	ric3-ic3-bare	TO		150.03
+insn_jal	base	ric3-ic3	TO		150.03
+insn_jal	sc	ric3-ic3-bare	TO		150.03
+insn_jal	sc	ric3-ic3	TO		150.03
+insn_lb	base	rbmc	K	21	96.19
+insn_lb	base	abc-bmc3	K	21	83.76
+insn_lb	sc	rbmc	K	21	70.16
+insn_jalr	base	ric3-ic3-bare	TO		150.03
+insn_jalr	base	ric3-ic3	TO		150.02
+insn_lb	sc	abc-bmc3	K	21	87.84
+insn_jalr	sc	ric3-ic3-bare	TO		150.02
+insn_jalr	sc	ric3-ic3	TO		150.02
+insn_lb	base	ric3-ic3-bare	TO		150.04
+insn_lb	base	ric3-ic3	TO		150.02
+insn_lbu	base	abc-bmc3	K	21	91.38
+insn_lbu	sc	rbmc	K	21	76.67
+insn_lbu	base	rbmc	K	21	113.28
+insn_lbu	sc	abc-bmc3	K	21	96.90
+insn_lb	sc	ric3-ic3-bare	TO		150.03
+insn_lb	sc	ric3-ic3	TO		150.03
+insn_lbu	base	ric3-ic3-bare	TO		150.04
+insn_lbu	base	ric3-ic3	TO		150.03
+insn_lh	base	abc-bmc3	K	21	88.57
+insn_lh	base	rbmc	K	21	100.65
+insn_lh	sc	rbmc	K	21	72.47
+insn_lbu	sc	ric3-ic3-bare	TO		150.03
+insn_lbu	sc	ric3-ic3	TO		150.02
+insn_lh	sc	abc-bmc3	K	21	86.73
+insn_lh	base	ric3-ic3-bare	TO		150.04
+insn_lhu	base	abc-bmc3	K	21	80.22
+insn_lh	base	ric3-ic3	TO		150.02
+insn_lhu	base	rbmc	K	21	110.69
+insn_lhu	sc	rbmc	K	21	87.42
+insn_lui	base	rbmc	K	21	31.54
+insn_lui	base	abc-bmc3	K	21	26.25
+insn_lh	sc	ric3-ic3-bare	TO		150.03
+insn_lh	sc	ric3-ic3	TO		150.03
+insn_lhu	sc	abc-bmc3	K	21	100.09
+insn_lui	sc	abc-bmc3	K	21	20.83
+insn_lui	sc	rbmc	K	21	33.46
+insn_lhu	base	ric3-ic3-bare	TO		150.04
+insn_lhu	base	ric3-ic3	TO		150.02
+insn_lhu	sc	ric3-ic3-bare	TO		150.07
+insn_lhu	sc	ric3-ic3	TO		150.03
+insn_lw	base	abc-bmc3	K	21	76.30
+insn_lw	base	rbmc	K	21	105.29
+insn_lui	base	ric3-ic3-bare	TO		150.03
+insn_lw	sc	rbmc	K	21	83.78
+insn_lui	base	ric3-ic3	TO		150.02
+insn_lui	sc	ric3-ic3-bare	TO		150.02
+insn_lw	sc	abc-bmc3	K	21	100.00
+insn_lui	sc	ric3-ic3	TO		150.03
+insn_lw	base	ric3-ic3-bare	TO		150.04
+insn_lw	base	ric3-ic3	TO		150.02
+insn_lw	sc	ric3-ic3-bare	TO		150.03
+insn_lw	sc	ric3-ic3	TO		150.03
+insn_mulh	base	rbmc	TO	19	150.06
+insn_mulh	base	abc-bmc3	TO		150.01
+insn_mulh	base	ric3-ic3-bare	TO		150.04
+insn_mulh	base	ric3-ic3	TO		150.03
+insn_mulh	sc	rbmc	TO	19	150.07
+insn_mulh	sc	abc-bmc3	TO		150.01
+insn_mulh	sc	ric3-ic3-bare	TO		150.03
+insn_mulh	sc	ric3-ic3	TO		150.03
+insn_mulhsu	base	rbmc	TO	19	150.08
+insn_mulhsu	base	abc-bmc3	TO		150.02
+insn_mulhsu	sc	rbmc	K	21	122.40
+insn_mulhsu	base	ric3-ic3-bare	TO		150.04
+insn_mulhsu	base	ric3-ic3	TO		150.02
+insn_mulhsu	sc	abc-bmc3	TO		150.02
+insn_mulhsu	sc	ric3-ic3-bare	TO		150.03
+insn_mulhsu	sc	ric3-ic3	TO		150.02
+insn_mulhu	base	rbmc	TO	19	150.07
+insn_mulhu	base	abc-bmc3	TO		150.02
+insn_mulhu	base	ric3-ic3-bare	TO		150.04
+insn_mulhu	base	ric3-ic3	TO		150.03
+insn_mulhu	sc	rbmc	TO	19	150.07
+insn_mulhu	sc	abc-bmc3	TO		150.02
+insn_ori	base	abc-bmc3	K	21	31.98
+insn_mulhu	sc	ric3-ic3-bare	TO		150.03
+insn_ori	base	rbmc	K	21	50.48
+insn_mulhu	sc	ric3-ic3	TO		150.03
+insn_mul	base	rbmc	TO	19	150.09
+insn_ori	sc	rbmc	K	21	29.37
+insn_ori	sc	abc-bmc3	K	21	28.74
+insn_mul	base	abc-bmc3	TO		150.01
+insn_mul	base	ric3-ic3-bare	TO		150.04
+insn_mul	base	ric3-ic3	TO		150.02
+insn_or	base	abc-bmc3	K	21	19.40
+insn_mul	sc	rbmc	TO	19	150.15
+insn_mul	sc	abc-bmc3	TO		150.01
+insn_mul	sc	ric3-ic3-bare	TO		150.04
+insn_or	base	rbmc	K	21	55.14
+insn_mul	sc	ric3-ic3	TO		150.03
+insn_or	sc	abc-bmc3	K	21	24.29
+insn_or	sc	rbmc	K	21	36.02
+insn_rem	base	rbmc	K	21	39.21
+insn_ori	base	ric3-ic3-bare	TO		150.03
+insn_ori	base	ric3-ic3	TO		150.02
+insn_rem	sc	rbmc	K	21	40.81
+insn_ori	sc	ric3-ic3-bare	TO		150.02
+insn_ori	sc	ric3-ic3	TO		150.02
+insn_or	base	ric3-ic3-bare	TO		150.05
+insn_or	base	ric3-ic3	TO		150.03
+insn_remu	base	rbmc	K	21	46.22
+insn_or	sc	ric3-ic3-bare	TO		150.02
+insn_or	sc	ric3-ic3	TO		150.02
+insn_rem	base	abc-bmc3	TO		150.02
+insn_rem	base	ric3-ic3-bare	TO		150.03
+insn_rem	base	ric3-ic3	TO		150.02
+insn_remu	sc	rbmc	K	21	38.23
+insn_rem	sc	abc-bmc3	TO		150.01
+insn_rem	sc	ric3-ic3-bare	TO		150.02
+insn_rem	sc	ric3-ic3	TO		150.02
+insn_remu	base	abc-bmc3	TO		150.02
+insn_remu	base	ric3-ic3-bare	TO		150.04
+insn_remu	base	ric3-ic3	TO		150.03
+insn_sb	base	rbmc	K	21	112.88
+insn_sb	sc	rbmc	K	21	66.92
+insn_sb	base	abc-bmc3	K	21	117.93
+insn_remu	sc	abc-bmc3	TO		150.02
+insn_remu	sc	ric3-ic3-bare	TO		150.02
+insn_remu	sc	ric3-ic3	TO		150.02
+insn_sb	base	ric3-ic3-bare	TO		150.04
+insn_sb	sc	abc-bmc3	K	21	94.37
+insn_sb	base	ric3-ic3	TO		150.02
+insn_sh	sc	rbmc	K	21	70.34
+insn_sh	sc	abc-bmc3	K	21	82.37
+insn_slli	base	rbmc	K	21	59.67
+insn_sh	base	abc-bmc3	K	21	116.33
+insn_sh	base	rbmc	K	21	117.37
+insn_sb	sc	ric3-ic3-bare	TO		150.03
+insn_slli	base	abc-bmc3	K	21	45.08
+insn_sb	sc	ric3-ic3	TO		150.02
+insn_sh	base	ric3-ic3-bare	TO		150.04
+insn_sh	base	ric3-ic3	TO		150.02
+insn_sll	base	abc-bmc3	K	21	25.68
+insn_slli	sc	rbmc	K	21	61.44
+insn_sh	sc	ric3-ic3-bare	TO		150.03
+insn_slli	sc	abc-bmc3	K	21	66.12
+insn_sll	base	rbmc	K	21	63.32
+insn_sh	sc	ric3-ic3	TO		150.03
+insn_sll	sc	abc-bmc3	K	21	44.75
+insn_sll	sc	rbmc	K	21	51.42
+insn_slti	base	abc-bmc3	K	21	30.79
+insn_slti	base	rbmc	K	21	50.58
+insn_slli	base	ric3-ic3-bare	TO		150.03
+insn_slli	base	ric3-ic3	TO		150.03
+insn_slti	sc	abc-bmc3	K	21	26.36
+insn_slli	sc	ric3-ic3-bare	TO		150.03
+insn_slti	sc	rbmc	K	21	42.62
+insn_slli	sc	ric3-ic3	TO		150.03
+insn_sltiu	base	abc-bmc3	K	21	18.46
+insn_sll	base	ric3-ic3-bare	TO		150.04
+insn_sll	base	ric3-ic3	TO		150.03
+insn_sltiu	sc	rbmc	K	21	31.89
+insn_sltiu	base	rbmc	K	21	55.42
+insn_sltiu	sc	abc-bmc3	K	21	23.86
+insn_sll	sc	ric3-ic3-bare	TO		150.02
+insn_sll	sc	ric3-ic3	TO		150.02
+insn_slt	base	abc-bmc3	K	21	27.80
+insn_slti	base	ric3-ic3-bare	TO		150.04
+insn_slti	base	ric3-ic3	TO		150.02
+insn_slt	base	rbmc	K	21	55.35
+insn_slti	sc	ric3-ic3-bare	TO		150.03
+insn_slt	sc	abc-bmc3	K	21	25.14
+insn_slt	sc	rbmc	K	21	40.17
+insn_slti	sc	ric3-ic3	TO		150.02
+insn_sltu	base	abc-bmc3	K	21	25.66
+insn_sltiu	base	ric3-ic3-bare	TO		150.04
+insn_sltiu	base	ric3-ic3	TO		150.02
+insn_sltu	base	rbmc	K	21	49.61
+insn_sltu	sc	abc-bmc3	K	21	27.49
+insn_sltiu	sc	ric3-ic3-bare	TO		150.03
+insn_sltu	sc	rbmc	K	21	43.08
+insn_sltiu	sc	ric3-ic3	TO		150.02
+insn_slt	base	ric3-ic3-bare	TO		150.03
+insn_slt	base	ric3-ic3	TO		150.02
+insn_srai	base	abc-bmc3	K	21	42.50
+insn_srai	base	rbmc	K	21	74.06
+insn_slt	sc	ric3-ic3-bare	TO		150.02
+insn_slt	sc	ric3-ic3	TO		150.02
+insn_srai	sc	abc-bmc3	K	21	49.33
+insn_srai	sc	rbmc	K	21	58.86
+insn_sltu	base	ric3-ic3-bare	TO		150.04
+insn_sltu	base	ric3-ic3	TO		150.03
+insn_sra	base	abc-bmc3	K	21	28.41
+insn_sltu	sc	ric3-ic3-bare	TO		150.03
+insn_sra	base	rbmc	K	21	55.71
+insn_sltu	sc	ric3-ic3	TO		150.02
+insn_sra	sc	abc-bmc3	K	21	43.13
+insn_sra	sc	rbmc	K	21	54.95
+insn_srai	base	ric3-ic3-bare	TO		150.04
+insn_srai	base	ric3-ic3	TO		150.03
+insn_srli	base	abc-bmc3	K	21	39.26
+insn_srli	base	rbmc	K	21	75.29
+insn_srai	sc	ric3-ic3-bare	TO		150.02
+insn_srli	sc	abc-bmc3	K	21	50.94
+insn_srai	sc	ric3-ic3	TO		150.04
+insn_srli	sc	rbmc	K	21	62.19
+insn_sra	base	ric3-ic3-bare	TO		150.03
+insn_sra	base	ric3-ic3	TO		150.03
+insn_sra	sc	ric3-ic3-bare	TO		150.02
+insn_sra	sc	ric3-ic3	TO		150.03
+insn_srl	base	rbmc	K	21	68.13
+insn_srl	base	abc-bmc3	K	21	53.24
+insn_srl	sc	rbmc	K	21	44.52
+insn_srl	sc	abc-bmc3	K	21	42.13
+insn_srli	base	ric3-ic3-bare	TO		150.04
+insn_srli	base	ric3-ic3	TO		150.02
+insn_sub	base	abc-bmc3	K	21	47.99
+insn_srli	sc	ric3-ic3-bare	TO		150.03
+insn_sub	sc	abc-bmc3	K	21	32.21
+insn_sub	base	rbmc	K	21	71.52
+insn_srli	sc	ric3-ic3	TO		150.02
+insn_sub	sc	rbmc	K	21	56.66
+insn_srl	base	ric3-ic3-bare	TO		150.18
+insn_srl	base	ric3-ic3	TO		150.03
+insn_srl	sc	ric3-ic3-bare	TO		150.02
+insn_srl	sc	ric3-ic3	TO		150.02
+insn_sub	base	ric3-ic3-bare	TO		150.33
+insn_sw	base	rbmc	K	21	95.39
+insn_sub	base	ric3-ic3	TO		150.02
+insn_sw	base	abc-bmc3	K	21	103.01
+insn_xori	base	abc-bmc3	K	21	22.14
+insn_sw	sc	rbmc	K	21	93.89
+insn_sw	sc	abc-bmc3	K	21	96.56
+insn_sub	sc	ric3-ic3-bare	TO		150.03
+insn_sub	sc	ric3-ic3	TO		150.03
+insn_xori	sc	abc-bmc3	K	21	23.34
+insn_xori	sc	rbmc	K	21	47.30
+insn_sw	base	ric3-ic3-bare	TO		150.03
+insn_sw	base	ric3-ic3	TO		150.02
+insn_xori	base	rbmc	K	21	82.17
+insn_xor	base	abc-bmc3	K	21	28.43
+insn_xor	sc	abc-bmc3	K	21	20.73
+insn_xor	base	rbmc	K	21	59.77
+insn_xor	sc	rbmc	K	21	42.72
+insn_sw	sc	ric3-ic3-bare	TO		150.03
+insn_sw	sc	ric3-ic3	TO		150.02
+insn_xori	base	ric3-ic3-bare	TO		150.03
+insn_xori	base	ric3-ic3	TO		150.02
+insn_xori	sc	ric3-ic3-bare	TO		150.02
+insn_xori	sc	ric3-ic3	TO		150.02
+insn_xor	base	ric3-ic3-bare	TO		150.03
+insn_xor	base	ric3-ic3	TO		150.02
+insn_xor	sc	ric3-ic3-bare	TO		150.03
+insn_xor	sc	ric3-ic3	TO		150.02
