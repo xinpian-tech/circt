@@ -399,6 +399,13 @@ void KnownBitsInvariantsPass::runOnOperation() {
     if (it != known.end())
       rebuild(op->getResult(0), it->second, op);
   }
+  if (getenv("KNOWN_BITS_REPORT"))
+    for (auto reg : regs) {
+      const KnownBits &k = state[reg];
+      llvm::errs() << "known-bits: " << reg.getName().value_or("?") << " "
+                   << widthOf(reg.getResult()) << " "
+                   << (k.Zero | k.One).popcount() << "\n";
+    }
   for (auto reg : regs)
     rebuild(reg.getResult(), state[reg], reg);
   numConstantBits += constBits;

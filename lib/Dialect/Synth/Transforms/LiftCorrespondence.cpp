@@ -242,6 +242,17 @@ LogicalResult LiftCorrespondencePass::lift(hw::HWModuleOp module) {
       ++mergedValues;
     }
   }
+  if (getenv("LIFT_REPORT"))
+    for (unsigned k = 0; k < cands.size(); ++k) {
+      auto reg = cands[k].getDefiningOp<seq::CompRegOp>();
+      if (!reg)
+        continue;
+      unsigned n = 0;
+      for (Value bit : candBits[k])
+        n += bit && bit.getDefiningOp<hw::ConstantOp>();
+      llvm::errs() << "lift: " << reg.getName().value_or("?") << " "
+                   << candBits[k].size() << " " << n << "\n";
+    }
   // Constant bits of the other candidates.
   unsigned constBits = 0;
   for (unsigned k = 0; k < cands.size(); ++k) {
