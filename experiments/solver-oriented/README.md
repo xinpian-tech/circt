@@ -583,3 +583,33 @@ mean ANDs base 56,719, ws 46,702, sc 41,936, wssc 41,711; sc export time
 
 ws alone gives rBMC 14% and bare IC3 ~40% over base but stays behind sc
 (the induction part); wssc solves like sc or one more, with sc 45% cheaper.
+
+## ws2: word congruence with case splits, trimmed registers (2026-11-18)
+
+Correction to the section above: the 342 pipeline-register bits sc seemed to
+add after ws were already known to `seq-known-bits{context}` (340); the
+registers stayed whole, so the exported models kept them as dangling
+latches (solvers drop them). With dangling latches removed (ABC `&scl`), on
+a_addr_incr: base 50,348/2,616, ws 46,423/2,584, sc 41,154/2,509. The real
+sequential gap was 75 latches, mostly register equalities.
+
+`seq-word-congruence` now also compares next states numbered apart with
+`equalUnder` (aligned slices through concat/extract, known bits under facts,
+unit propagation of disjunctive facts, case splits on mux conditions, no
+solver): it merges an assertion's shadow register of the fetch address
+(`prefetcher_sva/previous_addr` = `trans_addr_q`). `seq-trim-registers`
+drops the known and unread register bits. ws2 = ws + both (`WS=1`):
+46,181/2,552 (+fraig 42,135); 43,974 with ripple-carry adders
+(`ADDER=RIPPLE-CARRY`, `convert-comb-to-synth{adder-architecture=...}`;
+the parallel prefix adders CIRCT picks for >= 8 bits are large and
+redundant), 41,262 with fraig too.
+
+97 properties (`results/core-env-ws2cmp`): mean ANDs/latches ws2
+46,170/2,535, ws2sc 41,704/2,523 (sc 41,936/2,522); sc time after ws2 188 s
+(354 s alone). Solved base/sc/ws/ws2/ws2sc: abc-bmc3 77/77/77/75/78 (the two
+lost need 132-147 s on base, at the 150 s limit), rbmc 72/73/72/72/73 (ws2
+vs base gm 33.5→27.0 s, hard 64.8→51.9), ric3-ic3-bare 59/63/57/52/62 (ws2
+vs base 5.56→3.04 s on the common ones, 9 lost and 2 gained). Bare IC3
+varies too much for one run: a_wb_ready_exception goes from 7 s to a
+timeout on the same kind of model under load, so seeded runs
+(`ric3-ic3-bare-sN`) follow. No configuration contradicts another.
