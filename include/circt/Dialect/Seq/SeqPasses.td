@@ -282,4 +282,55 @@ def RegisterBisimulation : Pass<"seq-register-bisimulation", "hw::HWModuleOp"> {
   ];
 }
 
+def WordCorrespondence : Pass<"seq-word-correspondence", "hw::HWModuleOp"> {
+  let summary = "Signal correspondence on words, proved with an SMT solver";
+  let description = [{
+    Signal correspondence on the word-level IR, before bit-blasting: whole
+    values (registers and combinational operations) that are equal to each
+    other or constant in every reachable state from the initial state, and
+    the bits of a value that are constant, are merged. Candidates come from
+    word-level random simulation; they are proved by induction (they hold in
+    the initial state, and if all hold in a cycle they hold in the next),
+    each check a bit-vector problem written as SMT-LIB from the IR and solved
+    by an external solver (`solver`, Bitwuzla by default). A counterexample is
+    simulated to split the classes, until none splits.
+
+    Registers on another clock than the most common one, with a reset, an
+    inner symbol or a non-constant initial value, and operations other than
+    the bitwise, arithmetic (add, sub, mul), comparison, mux, extract,
+    concat, replicate and shift operations of comb are free values in each
+    cycle. Assumptions are not used.
+  }];
+  let options = [
+    Option<"numPatterns", "num-patterns", "unsigned", "256",
+           "Simulated runs from the initial state">,
+    Option<"numFrames", "num-frames", "unsigned", "64",
+           "Simulated cycles per run">,
+    Option<"seed", "seed", "uint64_t", "0", "Seed of the simulation">,
+    Option<"maxIterations", "max-iterations", "unsigned", "10000",
+           "Checks before giving up (then nothing is merged)">,
+    Option<"solver", "solver", "std::string", "\"bitwuzla\"",
+           "SMT solver (reads SMT-LIB from a file argument)">,
+    Option<"dumpDir", "dump-dir", "std::string", "\"\"",
+           "Debugging: directory to keep the SMT-LIB queries in">
+  ];
+  let statistics = [
+    Statistic<"numCandidates", "num-candidates",
+              "Values in candidate classes after simulation">,
+    Statistic<"numCandidateBits", "num-candidate-bits",
+              "Values with constant bits after simulation">,
+    Statistic<"numQueries", "num-queries", "SMT queries">,
+    Statistic<"numCounterexamples", "num-counterexamples",
+              "Counterexamples">,
+    Statistic<"numClasses", "num-classes", "Proved classes">,
+    Statistic<"numMergedValues", "num-merged-values", "Values merged">,
+    Statistic<"numConstantBits", "num-constant-bits",
+              "Bits of values replaced by constants">,
+    Statistic<"numCutOps", "num-cut-ops",
+              "Operations closing a word-level cycle, made free">,
+    Statistic<"msSimulate", "ms-simulate", "Milliseconds simulating">,
+    Statistic<"msProve", "ms-prove", "Milliseconds proving">
+  ];
+}
+
 #endif // CIRCT_DIALECT_SEQ_SEQPASSES

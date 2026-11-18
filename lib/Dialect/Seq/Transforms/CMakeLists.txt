@@ -12,6 +12,7 @@ add_circt_dialect_library(CIRCTSeqTransforms
   UnrollMemoryLatencies.cpp
   RegisterBisimulation.cpp
   TrimRegisters.cpp
+  WordCorrespondence.cpp
 
   DEPENDS
   CIRCTSeqTransformsIncGen
