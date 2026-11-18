@@ -22,6 +22,7 @@
 
 #include "circt/Dialect/Comb/CombDialect.h"
 #include "circt/Dialect/Comb/CombOps.h"
+#include <chrono>
 #include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/Seq/SeqOps.h"
 #include "circt/Dialect/Synth/SynthDialect.h"
@@ -2145,6 +2146,26 @@ std::pair<unsigned, unsigned> Correspondence::merge() {
       text += " " + name + "*" + std::to_string(count);
     return text;
   };
+  // Debugging aid: one line per proved class, its members as register bits
+  // (name[bit]) or and-gates (G), `~` for the inverted phase.
+  if (mergeDump) {
+    unsigned index = 0;
+    for (auto &c : classes) {
+      llvm::errs() << "class " << index++ << (c.constant ? " const" : "") << ":";
+      for (auto [i, p] : c.members) {
+        llvm::errs() << " " << (p ? "~" : "");
+        if (cands[i].reg >= 0) {
+          auto reg = candValue(i).getDefiningOp<seq::CompRegOp>();
+          llvm::errs() << (reg ? reg.getName().value_or("?") : "?");
+        } else {
+          llvm::errs() << "G";
+          if (auto loc = dyn_cast<FileLineColLoc>(candValue(i).getLoc()))
+            llvm::errs() << "@" << loc.getLine();
+        }
+      }
+      llvm::errs() << "\n";
+    }
+  }
   unsigned classIndex = 0;
   numClassesAtMerge = classes.size();
   for (auto &c : classes) {
@@ -2289,8 +2310,17 @@ struct RegisterCorrespondencePass
     c.mergeFrom = mergeFrom;
     c.mergeTo = mergeTo;
     c.mergeDump = mergeDump;
+    using Clock = std::chrono::steady_clock;
+    auto start = Clock::now();
+    auto lap = [&](auto &stat) {
+      auto now = Clock::now();
+      stat += std::chrono::duration_cast<std::chrono::milliseconds>(now - start)
+                  .count();
+      start = now;
+    };
     if (!c.build())
       return markAllAnalysesPreserved();
+    lap(msBuildStat);
     if (constraints && !chunk)
       module.emitWarning("constraints need chunk > 0; not used");
     if (c.constraintsIgnored)
@@ -2300,9 +2330,12 @@ struct RegisterCorrespondencePass
                          "(or conjunction), found ")
           << *c.propertyIgnored << "; not assumed";
     c.simulateCandidates();
+    lap(msSimulateStat);
     numCandidatesStat += c.numCandidates();
-    bool proved = chunk ? c.proveIncremental(false) && c.proveIncremental(true)
-                        : c.proveBase() && c.proveStep();
+    bool proved = chunk ? c.proveIncremental(false) : c.proveBase();
+    lap(msBaseStat);
+    proved = proved && (chunk ? c.proveIncremental(true) : c.proveStep());
+    lap(msStepStat);
     numIterationsStat += c.numIterations;
     numSATCallsStat += c.numSATCalls;
     numUnknownStat += c.numUnknown;
@@ -2312,6 +2345,7 @@ struct RegisterCorrespondencePass
       return markAllAnalysesPreserved();
     }
     auto [regs, gates] = c.merge();
+    lap(msMergeStat);
     numMergedStat += regs;
     numMergedGatesStat += gates;
     numClassesStat += c.numClassesAtMerge;

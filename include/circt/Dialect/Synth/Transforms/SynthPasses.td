@@ -400,7 +400,14 @@ def RegisterCorrespondence
     Statistic<"numMergedGatesStat", "num-merged-gates",
               "And-gates merged (with internal)">,
     Statistic<"numClassesStat", "num-classes",
-              "Proved classes (the range of merge-from/merge-to)">
+              "Proved classes (the range of merge-from/merge-to)">,
+    Statistic<"msBuildStat", "ms-build", "Milliseconds building the net">,
+    Statistic<"msSimulateStat", "ms-simulate",
+              "Milliseconds simulating the candidates">,
+    Statistic<"msBaseStat", "ms-base", "Milliseconds proving the base case">,
+    Statistic<"msStepStat", "ms-step",
+              "Milliseconds proving the inductive step">,
+    Statistic<"msMergeStat", "ms-merge", "Milliseconds merging">
   ];
   let dependentDialects = ["comb::CombDialect", "hw::HWDialect",
                            "seq::SeqDialect", "synth::SynthDialect"];
