@@ -14,6 +14,7 @@
 #   rbmc-onlyelim  rBMC with only CaDiCaL's variable elimination on (of those)
 #   ric3-bmc       rIC3 bmc with its preprocessing
 #   ric3-ic3-bare  rIC3 ic3, no preprocessing, plain CNF
+#   ric3-ic3-bare-sN  the same with random seed N (IC3 varies a lot)
 #   ric3-ic3       rIC3 ic3 with its preprocessing
 #   abc-bmc3, abc-pdr          ABC on the model as it is
 #   abc-pre-bmc3, abc-pre-pdr  ABC after scorr, fraig, dc2 (time included)
@@ -45,6 +46,8 @@ one() {
       --cadical vivify=0 --cadical ternary=0 --cadical decompose=0 ;;
     ric3-bmc) $run $RIC3 check $f --ui false bmc --end $K ;;
     ric3-ic3-bare) $run $RIC3 check $f --ui false --fe-simp false --fe-cnf plain ic3 --preproc false ;;
+    ric3-ic3-bare-s*) $run $RIC3 check $f --ui false --rseed ${e##*-s} --fe-simp false \
+      --fe-cnf plain ic3 --preproc false ;;
     ric3-ic3) $run $RIC3 check $f --ui false ic3 ;;
     abc-bmc3) $run $ABC -c "read $pl; bmc3 -F $((K + 1)) -T $TL" ;;
     abc-pdr) $run $ABC -c "read $pl; pdr -T $TL" ;;
