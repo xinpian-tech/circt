@@ -631,3 +631,20 @@ ws2→ws2r 27.0→25.3, sc→ws2rsc 22.7→22.0 with 3 more solved; abc-bmc3
 base→ws2r 11.1→9.7. Ripple-carry alone barely changes solving (2%), but
 helps after ws2 (6-8%) and makes sc 2.3x cheaper with ws2 (156 s vs 354 s)
 for the smallest models (40,840) and the most solved (rbmc 76).
+
+## PicoRV32 with ws2r (2026-11-19)
+
+The 72 insn/csrw riscv-formal checks (K=21, 150 s, all four configurations
+in one run; `results/picorv32/results-ws2r.tsv`). Mean ANDs/latches: base
+34,430/2,211, sc 26,324/2,149, ws2r 32,149/2,160, ws2rsc 26,001/2,149; sc
+time 38.2 s alone, 28.4 s after ws2r. Solved base/sc/ws2r/ws2rsc: abc-bmc3
+63/64/64/64, rbmc 68/69/66/68 (the two lost are at the time limit).
+Geometric means on the common ones: abc-bmc3 base→ws2r 43.3→32.0 s (sc 40.1),
+sc→ws2rsc 40.1→29.8; rbmc base→ws2r 62.2→52.6, sc→ws2rsc 50.8→43.9.
+
+On insn_add: kb finds nothing (no sequential constants), fraig alone gives
+most of sc (base 34,271, +fraig 28,765, sc 26,407 after &scl); the merged
+gates are mostly an outer mux equal to an inner value (2,373 of 3,143,
+e.g. the register file's first-cycle symbolic value mux) and x+1 adders.
+ws2r removes about a quarter of sc's reduction yet gets sc's speed-up on
+ABC: size is not difficulty.
