@@ -384,14 +384,14 @@ def RegisterCorrespondence
     Option<"plainSat", "plain-sat", "bool", "false",
            "Experimental: CaDiCaL without pre- and inprocessing (plain "
            "configuration) for the proofs">,
-    Option<"fastRefine", "fast-refine", "bool", "false",
+    Option<"fastRefine", "fast-refine", "bool", "true",
            "Experimental: keep classes that a counterexample does not split "
            "without rebuilding them, and cache the hypothesis literals of the "
            "inductive step (same result, less bookkeeping)">,
     Option<"frameStrash", "frame-strash", "bool", "false",
            "Experimental: fold constants and hash equal gates when encoding "
            "the frames for SAT (speculatively reduced frames collapse)">,
-    Option<"lazyHyps", "lazy-hyps", "bool", "false",
+    Option<"lazyHyps", "lazy-hyps", "bool", "true",
            "Experimental (chunk > 0): assume in the inductive step only the "
            "hypotheses that a counterexample violated (same result)">,
     Option<"mergeFrom", "merge-from", "unsigned", "0",
@@ -520,6 +520,26 @@ def FunctionalReduction : Pass<"synth-functional-reduction", "hw::HWModuleOp"> {
     See "FRAIGs: A Unifying Representation for Logic Synthesis and Verification,
     Tech. Rep., 2005" by Mishchenko et al. for details on the underlying
     algorithm.
+
+    The candidates are checked in topological order of the members. A SAT
+    solver holds the CNF of the cones of the queries so far, in which every
+    proven member is replaced by its representative (as the FRAIG is built
+    in ABC), and is replaced by a fresh one once it has `max-solver-vars`
+    variables. With `refine` (the default), every SAT counterexample becomes
+    a new simulation pattern: the remaining candidates are checked against
+    it before any further SAT call, and the classes are rebuilt with the new
+    patterns and checked again until a round finds no counterexample, so
+    members that differ from their first representative can still be merged
+    with each other.
+
+    Combinational cycles (strongly connected components of the `synth`
+    logic and the simulated `comb` ops, as left by `synth-remove-false-cycles`
+    without `obligation`) are cut: the values of the ops on a cycle are
+    treated as free inputs in simulation and SAT, and they are neither merged
+    nor used as representatives. Equivalences proven that way hold for any
+    values of the cut points, so they hold in the cyclic network too, and a
+    merge is skipped where it would close a new cycle (with `use-choices`,
+    the pass fails instead if merging closed one).
   }];
 
   let options = [
@@ -527,6 +547,25 @@ def FunctionalReduction : Pass<"synth-functional-reduction", "hw::HWModuleOp"> {
            "Enable test transformation mode. In this mode, candidates are "
            "verified only when both values in a pair carry matching "
            "`synth.test.functional_reduction_equivalence_class` attributes.">,
+    Option<"refine", "refine", "bool", "true",
+           "Refine the candidate classes with the SAT counterexamples and "
+           "check the refined classes again until no counterexample is "
+           "found. Without it, every member is only checked against the "
+           "first member of its class after random simulation.">,
+    Option<"luckyPhases", "lucky-phases", "bool", "false",
+           "Let CaDiCaL try its lucky phases before every query (each a "
+           "propagation over the whole formula; slow for the many small "
+           "queries of this pass).">,
+    Option<"orderFromOutputs", "order-from-outputs", "bool", "true",
+           "Number the gates in a depth-first post-order from the outputs and "
+           "register inputs (as ABC does) instead of the block order. The "
+           "representative of a class is its first member in this order, "
+           "which decides which logic is kept; inputs and constants always "
+           "come first.">,
+    Option<"maxSolverVars", "max-solver-vars", "unsigned", "10000",
+           "Start a fresh SAT solver once the current one has more than "
+           "this many variables (0: never). Satisfiable queries assign every "
+           "variable of the solver, so a large solver makes them slow.">,
     Option<"numRandomPatterns", "num-random-patterns", "unsigned", "1024",
            "Number of random simulation patterns (must be a positive multiple of 64; "
            "each pattern is one bit in a 64-bit word)">,
@@ -551,7 +590,15 @@ def FunctionalReduction : Pass<"synth-functional-reduction", "hw::HWModuleOp"> {
     Statistic<"numUnknown", "num-unknown",
               "Number of SAT calls hitting resource limit (UNKNOWN)">,
     Statistic<"numMergedNodes", "num-merged-nodes",
-              "Number of nodes merged due to functional equivalence">
+              "Number of nodes merged due to functional equivalence">,
+    Statistic<"numSimDisproved", "num-sim-disproved",
+              "Number of candidates separated by simulated counterexamples "
+              "without a SAT call">,
+    Statistic<"numRounds", "num-rounds",
+              "Number of refinement rounds">,
+    Statistic<"numCutValues", "num-cut-values",
+              "Number of values on combinational cycles treated as free "
+              "inputs">
   ];
   let dependentDialects = ["synth::SynthDialect"];
 }
