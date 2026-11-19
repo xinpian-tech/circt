@@ -29,12 +29,14 @@ CS="comb-context-simplify{depth=32 budget=16384},canonicalize,cse,"
 CS2="comb-context-simplify{depth=32 budget=16384 or-form cases=4},canonicalize,cse,"
 [ "${WS:-0}" = 2 ] && DCP="${DCP}seq-known-bits{context},canonicalize,cse,$CS${CS2}seq-word-congruence,canonicalize,cse,seq-trim-registers,canonicalize,cse,hw-aggregate-to-comb,canonicalize,cse,"
 # ADDER=RIPPLE-CARRY (or another architecture) for all adders and comparators.
+# XDCP=passes, appended at the same place (ablations).
+DCP="${DCP}${XDCP:-}"
 CTS=convert-comb-to-synth
 [ -n "${ADDER:-}" ] && CTS="convert-comb-to-synth{adder-architecture=$ADDER}"
 LOWER="hw-cone-of-influence,canonicalize,hw-aggregate-to-comb,canonicalize,${DCP}synth-lower-word-to-bits,canonicalize,$CTS,synth-lower-word-to-bits,canonicalize,synth-remove-false-cycles{obligation fixpoint-obligation},synth-lower-variadic,synth-lower-word-to-bits,synth-structural-hash"
 BITS="synth-lower-variadic,synth-lower-word-to-bits,synth-structural-hash"
 SC="synth-register-correspondence{internal},canonicalize,$BITS"
-export H B IN OUT PRE LOWER SC NOUS
+export H B IN OUT PRE LOWER SC NOUS NOSC
 one() {
   local a=$1
   toaig() { $B/circt-translate --export-aiger --exclude-symbol-table $1 -o $2.full.aig &&
@@ -45,9 +47,13 @@ one() {
   # NOUS=1: no unsharing (us and ussc are the base and sc models).
   if [ "${NOUS:-0}" = 1 ]; then cp $OUT/$a.base.mlir $OUT/$a.us.mlir; cp $OUT/$a.base.aig $OUT/$a.us.aig; else
   $B/circt-opt $IN/$a.none.mlir --pass-pipeline="builtin.module(hw.module($PRE,comb-unshare-operators,$PRE,$LOWER))" --mlir-pass-statistics -o $OUT/$a.us.mlir 2>$OUT/$a.us.log && toaig $OUT/$a.us.mlir $OUT/$a.us.aig; fi
-  run $B/circt-opt $OUT/$a.base.mlir --pass-pipeline="builtin.module(hw.module($SC))" -o $OUT/$a.sc.mlir 2>$OUT/$a.sc.log > $OUT/$a.sc.time && toaig $OUT/$a.sc.mlir $OUT/$a.sc.aig
+  # NOSC=1: only the base (and us) model; no sc (ablations).
+  if [ "${NOSC:-0}" = 1 ]; then cp $OUT/$a.base.aig $OUT/$a.sc.aig; else
+  run $B/circt-opt $OUT/$a.base.mlir --pass-pipeline="builtin.module(hw.module($SC))" -o $OUT/$a.sc.mlir 2>$OUT/$a.sc.log > $OUT/$a.sc.time && toaig $OUT/$a.sc.mlir $OUT/$a.sc.aig; fi
   if cmp -s $OUT/$a.base.aig $OUT/$a.us.aig; then
     ln -f $OUT/$a.base.aig $OUT/$a.us.aig; ln -f $OUT/$a.sc.aig $OUT/$a.ussc.aig; touch $OUT/$a.us.same
+  elif [ "${NOSC:-0}" = 1 ]; then
+    cp $OUT/$a.us.aig $OUT/$a.ussc.aig
   else
     $B/circt-opt $OUT/$a.us.mlir --pass-pipeline="builtin.module(hw.module($SC))" -o $OUT/$a.ussc.mlir 2>$OUT/$a.ussc.log && toaig $OUT/$a.ussc.mlir $OUT/$a.ussc.aig
   fi

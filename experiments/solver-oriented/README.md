@@ -648,3 +648,66 @@ gates are mostly an outer mux equal to an inner value (2,373 of 3,143,
 e.g. the register file's first-cycle symbolic value mux) and x+1 adders.
 ws2r removes about a quarter of sc's reduction yet gets sc's speed-up on
 ABC: size is not difficulty.
+
+## Full evaluation on briareus (2026-11-19)
+
+xinpian-tech/solver-benchmark branch `bench/circt-wordlevel` (models from
+`export_all.sh`, runner `experiment/run.py`): 1,557 models, 6,927 runs, one
+CPU, 600 s, 16 GiB each. Runs 44463204548 (all), 44468883578 (bare rIC3
+with the seed after `ic3`), 44469491282 (ABC: the nixpkgs 0.62 build in the
+flake reports pdr UNDECIDED on properties inductive in frame 1, so the
+bundled unstable-2023-10-13 build of these experiments), 44474597983
+(abc-pre-bmc3: iprove when scorr leaves no latch). Merged results:
+`results/briareus/results.tsv`. No verdict conflicts in any run.
+
+ws3r = `WS=2 ADDER=RIPPLE-CARRY` (known bits with context, context
+simplification twice with or-form and case splits, word congruence, trimmed
+registers, ripple-carry adders); ablations: r (ripple only), kb, cs, ws3
+(default adders), nowc (no word congruence).
+
+cv32: solved, geometric mean on the checks all four solve (n)
+
+| tool | base | sc | ws3r | ws3rsc | n |
+|---|---|---|---|---|---|
+| abc-bmc3 | 78 / 24.7 | 78 / 16.1 | 78 / 21.2 | 78 / 14.7 | 78 |
+| abc-pdr | 37 / 4.1 | 41 / 1.4 | 39 / 1.3 | 38 / 1.4 | 33 |
+| abc-pre-bmc3 | 79 / 221.6 | 79 / 139.3 | 79 / 157.2 | 79 / 131.2 | 79 |
+| rbmc | 76 / 88.5 | 79 / 58.9 | 79 / 64.1 | 79 / 55.9 | 76 |
+| rbmc-nopre | 71 / 96.4 | 72 / 56.9 | 72 / 65.0 | 73 / 54.5 | 71 |
+| ric3-ic3 | 67 / 10.4 | 67 / 6.7 | 64 / 9.6 | 68 / 8.5 | 60 |
+| ric3-ic3-bare-s0 | 60 / 14.3 | 67 / 7.2 | 64 / 7.5 | 62 / 6.2 | 56 |
+| ric3-ic3-bare-s1 | 59 / 15.0 | 66 / 5.7 | 63 / 6.2 | 61 / 5.9 | 55 |
+| ric3-ic3-bare-s2 | 60 / 13.4 | 66 / 5.9 | 61 / 7.7 | 65 / 6.0 | 55 |
+
+cv32 ablation: solved / geometric mean on the checks all solve
+
+| tool | base | r | kb | cs | ws3 | nowc | ws3r | n |
+|---|---|---|---|---|---|---|---|---|
+| abc-bmc3 | 78 / 24.7 | 78 / 24.6 | 78 / 23.6 | 78 / 23.0 | 78 / 23.4 | 78 / 22.2 | 78 / 21.2 | 78 |
+| rbmc | 76 / 88.5 | 77 / 83.8 | 78 / 76.9 | 79 / 69.6 | 77 / 70.9 | 79 / 67.2 | 79 / 64.1 | 76 |
+| ric3-ic3-bare-s0 | 60 / 11.4 | 61 / 11.0 | 62 / 7.4 | 61 / 9.4 | 62 / 5.8 | 64 / 6.8 | 64 / 5.5 | 50 |
+
+pico: solved, geometric mean on the checks all four solve (n)
+
+| tool | base | sc | ws3r | ws3rsc | n |
+|---|---|---|---|---|---|
+| abc-bmc3 | 64 / 81.0 | 64 / 72.0 | 68 / 62.8 | 68 / 53.6 | 64 |
+| abc-pre-bmc3 | 67 / 126.7 | 68 / 98.4 | 66 / 103.0 | 67 / 93.6 | 65 |
+| rbmc | 72 / 152.5 | 72 / 124.0 | 72 / 126.3 | 72 / 112.7 | 72 |
+| rbmc-nopre | 44 / 357.6 | 60 / 249.9 | 57 / 280.1 | 65 / 228.6 | 44 |
+
+pico ablation: solved / geometric mean on the checks all solve
+
+| tool | base | r | kb | cs | ws3 | nowc | ws3r | n |
+|---|---|---|---|---|---|---|---|---|
+| abc-bmc3 | 64 / 81.0 | 68 / 67.2 | 68 / 66.3 | 68 / 61.7 | 64 / 77.9 | 66 / 61.4 | 68 / 62.8 | 64 |
+| rbmc | 72 / 151.4 | 72 / 137.1 | 71 / 135.7 | 72 / 125.3 | 72 / 134.1 | 72 / 124.0 | 72 / 124.0 | 71 |
+
+Summary: without a solver, ws3r gives most of sc's speed-up on BMC (rbmc
+cv32 88.5→64.1 s vs sc 58.9, same 79 solved; abc-bmc3 pico 4 more solved
+than sc) and about half of sc's gain in solved checks on bare IC3 (3 seeds:
+base 59.7, ws3r 62.7, sc 66.3); ws3rsc is the best BMC configuration. With
+rIC3's own front end ws3r loses 3 (seed variance plus one check that is
+really slower). CaDiCaL's preprocessing off: pico 44 → 57 (ws3r) → 65
+(ws3rsc), cv32 unchanged gap. The operator-unsharing checks: 5 of 9 on
+every back end in every configuration.
