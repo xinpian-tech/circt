@@ -711,3 +711,14 @@ rIC3's own front end ws3r loses 3 (seed variance plus one check that is
 really slower). CaDiCaL's preprocessing off: pico 44 → 57 (ws3r) → 65
 (ws3rsc), cv32 unchanged gap. The operator-unsharing checks: 5 of 9 on
 every back end in every configuration.
+
+k-induction and interpolation (run 44481606262, CV32E40X, 600 s), solved /
+geometric mean against base's on the checks both solve:
+
+| tool | base | sc | ws3r | ws3rsc |
+|---|---|---|---|---|
+| abc-int (ABC `int`) | 35 | 37 / 5.2 vs 9.5 | 36 / 4.7 vs 8.5 | 37 / 4.7 vs 9.5 |
+| ric3-kind (rIC3 kind, front end on) | 8 | 15 / 6.6 vs 7.3 | 10 / 6.4 vs 7.3 | 15 / 6.6 vs 7.3 |
+
+k-induction gains most from sc (the merged equivalences strengthen the
+induction); ws3r gives 2 of sc's 7.
