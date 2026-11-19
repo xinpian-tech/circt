@@ -420,15 +420,32 @@ def ContextSimplify : Pass<"comb-context-simplify", "hw::HWModuleOp"> {
     conjuncts hold (an equality with a constant makes the compared word
     known), a disjunct of an or assuming the others do not, an arm of a mux
     assuming its condition selects it. Conjuncts known 1 are dropped, known 0
-    make the and 0 (dually for or), arms wholly known become constants. (In
-    the Seq library for the known-bits transfer functions.)
+    make the and 0 (dually for or), arms wholly known become constants.
+    Negated comparisons with constants are kept as disequalities (passed
+    through bijections with constants), disjunctions among the facts are
+    split into cases. In an arm, muxes with a condition known there are their
+    arm and operands of an or known 0 there are dropped; the bits of a mux
+    where one arm equals the other whenever the other is selected (by known
+    bits, or slice by slice with case splits) are that arm. With `or-form`,
+    a mux whose arms are disjoint becomes the or of its arms. (In the Seq
+    library for the known-bits transfer functions.)
   }];
   let options = [
     Option<"depth", "depth", "unsigned", "8", "Depth of the evaluation">,
     Option<"budget", "budget", "unsigned", "256",
            "Operations evaluated per operand">,
     Option<"splits", "splits", "unsigned", "4",
-           "Mux conditions split on to show an arm equals the other">
+           "Depth of the case splits (on mux conditions, or on the operands "
+           "of a disjunction in the facts) to show an arm equals the other">,
+    Option<"steps", "steps", "unsigned", "16",
+           "Case splits per arm shown equal to the other">,
+    Option<"cases", "cases", "unsigned", "1",
+           "Cases (of splits on disjunctions in the facts) an arm is "
+           "evaluated in">,
+    Option<"orForm", "or-form", "bool", "false",
+           "Turn a mux whose arms are disjoint (bits of one arm 0 whenever "
+           "the other is selected) into the or of its arms, gated by the "
+           "condition only where needed">
   ];
   let statistics = [
     Statistic<"numDropped", "num-dropped", "Operands dropped">,

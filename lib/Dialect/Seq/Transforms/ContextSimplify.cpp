@@ -20,6 +20,20 @@
 // rewriting does not and that bit-level SAT sweeping finds after
 // bit-blasting.
 //
+// A negated comparison `x != C` is a disequality fact, passed on through
+// bijections with constants (`x + C`, `C - x`, `x ^ C`); a disjunction among
+// the facts (an `or` known 1, an `and` known 0) is split into its cases. In
+// an arm, muxes whose condition is known where the arm is selected (also by
+// refuting one value of the condition, through the operands of an `or` it
+// would make 1) are their arm, and operands of an `or` known 0 there are
+// dropped. The bits of a mux where one arm equals the other whenever the
+// other is selected (by known bits, or slice by slice following muxes and
+// splitting on conditions) are that arm. With `or-form`, a mux whose arms are
+// disjoint (bits of one arm 0 whenever the other is selected) becomes the or
+// of its arms, gated by the condition only where needed. SAT sweeping finds
+// these (a mux redundant under a case split, one-hot muxes) after
+// bit-blasting as and-gates equal to one of their inputs.
+//
 //===----------------------------------------------------------------------===//
 
 #include "circt/Dialect/Comb/CombOps.h"
@@ -55,6 +69,110 @@ struct ContextSimplifyPass
 
 } // namespace
 
+/// The bits of `a` where `mask` is set, of `b` elsewhere.
+static Value selectBits(OpBuilder &builder, Location loc, const APInt &mask,
+                        Value a, Value b) {
+  if (mask.isAllOnes())
+    return a;
+  if (mask.isZero())
+    return b;
+  unsigned w = mask.getBitWidth();
+  SmallVector<Value> parts;
+  for (int hi = w; hi > 0;) {
+    bool isA = mask[hi - 1];
+    int lo = hi - 1;
+    while (lo > 0 && mask[lo - 1] == isA)
+      --lo;
+    parts.push_back(
+        comb::ExtractOp::create(builder, loc, isA ? a : b, lo, hi - lo));
+    hi = lo;
+  }
+  return comb::ConcatOp::create(builder, loc, parts);
+}
+
+/// A mux `c ? a : b` where bits of `b` are 0 whenever `a` is selected (or
+/// bits of `a` whenever `b` is) as the disjunction of its arms there, each
+/// gated by the condition only where needed: `(c ? a : 0) | b` (an and less
+/// per bit after bit-blasting). `zeroA` / `zeroB` are the bits of `a` known 0
+/// when `c` is 0 / of `b` known 0 when `c` is 1.
+static bool rewriteDisjoint(comb::MuxOp mux, APInt zeroA, APInt zeroB,
+                            unsigned budget, unsigned depth) {
+  Value a = mux.getTrueValue(), b = mux.getFalseValue();
+  // Bits of an arm that are constant are gated by an and (or nothing)
+  // anyway; changing them would only break up the mux.
+  for (auto [arm, zero] : {std::make_pair(a, &zeroA), {b, &zeroB}}) {
+    if (zero->isZero())
+      continue;
+    Context ctx(budget, depth);
+    KnownBits k = ctx.eval(arm, depth);
+    *zero &= ~(k.Zero | k.One);
+  }
+  if (zeroA.isZero() && zeroB.isZero())
+    return false;
+  unsigned w = zeroA.getBitWidth();
+  OpBuilder builder(mux);
+  builder.setInsertionPointAfter(mux);
+  Location loc = mux.getLoc();
+  Value zero = hw::ConstantOp::create(builder, loc, APInt(w, 0));
+  Value gatedA = zeroA.isAllOnes()
+                     ? a
+                     : comb::MuxOp::create(builder, loc, mux.getCond(), a, zero)
+                           .getResult();
+  Value gatedB = zeroB.isAllOnes()
+                     ? b
+                     : comb::MuxOp::create(builder, loc, mux.getCond(), zero, b)
+                           .getResult();
+  Value left = selectBits(builder, loc, zeroA, a, gatedA);
+  Value right = selectBits(builder, loc, zeroB, b, gatedB);
+  mux.getResult().replaceAllUsesWith(
+      comb::OrOp::create(builder, loc, left, right, false).getResult());
+  return true;
+}
+
+/// `v` without the operands of an or known 0 under the facts (of an and
+/// known all ones), in each case of splits on the disjunctions among them
+/// (see Context::forEachCase), if it is used once.
+static Value pruneUnder(Context &ctx, Value v, unsigned levels,
+                        unsigned cases) {
+  Operation *op = v.getDefiningOp();
+  if (!op || !isa<comb::OrOp, comb::AndOp>(op) || op->getNumOperands() < 2 ||
+      !v.hasOneUse())
+    return v;
+  bool isAnd = isa<comb::AndOp>(op);
+  unsigned n = op->getNumOperands();
+  SmallVector<bool> drop(n, true);
+  bool possible = false;
+  unsigned extra = cases ? cases - 1 : 0;
+  ctx.forEachCase(levels, extra, [&](Context &c) {
+    possible = true;
+    for (unsigned i = 0; i < n; ++i) {
+      if (!drop[i])
+        continue;
+      KnownBits k = c.eval(c.resolve(op->getOperand(i), 2), c.depth);
+      drop[i] = isAnd ? k.One.isAllOnes() : k.Zero.isAllOnes();
+    }
+    return llvm::is_contained(drop, true);
+  });
+  if (!possible)
+    return v;
+  SmallVector<Value> kept;
+  for (unsigned i = 0; i < n; ++i)
+    if (!drop[i])
+      kept.push_back(op->getOperand(i));
+  if (kept.size() == op->getNumOperands())
+    return v;
+  OpBuilder builder(op);
+  unsigned w = widthOf(v);
+  if (kept.empty())
+    return hw::ConstantOp::create(builder, op->getLoc(),
+                                  isAnd ? APInt::getAllOnes(w) : APInt(w, 0));
+  if (kept.size() == 1)
+    return kept[0];
+  if (isAnd)
+    return comb::AndOp::create(builder, op->getLoc(), kept, false);
+  return comb::OrOp::create(builder, op->getLoc(), kept, false);
+}
+
 void ContextSimplifyPass::runOnOperation() {
   Block *body = getOperation().getBodyBlock();
   SmallVector<Operation *> ops;
@@ -65,61 +183,93 @@ void ContextSimplifyPass::runOnOperation() {
   unsigned dropped = 0, folded = 0, arms = 0, redundant = 0;
   for (auto *op : ops) {
     if (auto mux = dyn_cast<comb::MuxOp>(op)) {
-      for (unsigned arm = 1; arm <= 2; ++arm) {
-        Value a = op->getOperand(arm);
-        if (constantOf(a))
-          continue;
-        Context ctx(budget, depth);
-        ctx.addKnown(mux.getCond(), KnownBits::makeConstant(APInt(1, arm == 1)),
-                     depth);
-        if (ctx.contradiction)
-          continue;
-        KnownBits k = ctx.eval(a, depth);
-        if (!k.isConstant())
-          continue;
-        builder.setInsertionPoint(op);
-        op->setOperand(arm, hw::ConstantOp::create(builder, op->getLoc(),
-                                                   k.getConstant()));
-        ++arms;
-      }
-      // Bits where an arm equals the other one whenever the other one is
-      // selected: there the mux is that arm. (A reset mux around logic that
-      // already selects the reset value under reset.)
+      // Each arm under the facts where it is selected: muxes in it whose
+      // condition is known there are their arm, operands of an or known 0
+      // there (of an and known 1) are dropped, an arm wholly known there is
+      // that constant. Then the bits where the other arm equals it there (by
+      // known bits in each case of splits on the disjunctions among the
+      // facts, or by slices; see equalMask): there the mux is the other arm.
+      // (A reset mux around logic that already selects the reset value under
+      // reset; a case chain that already selects the value.)
       unsigned w = widthOf(op->getResult(0));
       if (!w)
         continue;
-      // An arm that is the other one whenever the other one is selected,
-      // following muxes whose conditions are known there (a case chain that
-      // already selects the value).
-      bool whole = false;
-      for (unsigned arm = 1; arm <= 2 && !whole; ++arm) {
-        Context ctx(budget, depth);
-        if (!ctx.assume(mux.getCond(), arm == 2))
+      APInt same[3] = {APInt(w, 0), APInt(w, 0), APInt(w, 0)};
+      // Bits of an arm known 0 when the other one is selected.
+      APInt zero[3] = {APInt(w, 0), APInt(w, 0), APInt(w, 0)};
+      // First each arm on its own, under the facts where it is selected.
+      for (unsigned arm = 1; arm <= 2; ++arm) {
+        Value v = op->getOperand(arm);
+        if (constantOf(v))
           continue;
-        if (equalUnder(ctx, op->getOperand(arm), op->getOperand(3 - arm),
-                       splits, [](Value, Value) { return false; })) {
-          op->getResult(0).replaceAllUsesWith(op->getOperand(arm));
-          ++redundant;
-          whole = true;
+        Context ctx(budget, depth);
+        if (!ctx.assume(mux.getCond(), arm == 1))
+          continue;
+        if (Value r = ctx.resolve(v, 2); r != v) {
+          op->setOperand(arm, r);
+          v = r;
+          ++arms;
+        }
+        if (Value r = pruneUnder(ctx, v, splits, cases); r != v) {
+          op->setOperand(arm, r);
+          v = r;
+          ++arms;
+        }
+        KnownBits k = ctx.eval(v, depth);
+        if (k.isConstant() && !constantOf(v)) {
+          builder.setInsertionPoint(op);
+          op->setOperand(arm, hw::ConstantOp::create(builder, op->getLoc(),
+                                                     k.getConstant()));
+          ++arms;
         }
       }
-      if (whole)
-        continue;
-      APInt same[3] = {APInt(w, 0), APInt(w, 0), APInt(w, 0)};
-      for (unsigned arm = 1; arm <= 2; ++arm) {
+      // Then each arm where the other one is selected.
+      bool never = false;
+      for (unsigned arm = 1; arm <= 2 && !never; ++arm) {
+        unsigned other = 3 - arm;
         Context ctx(budget, depth);
-        ctx.addKnown(mux.getCond(), KnownBits::makeConstant(APInt(1, arm == 2)),
-                     depth);
-        if (ctx.contradiction)
-          continue;
-        KnownBits mine = ctx.eval(op->getOperand(arm), depth);
-        KnownBits other = ctx.eval(op->getOperand(3 - arm), depth);
-        same[arm] = (mine.Zero & other.Zero) | (mine.One & other.One);
+        if (!ctx.assume(mux.getCond(), other == 1)) {
+          // The other arm is never selected.
+          same[arm].setAllBits();
+          never = true;
+          break;
+        }
+        Value mine = op->getOperand(arm), o = op->getOperand(other);
+        APInt s = APInt::getAllOnes(w);
+        std::optional<KnownBits> mineK;
+        unsigned count = cases ? cases - 1 : 0;
+        ctx.forEachCase(splits, count, [&](Context &c) {
+          KnownBits m = c.eval(c.resolve(mine, 2), depth);
+          KnownBits t = c.eval(c.resolve(o, 2), depth);
+          s &= (m.Zero & t.Zero) | (m.One & t.One);
+          mineK = mineK ? mineK->intersectWith(m) : m;
+          return true;
+        });
+        if (!mineK) {
+          // No case is possible.
+          same[arm].setAllBits();
+          never = true;
+          break;
+        }
+        same[arm] = s;
+        zero[arm] = mineK->Zero;
+        if (same[arm].isAllOnes())
+          break;
+        unsigned count2 = steps;
+        ctx.steps = &count2;
+        same[arm] |=
+            equalMask(ctx, mine, o, splits, [](Value, Value) { return false; });
+        if (same[arm].isAllOnes())
+          break;
       }
       unsigned arm = same[1].popcount() >= same[2].popcount() ? 1 : 2;
       APInt mask = same[arm];
-      if (mask.isZero())
+      if (mask.isZero()) {
+        if (orForm)
+          redundant +=
+              rewriteDisjoint(mux, zero[1], zero[2], budget, depth) ? 1 : 0;
         continue;
+      }
       Value a = op->getOperand(arm);
       if (mask.isAllOnes()) {
         op->getResult(0).replaceAllUsesWith(a);

@@ -23,6 +23,11 @@ DCP=""
 # trimming of the register bits nothing reads.
 CS="comb-context-simplify{depth=32 budget=16384},canonicalize,cse,"
 [ "${WS:-0}" = 1 ] && DCP="${DCP}seq-known-bits{context},canonicalize,cse,$CS${CS}seq-word-congruence,canonicalize,cse,seq-trim-registers,canonicalize,cse,"
+# WS=2: the second context simplification with or-form and case splits on
+# disjunctive facts (cases=4); aggregates the per-slice rewrite leaves are
+# lowered again.
+CS2="comb-context-simplify{depth=32 budget=16384 or-form cases=4},canonicalize,cse,"
+[ "${WS:-0}" = 2 ] && DCP="${DCP}seq-known-bits{context},canonicalize,cse,$CS${CS2}seq-word-congruence,canonicalize,cse,seq-trim-registers,canonicalize,cse,hw-aggregate-to-comb,canonicalize,cse,"
 # ADDER=RIPPLE-CARRY (or another architecture) for all adders and comparators.
 CTS=convert-comb-to-synth
 [ -n "${ADDER:-}" ] && CTS="convert-comb-to-synth{adder-architecture=$ADDER}"
