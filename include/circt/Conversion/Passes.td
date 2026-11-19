@@ -937,7 +937,11 @@ def ConvertCombToSynth : Pass<"convert-comb-to-synth"> {
        Option<"adderArchitecture", "adder-architecture", "std::string", "\"\"",
               "Architecture of all adders and comparators (RIPPLE-CARRY, "
               "SKLANSKEY, KOGGE-STONE, BRENT-KUNG); by width if empty. "
-              "Ripple-carry is the smallest, for verification">
+              "Ripple-carry is the smallest, for verification">,
+       Option<"multiplierArchitecture", "multiplier-architecture",
+              "std::string", "\"\"",
+              "ARRAY: add the partial products row by row; Wallace tree "
+              "reduction if empty">
   ];
 }
 

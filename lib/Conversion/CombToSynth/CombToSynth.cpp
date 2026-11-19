@@ -606,6 +606,10 @@ enum AdderArchitecture { RippleCarry, Sklanskey, KoggeStone, BrentKung };
 /// Set by the pass from its adder-architecture option (for all adders and
 /// comparators it lowers); empty for the width heuristic.
 static std::string adderArchitectureOverride;
+/// Set by the pass from its multiplier-architecture option: "ARRAY" adds the
+/// partial products row by row (a carry-propagate adder per row) instead of
+/// reducing them with a Wallace tree.
+static std::string multiplierArchitectureOverride;
 AdderArchitecture determineAdderArch(Operation *op, int64_t width) {
   auto strAttr = op->getAttrOfType<StringAttr>("synth.test.arch");
   // The pass's adder-architecture option overrides the heuristic.
@@ -1129,6 +1133,20 @@ struct CombMulOpConversion : OpConversionPattern<MulOp> {
     // If the width is 1, we are done.
     if (width == 1) {
       rewriter.replaceOp(op, partialProducts[0][0]);
+      return success();
+    }
+
+    if (multiplierArchitectureOverride == "ARRAY") {
+      // Array multiplier: add the partial products one row after the other.
+      auto row = [&](ArrayRef<Value> bits) {
+        SmallVector<Value> msbFirst(llvm::reverse(bits));
+        return rewriter.createOrFold<comb::ConcatOp>(loc, msbFirst);
+      };
+      Value acc = row(partialProducts[0]);
+      for (unsigned i = 1; i < width; ++i)
+        acc = comb::AddOp::create(
+            rewriter, loc, ValueRange{acc, row(partialProducts[i])}, true);
+      replaceOpAndCopyNamehint(rewriter, op, acc);
       return success();
     }
 
@@ -1735,6 +1753,7 @@ populateCombToAIGConversionPatterns(RewritePatternSet &patterns,
 
 void ConvertCombToSynthPass::runOnOperation() {
   adderArchitectureOverride = adderArchitecture;
+  multiplierArchitectureOverride = multiplierArchitecture;
   ConversionTarget target(getContext());
 
   // Comb is source dialect.

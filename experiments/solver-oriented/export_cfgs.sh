@@ -29,11 +29,16 @@ CS="comb-context-simplify{depth=32 budget=16384},canonicalize,cse,"
 CS2="comb-context-simplify{depth=32 budget=16384 or-form cases=4},canonicalize,cse,"
 [ "${WS:-0}" = 2 ] && DCP="${DCP}seq-known-bits{context},canonicalize,cse,$CS${CS2}seq-word-congruence,canonicalize,cse,seq-trim-registers,canonicalize,cse,hw-aggregate-to-comb,canonicalize,cse,"
 # ADDER=RIPPLE-CARRY (or another architecture) for all adders and comparators.
-# XDCP=passes, appended at the same place (ablations).
+# XDCP=passes, appended at the same place (ablations); XPOST=passes after
+# the bit-level lowering (synthesis optimisations).
 DCP="${DCP}${XDCP:-}"
+# MUL=ARRAY: multipliers as arrays of row adders instead of Wallace trees.
+CTO=""
+[ -n "${ADDER:-}" ] && CTO="adder-architecture=$ADDER"
+[ -n "${MUL:-}" ] && CTO="${CTO:+$CTO }multiplier-architecture=$MUL"
 CTS=convert-comb-to-synth
-[ -n "${ADDER:-}" ] && CTS="convert-comb-to-synth{adder-architecture=$ADDER}"
-LOWER="hw-cone-of-influence,canonicalize,hw-aggregate-to-comb,canonicalize,${DCP}synth-lower-word-to-bits,canonicalize,$CTS,synth-lower-word-to-bits,canonicalize,synth-remove-false-cycles{obligation fixpoint-obligation},synth-lower-variadic,synth-lower-word-to-bits,synth-structural-hash"
+[ -n "$CTO" ] && CTS="convert-comb-to-synth{$CTO}"
+LOWER="hw-cone-of-influence,canonicalize,hw-aggregate-to-comb,canonicalize,${DCP}synth-lower-word-to-bits,canonicalize,$CTS,synth-lower-word-to-bits,canonicalize,synth-remove-false-cycles{obligation fixpoint-obligation},synth-lower-variadic,synth-lower-word-to-bits,synth-structural-hash${XPOST:+,$XPOST}"
 BITS="synth-lower-variadic,synth-lower-word-to-bits,synth-structural-hash"
 SC="synth-register-correspondence{internal},canonicalize,$BITS"
 export H B IN OUT PRE LOWER SC NOUS NOSC
