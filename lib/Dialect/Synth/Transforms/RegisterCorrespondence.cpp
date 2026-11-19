@@ -22,7 +22,6 @@
 
 #include "circt/Dialect/Comb/CombDialect.h"
 #include "circt/Dialect/Comb/CombOps.h"
-#include <chrono>
 #include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/Seq/SeqOps.h"
 #include "circt/Dialect/Synth/SynthDialect.h"
@@ -37,11 +36,12 @@
 #include "llvm/ADT/MapVector.h"
 #include "llvm/ADT/SetVector.h"
 #include "llvm/Support/Debug.h"
+#include <chrono>
 #include <functional>
 #include <map>
-#include <set>
 #include <optional>
 #include <random>
+#include <set>
 
 #define DEBUG_TYPE "synth-register-correspondence"
 
@@ -148,6 +148,15 @@ struct Params {
   /// Prove the classes only on traces where the constraints (`verif.assume`)
   /// held (see RegisterCorrespondencePass).
   bool constraints = false;
+  /// Experimental: CaDiCaL's plain configuration (no pre-/inprocessing).
+  bool plainSat = false;
+  /// Experimental: cheaper bookkeeping in the refinement (same result).
+  bool fastRefine = false;
+  /// Experimental: constant folding and structural hashing in the SAT
+  /// encoding of the frames.
+  bool frameStrash = false;
+  /// Experimental: assume only the hypotheses that a counterexample violated.
+  bool lazyHyps = false;
 };
 
 class Correspondence {
@@ -200,6 +209,10 @@ public:
                           bool force);
 
   unsigned numIterations = 0, numSATCalls = 0, numUnknown = 0;
+  /// Profile of the incremental proof (chunk > 0): solve time by result,
+  /// time handling counterexamples, assumptions passed.
+  double msSolveSat = 0, msSolveUnsat = 0, msSolveUnknown = 0, msCex = 0;
+  uint64_t numAssumptions = 0, numSat = 0, numUnsat = 0, numLazyResolves = 0;
   /// With `propertyDirected`: the number of properties found if it is not
   /// exactly one (the property is then not assumed).
   std::optional<unsigned> propertyIgnored;
@@ -315,9 +328,12 @@ private:
 /// phases propagate the whole formula before every query; without them the
 /// proofs are several times faster (a_gate_clk_i of CV32E40X: 672 s -> 178 s
 /// with `internal`, 125 s -> 16 s without).
-static std::unique_ptr<IncrementalSATSolver> newSolver(StringRef backend) {
+static std::unique_ptr<IncrementalSATSolver> newSolver(StringRef backend,
+                                                       bool plain = false) {
   CadicalSATSolverOptions options;
   options.luckyPhases = false;
+  if (plain)
+    options.config = CadicalSATSolverOptions::CadicalSolverConfig::Plain;
   return createSATSolver(backend, options);
 }
 
@@ -421,11 +437,43 @@ public:
   }
 
 private:
+public:
+  /// Experimental (`frame-strash`): fold constants and hash gates over the
+  /// same SAT literals into one variable (shared by the encoders of a solver).
+  std::map<SmallVector<int, 2>, int> *strash = nullptr;
+
+private:
   /// A new variable for the and-gate n over its encoded fanins.
   int gate(unsigned n) {
     SmallVector<int> ins;
     for (Lit l : net.fanins[n])
       ins.push_back(isNeg(l) ? -var.at(nodeOf(l)) : var.at(nodeOf(l)));
+    if (strash) {
+      SmallVector<int, 2> key;
+      for (int x : ins) {
+        if (x == -trueVar)
+          return -trueVar;
+        if (x != trueVar)
+          key.push_back(x);
+      }
+      llvm::sort(key);
+      key.erase(std::unique(key.begin(), key.end()), key.end());
+      for (size_t i = 1; i < key.size(); ++i)
+        if (key[i] == -key[i - 1] ||
+            std::binary_search(key.begin(), key.end(), -key[i]))
+          return -trueVar;
+      if (key.empty())
+        return trueVar;
+      if (key.size() == 1)
+        return key[0];
+      auto [it, inserted] = strash->try_emplace(key, 0);
+      if (!inserted)
+        return it->second;
+      int out = solver.newVar();
+      addAndClauses(out, key, [&](ArrayRef<int> cl) { solver.addClause(cl); });
+      it->second = out;
+      return out;
+    }
     int out = solver.newVar();
     addAndClauses(out, ins, [&](ArrayRef<int> cl) { solver.addClause(cl); });
     return out;
@@ -814,6 +862,58 @@ void Correspondence::refine(ArrayRef<uint64_t> vals, uint64_t mask,
   // representative (relative value 0) keeps the class; a constant class has
   // the value 0 too.
   SmallVector<Class> out;
+  if (opts.fastRefine) {
+    // Most classes are not split by one counterexample: find the first that
+    // is, and move the classes before it as they are (same result).
+    auto splits = [&](const Class &c) {
+      uint64_t ref = c.constant ? 0 : vals[cands[c.members[0].first].node];
+      for (auto [i, p] : c.members) {
+        uint64_t v = vals[cands[i].node];
+        if (p)
+          v = ~v;
+        uint64_t m = isCond(i) ? mask & condMask : mask;
+        if ((v ^ ref) & m)
+          return true;
+      }
+      return false;
+    };
+    auto *first = llvm::find_if(classes, splits);
+    if (first == classes.end())
+      return;
+    // Keep going class by class: unsplit classes are moved, not regrouped.
+    out.reserve(classes.size() + 16);
+    for (auto *it = classes.begin(); it != first; ++it)
+      out.push_back(std::move(*it));
+    for (auto *it = first; it != classes.end(); ++it) {
+      if (it != first && !splits(*it)) {
+        out.push_back(std::move(*it));
+        continue;
+      }
+      auto &c = *it;
+      uint64_t ref = c.constant ? 0 : vals[cands[c.members[0].first].node];
+      llvm::MapVector<uint64_t, Class> groups;
+      for (auto [i, p] : c.members) {
+        uint64_t v = vals[cands[i].node];
+        if (p)
+          v = ~v;
+        uint64_t m = isCond(i) ? mask & condMask : mask;
+        groups[(v ^ ref) & m].members.push_back({i, p});
+      }
+      for (auto &[key, g] : groups) {
+        if (key == 0) {
+          g.constant = c.constant;
+        } else {
+          bool p0 = g.members[0].second;
+          for (auto &m : g.members)
+            m.second ^= p0;
+        }
+        out.push_back(std::move(g));
+      }
+    }
+    classes = std::move(out);
+    dropSingletons();
+    return;
+  }
   for (auto &c : classes) {
     uint64_t ref = c.constant ? 0 : vals[cands[c.members[0].first].node];
     llvm::MapVector<uint64_t, Class> groups;
@@ -968,12 +1068,13 @@ bool Correspondence::proveBase() {
   while (!classes.empty()) {
     if (numIterations++ >= opts.maxIterations)
       return false;
-    auto solver = newSolver(opts.satSolver);
+    auto solver = newSolver(opts.satSolver, opts.plainSat);
     if (!solver)
       return false;
     solver->setConflictLimit(opts.conflictLimit);
     int trueVar = solver->newVar();
     solver->addClause({trueVar});
+    std::map<SmallVector<int, 2>, int> strashTable;
     auto subst = reduction();
     // Frame 0 in the initial state: registers with an initial value are
     // constants, the others and the inputs are free.
@@ -984,6 +1085,8 @@ bool Correspondence::proveBase() {
       return solver->newVar();
     };
     FrameEncoder enc(*solver, net, trueVar, leaf, subst);
+    if (opts.frameStrash)
+      enc.strash = &strashTable;
     auto record = [&](SmallVectorImpl<uint64_t> &leaves, uint64_t bit) {
       for (unsigned n = 1; n < net.size(); ++n) {
         if (net.kind[n] == Net::And)
@@ -1014,23 +1117,28 @@ bool Correspondence::proveStep() {
   while (!classes.empty()) {
     if (numIterations++ >= opts.maxIterations)
       return false;
-    auto solver = newSolver(opts.satSolver);
+    auto solver = newSolver(opts.satSolver, opts.plainSat);
     if (!solver)
       return false;
     solver->setConflictLimit(opts.conflictLimit);
     int trueVar = solver->newVar();
     solver->addClause({trueVar});
+    std::map<SmallVector<int, 2>, int> strashTable;
     auto subst = reduction();
     // Frame 0: any state satisfying the classes (speculatively reduced);
     // frame 1: its successor, with new inputs.
     auto leaf0 = [&](unsigned) { return solver->newVar(); };
     FrameEncoder enc0(*solver, net, trueVar, leaf0, subst);
+    if (opts.frameStrash)
+      enc0.strash = &strashTable;
     auto leaf1 = [&](unsigned n) -> int {
       if (net.kind[n] == Net::State)
         return enc0(regs[regOfNode.at(n)].next);
       return solver->newVar();
     };
     FrameEncoder enc1(*solver, net, trueVar, leaf1, subst);
+    if (opts.frameStrash)
+      enc1.strash = &strashTable;
     if (propLit)
       solver->addClause({enc0(*propLit)});
     // The leaves of frame 0 at [n], the free leaves of frame 1 at
@@ -1119,12 +1227,13 @@ bool Correspondence::proveStep() {
 bool Correspondence::proveIncremental(bool step) {
   if (classes.empty())
     return true;
-  auto solver = newSolver(opts.satSolver);
+  auto solver = newSolver(opts.satSolver, opts.plainSat);
   if (!solver)
     return false;
   solver->setConflictLimit(opts.conflictLimit);
   int trueVar = solver->newVar();
   solver->addClause({trueVar});
+  std::map<SmallVector<int, 2>, int> strashTable;
   static const DenseMap<unsigned, Subst> noSubst;
   auto leaf0 = [&](unsigned n) -> int {
     if (!step && net.kind[n] == Net::State)
@@ -1133,12 +1242,16 @@ bool Correspondence::proveIncremental(bool step) {
     return solver->newVar();
   };
   FrameEncoder enc0(*solver, net, trueVar, leaf0, noSubst);
+  if (opts.frameStrash)
+    enc0.strash = &strashTable;
   auto leaf1 = [&](unsigned n) -> int {
     if (net.kind[n] == Net::State)
       return enc0(regs[regOfNode.at(n)].next);
     return solver->newVar();
   };
   FrameEncoder enc1(*solver, net, trueVar, leaf1, noSubst);
+  if (opts.frameStrash)
+    enc1.strash = &strashTable;
   FrameEncoder &checked = step ? enc1 : enc0;
   // With `propertyDirected` the step starts from a state where the property
   // holds (see RegisterCorrespondencePass).
@@ -1155,13 +1268,31 @@ bool Correspondence::proveIncremental(bool step) {
     int hyp = 0, diff = 0;
   };
   std::map<Pair, Vars> vars;
+  // With `fastRefine`: the variables of each member's current pair (a pair
+  // that is split never comes back), instead of a map lookup per pair and
+  // query.
+  struct Slot {
+    std::optional<Pair> pr;
+    Vars v;
+  };
+  SmallVector<Slot> slots(opts.fastRefine ? cands.size() : 0);
+  auto varsOf = [&](const Pair &pr) -> Vars & {
+    if (!opts.fastRefine)
+      return vars[pr];
+    auto &s = slots[std::get<0>(pr)];
+    if (s.pr != pr) {
+      s.pr = pr;
+      s.v = {};
+    }
+    return s.v;
+  };
   // The literal of `x == target`-style relations for a pair in a frame.
   auto target = [&](FrameEncoder &enc, int ref, bool phase) {
     int t = ref < 0 ? -trueVar : enc.node(cands[ref].node);
     return phase ? -t : t;
   };
   auto diffVar = [&](const Pair &pr) {
-    auto &v = vars[pr];
+    auto &v = varsOf(pr);
     if (!v.diff) {
       auto [m, ref, phase] = pr;
       int x = checked.node(cands[m].node), t = target(checked, ref, phase);
@@ -1175,7 +1306,7 @@ bool Correspondence::proveIncremental(bool step) {
     return v.diff;
   };
   auto hypVar = [&](const Pair &pr) {
-    auto &v = vars[pr];
+    auto &v = varsOf(pr);
     if (!v.hyp) {
       auto [m, ref, phase] = pr;
       int x = enc0.node(cands[m].node), t = target(enc0, ref, phase);
@@ -1199,13 +1330,15 @@ bool Correspondence::proveIncremental(bool step) {
   // The activation literal of the last query, retired (made false) before
   // the next one; not earlier, as that would discard the model.
   int lastAct = 0;
+  // With `lazyHyps`: the members whose hypothesis is assumed.
+  SmallVector<bool> active(opts.lazyHyps ? cands.size() : 0);
   auto query = [&](ArrayRef<unsigned> members) {
     if (lastAct)
       solver->addClause({-lastAct});
     SmallVector<int> assumptions;
     if (step)
-      for (auto &pr : pairOf)
-        if (pr)
+      for (auto [m, pr] : llvm::enumerate(pairOf))
+        if (pr && (!opts.lazyHyps || active[m]))
           assumptions.push_back(hypVar(*pr));
     SmallVector<int> clause;
     int act = solver->newVar();
@@ -1216,10 +1349,53 @@ bool Correspondence::proveIncremental(bool step) {
     assumptions.push_back(act);
     ++numSATCalls;
     lastAct = act;
-    return solver->solve(assumptions);
+    numAssumptions += assumptions.size();
+    while (true) {
+      auto t0 = std::chrono::steady_clock::now();
+      auto r = solver->solve(assumptions);
+      double ms = std::chrono::duration<double, std::milli>(
+                      std::chrono::steady_clock::now() - t0)
+                      .count();
+      (r == IncrementalSATSolver::kSAT     ? msSolveSat
+       : r == IncrementalSATSolver::kUNSAT ? msSolveUnsat
+                                           : msSolveUnknown) += ms;
+      (r == IncrementalSATSolver::kSAT ? numSat : numUnsat) += 1;
+      if (!step || !opts.lazyHyps || r != IncrementalSATSolver::kSAT)
+        return r;
+      // Lazy hypotheses: the model is a counterexample only if frame 0
+      // satisfies every hypothesis, not only the assumed ones. Frame 0 from
+      // the model (leaves that are not encoded are 0, as in refineByModel);
+      // the violated hypotheses are assumed from now on and the query is
+      // repeated. UNSAT with fewer hypotheses is UNSAT with all of them.
+      unsigned size = net.size();
+      SmallVector<uint64_t> v0(size);
+      for (unsigned n = 1; n < size; ++n)
+        if (net.kind[n] != Net::And)
+          if (auto v = enc0.lookup(n))
+            v0[n] = modelValue(*solver, *v);
+      eval(v0);
+      bool added = false;
+      for (auto [m, pr] : llvm::enumerate(pairOf)) {
+        if (!pr || active[m])
+          continue;
+        auto [mm, ref, phase] = *pr;
+        uint64_t x = v0[cands[mm].node] & 1;
+        uint64_t t = (ref < 0 ? 0 : v0[cands[ref].node] & 1) ^ phase;
+        if (x == t)
+          continue;
+        active[m] = true;
+        assumptions.insert(assumptions.end() - 1, hypVar(*pr));
+        added = true;
+      }
+      if (!added)
+        return r;
+      ++numSATCalls;
+      ++numLazyResolves;
+    }
   };
   // Simulates the model on 64 patterns and splits the classes.
   auto refineByModel = [&]() {
+    auto t0 = std::chrono::steady_clock::now();
     unsigned size = net.size();
     auto modelWord = [&](std::optional<int> v) -> uint64_t {
       return v && modelValue(*solver, *v) ? ~uint64_t(0) : 0;
@@ -1230,7 +1406,7 @@ bool Correspondence::proveIncremental(bool step) {
         continue;
       auto v = enc0.lookup(n);
       if (step) {
-        v0[n] = v ? modelWord(v) : rng();
+        v0[n] = v ? modelWord(v) : (opts.lazyHyps ? 0 : rng());
         continue;
       }
       // The base case: the model in pattern 0, any initial state and
@@ -1276,6 +1452,9 @@ bool Correspondence::proveIncremental(bool step) {
       cur = std::move(next);
     }
     index();
+    msCex += std::chrono::duration<double, std::milli>(
+                 std::chrono::steady_clock::now() - t0)
+                 .count();
   };
 
   index();
@@ -1971,7 +2150,7 @@ Correspondence::checkConstraints(unsigned depth, bool &gaveUp) {
   if (assumes.empty())
     return std::nullopt;
 
-  auto solver = newSolver(opts.satSolver);
+  auto solver = newSolver(opts.satSolver, opts.plainSat);
   if (!solver) {
     gaveUp = true;
     return std::nullopt;
@@ -2151,7 +2330,8 @@ std::pair<unsigned, unsigned> Correspondence::merge() {
   if (mergeDump) {
     unsigned index = 0;
     for (auto &c : classes) {
-      llvm::errs() << "class " << index++ << (c.constant ? " const" : "") << ":";
+      llvm::errs() << "class " << index++ << (c.constant ? " const" : "")
+                   << ":";
       for (auto [i, p] : c.members) {
         llvm::errs() << " " << (p ? "~" : "");
         if (cands[i].reg >= 0) {
@@ -2269,8 +2449,8 @@ std::pair<unsigned, unsigned> Correspondence::merge() {
         llvm::errs() << "  only gate reads:" << leaves(gateCone, reprCone)
                      << "\n  only repr reads:" << leaves(reprCone, gateCone)
                      << "\n";
-        llvm::errs() << "  gate op: " << *v.getDefiningOp() << "\n  repr op: "
-                     << *ref.getDefiningOp() << "\n";
+        llvm::errs() << "  gate op: " << *v.getDefiningOp()
+                     << "\n  repr op: " << *ref.getDefiningOp() << "\n";
         for (auto operand : v.getDefiningOp()->getOperands())
           llvm::errs() << "  gate operand: " << describe(operand) << "\n";
         for (auto operand : ref.getDefiningOp()->getOperands())
@@ -2305,7 +2485,11 @@ struct RegisterCorrespondencePass
                 propertyDirected,
                 badOutputs,
                 conjunction,
-                constraints && chunk};
+                constraints && chunk,
+                plainSat,
+                fastRefine,
+                frameStrash,
+                lazyHyps};
     Correspondence c(module, opts);
     c.mergeFrom = mergeFrom;
     c.mergeTo = mergeTo;
@@ -2339,6 +2523,12 @@ struct RegisterCorrespondencePass
     numIterationsStat += c.numIterations;
     numSATCallsStat += c.numSATCalls;
     numUnknownStat += c.numUnknown;
+    msSolveSatStat += uint64_t(c.msSolveSat);
+    msSolveUnsatStat += uint64_t(c.msSolveUnsat + c.msSolveUnknown);
+    msCexStat += uint64_t(c.msCex);
+    numAssumptionsStat += c.numAssumptions;
+    numSatResultsStat += c.numSat;
+    numLazyResolvesStat += c.numLazyResolves;
     if (!proved) {
       module.emitWarning("register correspondence gave up after ")
           << c.numIterations << " iterations; nothing merged";

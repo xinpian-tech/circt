@@ -381,6 +381,19 @@ def RegisterCorrespondence
            "properties (keeps the first failure of any)">,
     Option<"constraints", "constraints", "bool", "false",
            "Prove the classes only where the constraints (verif.assume) held">,
+    Option<"plainSat", "plain-sat", "bool", "false",
+           "Experimental: CaDiCaL without pre- and inprocessing (plain "
+           "configuration) for the proofs">,
+    Option<"fastRefine", "fast-refine", "bool", "false",
+           "Experimental: keep classes that a counterexample does not split "
+           "without rebuilding them, and cache the hypothesis literals of the "
+           "inductive step (same result, less bookkeeping)">,
+    Option<"frameStrash", "frame-strash", "bool", "false",
+           "Experimental: fold constants and hash equal gates when encoding "
+           "the frames for SAT (speculatively reduced frames collapse)">,
+    Option<"lazyHyps", "lazy-hyps", "bool", "false",
+           "Experimental (chunk > 0): assume in the inductive step only the "
+           "hypotheses that a counterexample violated (same result)">,
     Option<"mergeFrom", "merge-from", "unsigned", "0",
            "Debugging: first class (by index) that is merged">,
     Option<"mergeTo", "merge-to", "unsigned", "4294967295",
@@ -407,7 +420,19 @@ def RegisterCorrespondence
     Statistic<"msBaseStat", "ms-base", "Milliseconds proving the base case">,
     Statistic<"msStepStat", "ms-step",
               "Milliseconds proving the inductive step">,
-    Statistic<"msMergeStat", "ms-merge", "Milliseconds merging">
+    Statistic<"msMergeStat", "ms-merge", "Milliseconds merging">,
+    Statistic<"msSolveSatStat", "ms-solve-sat",
+              "Milliseconds in SAT calls that found a counterexample (chunk > 0)">,
+    Statistic<"msSolveUnsatStat", "ms-solve-unsat",
+              "Milliseconds in the other SAT calls (chunk > 0)">,
+    Statistic<"msCexStat", "ms-cex",
+              "Milliseconds simulating counterexamples and refining (chunk > 0)">,
+    Statistic<"numAssumptionsStat", "num-assumptions",
+              "Assumptions passed to the SAT calls (chunk > 0)">,
+    Statistic<"numSatResultsStat", "num-sat-results",
+              "SAT calls with a counterexample (chunk > 0)">,
+    Statistic<"numLazyResolvesStat", "num-lazy-resolves",
+              "Repeated queries after activating hypotheses (lazy-hyps)">
   ];
   let dependentDialects = ["comb::CombDialect", "hw::HWDialect",
                            "seq::SeqDialect", "synth::SynthDialect"];
