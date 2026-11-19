@@ -17,7 +17,8 @@
 //                    non-constant reset value is taken in the first cycle
 //                    (mux(first, latch, rv)); the preset if there is one;
 //                    else any value (a `verif.symbolic_value` in the first
-//                    cycle), as firreg registers start randomized.
+//                    cycle, or with `uninitialized` no initial value at
+//                    all), as firreg registers start randomized.
 //
 // Aggregate registers are lowered on their bits (hw.bitcast).
 //
@@ -119,6 +120,21 @@ void LowerFirRegToCompRegPass::runOnOperation() {
     } else if (auto preset = reg.getPresetAttr()) {
       init = builder.getIntegerAttr(intType, preset.getValue());
       ++numPreset;
+    } else if (freeInitial && uninitialized) {
+      // No initial value: the register starts with any value (an AIGER latch
+      // whose reset is itself), without a first-cycle mux.
+      ++numFree;
+      Value value =
+          CompRegOp::create(builder, loc, next, clock, Value(), Value(),
+                            reg.getNameAttr(), reg.getInnerSymAttr(), Value());
+      if (reset && reg.getIsAsync())
+        value =
+            comb::MuxOp::create(builder, loc, reset, resetValue, value, true);
+      if (aggregate)
+        value = hw::BitcastOp::create(builder, loc, type, value);
+      reg.replaceAllUsesWith(value);
+      reg.erase();
+      continue;
     } else if (freeInitial) {
       firstValue =
           verif::SymbolicValueOp::create(builder, loc, intType, StringAttr());

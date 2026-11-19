@@ -36,7 +36,10 @@ def LowerFirRegToCompReg : Pass<"seq-lower-firreg-to-compreg",
     Option<"initialReset", "initial-reset", "bool", "true",
            "Registers with a reset start in their reset value">,
     Option<"freeInitial", "free-initial", "bool", "true",
-           "Other registers without preset start with any value (else 0)">
+           "Other registers without preset start with any value (else 0)">,
+    Option<"uninitialized", "uninitialized", "bool", "false",
+           "With free-initial: leave such registers without an initial value "
+           "(any value at start) instead of a first-cycle symbolic value">
   ];
   let statistics = [
     Statistic<"numConstReset", "num-const-reset",

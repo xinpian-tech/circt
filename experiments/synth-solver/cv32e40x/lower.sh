@@ -92,7 +92,10 @@ opts=
 [ -n "$left" ] && opts="asserts=$left"
 [ -n "$assumes" ] && opts="$opts${opts:+ }assumes=$assumes"
 [ -n "$constraints" ] && opts="$opts${opts:+ }constraints"
-MODEL="builtin.module(verif-assertions-to-output{$opts},hw.module(seq-clock-gate-to-enable,seq-lower-firreg-to-compreg),verif-lower-symbolic-values{mode=hw-input},canonicalize,cse,hw-convert-bitcasts,canonicalize,hw-convert-bitcasts,canonicalize,cse)"
+# FIRREG_OPTS: options of seq-lower-firreg-to-compreg (e.g. uninitialized).
+FIRREG=seq-lower-firreg-to-compreg
+[ -n "${FIRREG_OPTS:-}" ] && FIRREG="seq-lower-firreg-to-compreg{$FIRREG_OPTS}"
+MODEL="builtin.module(verif-assertions-to-output{$opts},hw.module(seq-clock-gate-to-enable,$FIRREG),verif-lower-symbolic-values{mode=hw-input},canonicalize,cse,hw-convert-bitcasts,canonicalize,hw-convert-bitcasts,canonicalize,cse)"
 circt-opt $pre.mlir --pass-pipeline="$MODEL" -o $out
 if grep -qE '\bllhd\.' $out; then
   echo "warning: LLHD ops left: $(grep -oE '\bllhd\.[a-z_.]+' $out | sort -u | tr '\n' ' ')" >&2
