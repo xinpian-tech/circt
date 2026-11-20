@@ -162,6 +162,48 @@ hw.module @Variadic(in %a : i8, in %b : i8, in %c : i8, in %sel : i1,
   hw.output %m, %n : i8, i8
 }
 
+// The assignment is assumed as facts. q = r & !p is 0 when p is 1: the
+// operands are a and b only under the impossible p & q, nothing is
+// rewritten.
+// CHECK-LABEL: hw.module @Impossible
+hw.module @Impossible(in %a : i8, in %b : i8, in %c : i8, in %d : i8,
+                      in %p : i1, in %r : i1, out m : i8, out spec : i8) {
+  // CHECK: [[SPEC:%.+]] = comb.mul %a, %b : i8
+  // CHECK: [[M:%.+]] = comb.mul {{%.+}}, {{%.+}} : i8
+  // CHECK-NEXT: hw.output [[M]], [[SPEC]]
+  %true = hw.constant true
+  %np = comb.xor %p, %true : i1
+  %q = comb.and %r, %np : i1
+  %spec = comb.mul %a, %b : i8
+  %x0 = comb.mux %q, %a, %c : i8
+  %x = comb.mux %p, %x0, %d : i8
+  %y0 = comb.mux %q, %b, %d : i8
+  %y = comb.mux %p, %y0, %c : i8
+  %m = comb.mul %x, %y : i8
+  hw.output %m, %spec : i8, i8
+}
+
+// Under p the inner muxes are fixed by the facts (q is 0) without assigning
+// q: the condition is p alone.
+// CHECK-LABEL: hw.module @Implied
+hw.module @Implied(in %a : i8, in %b : i8, in %c : i8, in %d : i8,
+                   in %p : i1, in %r : i1, out m : i8, out spec : i8) {
+  // CHECK: [[SPEC:%.+]] = comb.mul %a, %b : i8
+  // CHECK: [[M:%.+]] = comb.mul {{%.+}}, {{%.+}} : i8
+  // CHECK-NEXT: [[NEWM:%.+]] = comb.mux %p, [[SPEC]], [[M]] : i8
+  // CHECK-NEXT: hw.output [[NEWM]], [[SPEC]]
+  %true = hw.constant true
+  %np = comb.xor %p, %true : i1
+  %q = comb.and %r, %np : i1
+  %spec = comb.mul %a, %b : i8
+  %x0 = comb.mux %q, %c, %a : i8
+  %x = comb.mux %p, %x0, %c : i8
+  %y0 = comb.mux %q, %d, %b : i8
+  %y = comb.mux %p, %y0, %d : i8
+  %m = comb.mul %x, %y : i8
+  hw.output %m, %spec : i8, i8
+}
+
 // Where the whole result comes from the other operator, the shared one gets
 // constant operands (one for a divisor); not when only the low bits do.
 // ISOLATE-LABEL: hw.module @SameWidth

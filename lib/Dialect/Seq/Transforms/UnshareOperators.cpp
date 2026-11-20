@@ -11,9 +11,10 @@
 // a property that states what the operator computes in one of those uses has
 // its own copy of the operator. After bit-blasting, a solver has to prove the
 // two copies equal gate by gate. This pass finds, for a multiplier (or a
-// division, modulo or shift) whose operands go through muxes, the conditions on the mux selects under which
-// its operands are those of another multiplier of the module, and takes the
-// result from that other multiplier under these conditions:
+// division, modulo or shift) whose operands go through muxes, the conditions on
+// the mux selects under which its operands are those of another multiplier of
+// the module, and takes the result from that other multiplier under these
+// conditions:
 //
 //   m = mul(mux(s, a, c), mux(s, b, d));  e = mul(a, b)
 //   ->  m' = mux(s, e, m)
@@ -21,39 +22,44 @@
 // The rewrite is exact. It makes the module larger, and is only done when
 // the other multiplier exists.
 //
+// Under an assignment of the selects, the operands are compared by the
+// word-level equality of KnownBitsContext.h: the assignment is assumed as
+// facts and the operands are equal slice by slice (through concatenations,
+// extracts and replications, following the muxes whose condition the facts
+// fix), without case splits. In the Seq library for the known-bits transfer
+// functions.
+//
 //===----------------------------------------------------------------------===//
 
 #include "circt/Dialect/Comb/CombOps.h"
-#include "circt/Dialect/Comb/CombPasses.h"
 #include "circt/Dialect/HW/HWOps.h"
+#include "circt/Dialect/Seq/SeqPasses.h"
 #include "mlir/IR/Builders.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/SmallVector.h"
 #include <deque>
 
+#include "KnownBitsContext.h"
+
 using namespace mlir;
 using namespace circt;
 using namespace comb;
+using seq::detail::Context;
+using seq::detail::KnownBits;
+using seq::detail::Slice;
 
 namespace circt {
-namespace comb {
+namespace seq {
 #define GEN_PASS_DEF_UNSHAREOPERATORS
-#include "circt/Dialect/Comb/Passes.h.inc"
-} // namespace comb
+#include "circt/Dialect/Seq/SeqPasses.h.inc"
+} // namespace seq
 } // namespace circt
 
 namespace {
 
-/// One bit of a value: bit `index` of `value`, or the constant `index` (0 or
-/// 1) when `value` is null.
-struct Bit {
-  Value value;
-  unsigned index;
-  bool operator==(const Bit &other) const {
-    return value == other.value && index == other.index;
-  }
-};
-using Bits = SmallVector<Bit, 64>;
+/// Depth and budget of the evaluation of select conditions and operands
+/// under an assignment.
+constexpr unsigned evalDepth = 8, evalBudget = 256;
 
 /// A select with its polarity removed: `xor(s, true)` is `s` inverted.
 struct Select {
@@ -85,69 +91,42 @@ static std::optional<bool> lookup(const Assignment &assignment, Value base) {
   return std::nullopt;
 }
 
-/// Append the bits [low, low + width) of `value` to `bits`, looking through
-/// constants, concatenations, extracts, replications and the muxes whose
-/// select is assigned. The first select found unassigned is stored in
-/// `pending`; the bits of such a mux are bits of the mux itself.
-static void collectBits(Value value, unsigned low, unsigned width,
-                        const Assignment &assignment, Bits &bits,
-                        Value &pending) {
-  while (true) {
-    auto *def = value.getDefiningOp();
-    if (!def)
-      break;
-    if (auto constant = dyn_cast<hw::ConstantOp>(def)) {
-      for (unsigned i = 0; i < width; ++i)
-        bits.push_back({Value(), constant.getValue()[low + i]});
-      return;
-    }
-    if (auto extract = dyn_cast<ExtractOp>(def)) {
-      low += extract.getLowBit();
-      value = extract.getInput();
-      continue;
-    }
-    if (auto concat = dyn_cast<ConcatOp>(def)) {
-      // Operands are listed from the most significant one.
-      unsigned offset = 0;
-      for (auto operand : llvm::reverse(concat.getInputs())) {
-        unsigned operandWidth = hw::getBitWidth(operand.getType());
-        unsigned begin = std::max(low, offset);
-        unsigned end = std::min(low + width, offset + operandWidth);
-        if (begin < end)
-          collectBits(operand, begin - offset, end - begin, assignment, bits,
-                      pending);
-        offset += operandWidth;
-      }
-      return;
-    }
-    if (auto replicate = dyn_cast<ReplicateOp>(def)) {
-      unsigned inputWidth = hw::getBitWidth(replicate.getInput().getType());
-      for (unsigned i = 0; i < width; ++i)
-        collectBits(replicate.getInput(), (low + i) % inputWidth, 1,
-                    assignment, bits, pending);
-      return;
-    }
-    if (auto mux = dyn_cast<MuxOp>(def)) {
-      auto select = normalizeSelect(mux.getCond());
-      if (auto isTrue = lookup(assignment, select.base)) {
-        value = *isTrue != select.inverted ? mux.getTrueValue()
-                                           : mux.getFalseValue();
-        continue;
-      }
-      if (!pending)
-        pending = select.base;
-    }
-    break;
-  }
-  for (unsigned i = 0; i < width; ++i)
-    bits.push_back({value, low + i});
+/// The facts of an assignment of the selects; false if it is not possible.
+static bool assumeAssignment(Context &ctx, const Assignment &assignment) {
+  for (auto [select, isTrue] : assignment)
+    if (!ctx.assume(select, isTrue))
+      return false;
+  return true;
 }
 
-/// The value of `value` under an assignment of the selects: the muxes with
-/// an assigned select are replaced by the chosen operand, through
-/// concatenations, extracts and replications (rebuilt where they change).
-static Value materialize(Value value, const Assignment &assignment,
-                         OpBuilder &builder, DenseMap<Value, Value> &cache) {
+/// The first select (in the order of the bits of `s`) of a mux that the
+/// operand goes through whose condition the facts do not fix, through
+/// concatenations, extracts, replications and the muxes they fix.
+static Value findPending(Context &ctx, Slice s) {
+  SmallVector<Slice> atoms;
+  seq::detail::normalizeSlice(s, atoms);
+  for (auto atom : atoms) {
+    auto mux = atom.v.getDefiningOp<MuxOp>();
+    if (!mux)
+      continue;
+    ctx.budget = ctx.budgetLimit;
+    KnownBits k = ctx.eval(mux.getCond(), ctx.depth);
+    if (!k.isConstant())
+      return normalizeSelect(mux.getCond()).base;
+    Value arm = k.getConstant().getBoolValue() ? mux.getTrueValue()
+                                               : mux.getFalseValue();
+    if (Value pending = findPending(ctx, {arm, atom.lo, atom.w}))
+      return pending;
+  }
+  return {};
+}
+
+/// The value of `value` under the facts of an assignment of the selects: the
+/// muxes whose condition the facts fix are replaced by the chosen operand,
+/// through concatenations, extracts and replications (rebuilt where they
+/// change).
+static Value materialize(Value value, Context &ctx, OpBuilder &builder,
+                         DenseMap<Value, Value> &cache) {
   auto *def = value.getDefiningOp();
   if (!def)
     return value;
@@ -156,16 +135,17 @@ static Value materialize(Value value, const Assignment &assignment,
     return it->second;
   Value result = value;
   if (auto mux = dyn_cast<MuxOp>(def)) {
-    auto select = normalizeSelect(mux.getCond());
-    if (auto isTrue = lookup(assignment, select.base))
-      result = materialize(*isTrue != select.inverted ? mux.getTrueValue()
-                                                      : mux.getFalseValue(),
-                           assignment, builder, cache);
+    ctx.budget = ctx.budgetLimit;
+    KnownBits k = ctx.eval(mux.getCond(), ctx.depth);
+    if (k.isConstant())
+      result = materialize(k.getConstant().getBoolValue() ? mux.getTrueValue()
+                                                          : mux.getFalseValue(),
+                           ctx, builder, cache);
   } else if (isa<ConcatOp, ExtractOp, ReplicateOp>(def)) {
     SmallVector<Value> operands;
     bool changed = false;
     for (auto operand : def->getOperands()) {
-      operands.push_back(materialize(operand, assignment, builder, cache));
+      operands.push_back(materialize(operand, ctx, builder, cache));
       changed |= operands.back() != operand;
     }
     if (changed) {
@@ -180,7 +160,7 @@ static Value materialize(Value value, const Assignment &assignment,
 }
 
 struct UnshareOperatorsPass
-    : public comb::impl::UnshareOperatorsBase<UnshareOperatorsPass> {
+    : public seq::impl::UnshareOperatorsBase<UnshareOperatorsPass> {
   using UnshareOperatorsBase::UnshareOperatorsBase;
   void runOnOperation() override;
 
@@ -249,15 +229,16 @@ void UnshareOperatorsPass::findHits(Operation *shared,
   std::deque<Assignment> queue;
   queue.push_back({});
   unsigned visited = 0;
+  auto same = [](Value, Value) { return false; };
   while (!queue.empty() && visited < maxPaths) {
     Assignment assignment = std::move(queue.front());
     queue.pop_front();
     ++visited;
 
-    Value pending;
-    Bits lhs, rhs;
-    collectBits(shared->getOperand(0), 0, width, assignment, lhs, pending);
-    collectBits(shared->getOperand(1), 0, width, assignment, rhs, pending);
+    Context ctx(evalBudget, evalDepth);
+    if (!assumeAssignment(ctx, assignment))
+      continue;
+    Value lhs = shared->getOperand(0), rhs = shared->getOperand(1);
 
     // Without an assignment the multiplier is not shared at all.
     bool matched = false;
@@ -268,23 +249,19 @@ void UnshareOperatorsPass::findHits(Operation *shared,
         unsigned low = std::min(width, widthOf(other));
         if (!isMul && widthOf(other) != width)
           continue;
-        Value ignored;
-        Bits otherLhs, otherRhs;
-        collectBits(other->getOperand(0), 0, low, assignment, otherLhs,
-                    ignored);
-        collectBits(other->getOperand(1), 0, low, assignment, otherRhs,
-                    ignored);
-        auto equal = [&](const Bits &a, const Bits &b) {
-          return std::equal(a.begin(), a.begin() + low, b.begin());
+        Value otherLhs = other->getOperand(0), otherRhs = other->getOperand(1);
+        // The low bits of two operands are equal under the assignment.
+        auto equal = [&](Value a, Value b) {
+          return seq::detail::equalSlices(ctx, {a, 0, low}, {b, 0, low},
+                                          /*splits=*/0, same);
         };
         if (!((equal(lhs, otherLhs) && equal(rhs, otherRhs)) ||
               (isMul && equal(lhs, otherRhs) && equal(rhs, otherLhs))))
           continue;
         // Operands that became constants under the assignment (a register
         // in reset, say) match trivially and are not worth a condition.
-        auto isConstant = [&](const Bits &bits) {
-          return llvm::all_of(llvm::make_range(bits.begin(), bits.begin() + low),
-                              [](const Bit &bit) { return !bit.value; });
+        auto isConstant = [&](Value operand) {
+          return seq::detail::knownSlice(ctx, {operand, 0, low}).isConstant();
         };
         if (isConstant(lhs) || isConstant(rhs))
           continue;
@@ -299,7 +276,14 @@ void UnshareOperatorsPass::findHits(Operation *shared,
         break;
       }
     }
-    if (matched || !pending)
+    if (matched)
+      continue;
+    Value pending = findPending(ctx, {lhs, 0, width});
+    if (!pending)
+      pending = findPending(ctx, {rhs, 0, width});
+    // A select the facts do not fix although it is assigned (a condition
+    // beyond the evaluation) ends the search.
+    if (!pending || lookup(assignment, pending))
       continue;
     for (bool isTrue : {true, false}) {
       Assignment next = assignment;
@@ -335,8 +319,8 @@ bool UnshareOperatorsPass::rewrite(Operation *shared, ArrayRef<Hit> hits) {
     for (auto &assignment : hit.assignments) {
       SmallVector<Value> literals;
       for (auto [select, isTrue] : assignment)
-        literals.push_back(isTrue ? select
-                                  : comb::createOrFoldNot(builder, loc, select));
+        literals.push_back(
+            isTrue ? select : comb::createOrFoldNot(builder, loc, select));
       terms.push_back(literals.size() == 1
                           ? literals.front()
                           : AndOp::create(builder, loc, literals, true));
@@ -363,11 +347,11 @@ bool UnshareOperatorsPass::rewrite(Operation *shared, ArrayRef<Hit> hits) {
       // a copy of the shared operator with the operands it has under the
       // assignment, so the whole result is replaced.
       for (auto [index, assignment] : llvm::enumerate(hit.assignments)) {
+        Context ctx(evalBudget, evalDepth);
+        assumeAssignment(ctx, assignment);
         DenseMap<Value, Value> cache;
-        Value lhs =
-            materialize(shared->getOperand(0), assignment, builder, cache);
-        Value rhs =
-            materialize(shared->getOperand(1), assignment, builder, cache);
+        Value lhs = materialize(shared->getOperand(0), ctx, builder, cache);
+        Value rhs = materialize(shared->getOperand(1), ctx, builder, cache);
         Value copy = MulOp::create(builder, loc, lhs, rhs);
         Value high = ExtractOp::create(builder, loc, copy, low, width - low);
         Value whole =
@@ -436,8 +420,8 @@ bool UnshareOperatorsPass::rewrite(Operation *shared, ArrayRef<Hit> hits) {
       // A zero divisor is avoided: one is as cheap.
       bool divisor = operand.getOperandNumber() == 1 &&
                      isa<DivUOp, DivSOp, ModUOp, ModSOp>(shared);
-      Value constant = hw::ConstantOp::create(
-          builder, loc, APInt(width, divisor ? 1 : 0));
+      Value constant =
+          hw::ConstantOp::create(builder, loc, APInt(width, divisor ? 1 : 0));
       operand.set(
           MuxOp::create(builder, loc, condition, constant, operand.get()));
     }

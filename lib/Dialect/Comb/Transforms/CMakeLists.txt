@@ -5,7 +5,6 @@ add_circt_dialect_library(CIRCTCombTransforms
   BalanceMux.cpp
   AssumeTwoValued.cpp
   SimplifyTruthTable.cpp
-  UnshareOperators.cpp
   MuxDontCare.cpp
   SplitCycles.cpp
 

@@ -7,7 +7,8 @@
 //===----------------------------------------------------------------------===//
 //
 // Known bits of combinational values evaluated under facts (values assumed
-// to have some known bits), shared by ContextSimplify and KnownBitsInvariants.
+// to have some known bits), shared by ContextSimplify, KnownBitsInvariants
+// and UnshareOperators.
 //
 //===----------------------------------------------------------------------===//
 
@@ -469,10 +470,23 @@ struct Slice {
   unsigned lo, w;
 };
 
-/// A slice as slices of values that are not concatenations or extracts.
+/// A slice as slices of values that are not concatenations, extracts or
+/// replications.
 inline void normalizeSlice(Slice s, llvm::SmallVectorImpl<Slice> &out) {
   if (auto e = s.v.getDefiningOp<comb::ExtractOp>())
     return normalizeSlice({e.getInput(), s.lo + e.getLowBit(), s.w}, out);
+  if (auto r = s.v.getDefiningOp<comb::ReplicateOp>()) {
+    // Bit i is bit i mod iw of the input: the slice is pieces of copies.
+    unsigned iw = widthOf(r.getInput());
+    if (!iw)
+      return out.push_back(s);
+    for (unsigned pos = s.lo, end = s.lo + s.w; pos < end;) {
+      unsigned lo = pos % iw, n = std::min(iw - lo, end - pos);
+      normalizeSlice({r.getInput(), lo, n}, out);
+      pos += n;
+    }
+    return;
+  }
   if (auto c = s.v.getDefiningOp<comb::ConcatOp>()) {
     unsigned pos = 0;
     for (auto input : llvm::reverse(c.getInputs())) {
@@ -485,6 +499,36 @@ inline void normalizeSlice(Slice s, llvm::SmallVectorImpl<Slice> &out) {
     return;
   }
   out.push_back(s);
+}
+
+/// Known bits of a slice under the facts, slice by slice (through
+/// concatenations, extracts and replications, and muxes whose condition is
+/// known), so that the depth of the evaluation counts from the atoms only.
+inline KnownBits knownSlice(Context &ctx, Slice s, unsigned level = 64) {
+  llvm::SmallVector<Slice> atoms;
+  normalizeSlice(s, atoms);
+  KnownBits result(s.w);
+  unsigned pos = 0;
+  for (auto atom : atoms) {
+    ctx.budget = ctx.budgetLimit;
+    KnownBits k = ctx.eval(atom.v, ctx.depth).extractBits(atom.w, atom.lo);
+    if (!k.isConstant() && level)
+      if (auto mux = atom.v.getDefiningOp<comb::MuxOp>()) {
+        ctx.budget = ctx.budgetLimit;
+        KnownBits c = ctx.eval(mux.getCond(), ctx.depth);
+        if (c.isConstant()) {
+          Value arm = c.getConstant().getBoolValue() ? mux.getTrueValue()
+                                                     : mux.getFalseValue();
+          KnownBits ka = knownSlice(ctx, {arm, atom.lo, atom.w}, level - 1);
+          KnownBits u = k.unionWith(ka);
+          if (!u.hasConflict())
+            k = u;
+        }
+      }
+    result.insertBits(k, pos);
+    pos += atom.w;
+  }
+  return result;
 }
 
 template <typename Same>

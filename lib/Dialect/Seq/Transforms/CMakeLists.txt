@@ -14,6 +14,7 @@ add_circt_dialect_library(CIRCTSeqTransforms
   RegisterBisimulation.cpp
   WordCongruence.cpp
   ContextSimplify.cpp
+  UnshareOperators.cpp
   TrimRegisters.cpp
   WordCorrespondence.cpp
 

@@ -460,4 +460,48 @@ def ContextSimplify : Pass<"comb-context-simplify", "hw::HWModuleOp"> {
   let dependentDialects = ["comb::CombDialect", "hw::HWDialect"];
 }
 
+def UnshareOperators : Pass<"comb-unshare-operators", "hw::HWModuleOp"> {
+  let summary = "Take the result of a shared operator from an equal one";
+  let description = [{
+    For a multiplier (or a division, modulo or shift; these only at equal
+    width and operand order) whose operands go through muxes, finds the
+    conditions on the mux selects under which its operands are those of another multiplier
+    of the module (typically the one a property is written with), and takes
+    the result from that multiplier under these conditions. Under an
+    assignment of the selects, operands are compared with the word-level
+    equality of comb-context-simplify (slice by slice through
+    concatenations, extracts and replications, following muxes whose
+    condition the assignment fixes), only on the low bits when the widths
+    differ. The rewrite is exact and is meant for formal backends: it undoes
+    resource sharing so the two multipliers become one after bit-blasting.
+    (In the Seq library for the known-bits transfer functions.)
+  }];
+  let dependentDialects = ["comb::CombDialect", "hw::HWDialect"];
+  let options = [
+    Option<"maxPaths", "max-paths", "unsigned", "64",
+           "Maximum number of select assignments tried per operator">,
+    Option<"widen", "widen", "bool", "true",
+           "When the other multiplier is narrower, take the high bits from "
+           "a copy of the shared one with mux-free operands, so the whole "
+           "result is replaced">,
+    Option<"foldCompare", "fold-compare", "bool", "true",
+           "Rewrite eq(mux(c, e, m), e) to c | eq(m, e) for the new result">,
+    Option<"isolate", "isolate", "bool", "true",
+           "Give the shared operator constant operands where its whole "
+           "result is taken from another one">
+  ];
+  let statistics = [
+    Statistic<"numUnshared", "num-unshared",
+              "Number of operators taking results from another one">,
+    Statistic<"numWidened", "num-widened",
+              "Number of copies made for the high bits of a narrower match">,
+    Statistic<"numFoldedCompares", "num-folded-compares",
+              "Number of comparisons with the other operator folded">,
+    Statistic<"numIsolated", "num-isolated",
+              "Number of operators with operands made constant where unused">,
+    Statistic<"numConditions", "num-conditions",
+              "Number of (operator, other operator) pairs rewritten">,
+  ];
+}
+
 #endif // CIRCT_DIALECT_SEQ_SEQPASSES
